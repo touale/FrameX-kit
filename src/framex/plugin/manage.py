@@ -1,0 +1,242 @@
+# Portions of this file are derived from NoneBot2:
+# https://github.com/nonebot/nonebot2/blob/82cdaccd188c986a4c5e9600c53d5705a8735259/nonebot/plugin/manager.py
+# Copyright (c) 2020 NoneBot Team
+# Licensed under the MIT License (see full license at the URL above).
+from __future__ import annotations
+
+import importlib
+import pkgutil
+import sys
+from collections import defaultdict
+from collections.abc import Sequence
+from importlib.abc import MetaPathFinder
+from importlib.machinery import PathFinder, SourceFileLoader
+from itertools import chain
+from pathlib import Path
+from types import ModuleType
+
+from framex.log import logger
+from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
+from framex.utils import escape_tag, path_to_module_name
+
+
+def _module_name_to_plugin_name(module_name: str) -> str:
+    return module_name.rsplit(".", 1)[-1]
+
+
+class PluginManager:
+    def __init__(self):
+        self._third_party_plugin_ids: dict[str, str] = {}
+        self._searched_plugin_ids: dict[str, str] = {}
+
+        self._plugins: dict[str, Plugin] = {}
+        self._plugin_apis: dict[ApiType, dict[str, PluginApi]] = defaultdict(dict)
+
+    @property
+    def all_plugin_apis(self) -> dict[ApiType, dict[str, PluginApi]]:
+        if not self._plugin_apis:
+            for plugin in self._plugins.values():
+                for dep in plugin.deployments:
+                    for api in dep.plugin_apis:
+                        api_name = f"{api.deployment_name}:{api.func_name}"
+                        self._plugin_apis[ApiType.FUNC][api_name] = api
+                        logger.opt(colors=True).success(f'Found plugin func api "<y>{api_name}</y>"')
+
+                        if api.api and (api.call_type == ApiType.HTTP or api.call_type == ApiType.ALL):
+                            self._plugin_apis[ApiType.HTTP][api.api] = api
+                            logger.opt(colors=True).success(f'Found plugin http api "<y>{api.api}</y>"')
+
+        return self._plugin_apis
+
+    @property
+    def http_plugin_apis(self) -> list[PluginApi]:
+        return list(self.all_plugin_apis[ApiType.HTTP].values())
+
+    @property
+    def func_plugin_apis(self) -> list[PluginApi]:
+        return list(self.all_plugin_apis[ApiType.FUNC].values())
+
+    @property
+    def controlled_modules(self) -> dict[str, str]:
+        return dict(chain(self._third_party_plugin_ids.items(), self._searched_plugin_ids.items()))
+
+    @property
+    def third_party_plugins(self) -> set[str]:
+        return set(self._third_party_plugin_ids.keys())
+
+    @property
+    def searched_plugins(self) -> set[str]:
+        return set(self._searched_plugin_ids.keys())
+
+    @property
+    def available_plugins(self) -> set[str]:
+        return self.third_party_plugins | self.searched_plugins
+
+    def _prepare_search_plugins(self, plugins_path: str | set[str]) -> set[str]:
+        self._plugin_apis = defaultdict(dict)
+        available_plugins = set()
+
+        if isinstance(plugins_path, str):
+            plugins_paths = {plugins_path}
+        else:
+            plugins_paths = plugins_path
+
+        # check plugins in search path
+        for module_info in pkgutil.iter_modules(plugins_paths):
+            # ignore if startswith "_"
+            if module_info.name.startswith("_"):
+                continue
+
+            if not (module_spec := module_info.module_finder.find_spec(module_info.name, None)):
+                continue
+
+            if not module_spec.origin:
+                continue
+
+            # get module name from path, pkgutil does not return the actual module name
+            module_path = Path(module_spec.origin).resolve()
+            module_name = path_to_module_name(module_path)
+            plugin_id = module_name.rsplit(".", 1)[-1]
+
+            if plugin_id in self._third_party_plugin_ids or plugin_id in self._searched_plugin_ids:
+                raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
+
+            self._searched_plugin_ids[plugin_id] = module_name
+            available_plugins.add(plugin_id)
+        return available_plugins
+
+    def load_plugin(self, plugins_path: str):
+        available_plugins = self._prepare_search_plugins(plugins_path)
+        for plugin in available_plugins:
+            self._load_plugin(plugin)
+
+    def _load_plugin(self, name: str):
+        try:
+            # load using plugin id
+            if name in self._third_party_plugin_ids:
+                module = importlib.import_module(self._third_party_plugin_ids[name])
+            elif name in self._searched_plugin_ids:
+                module = importlib.import_module(self._searched_plugin_ids[name])
+            # load using module name
+            elif name in self._third_party_plugin_ids.values() or name in self._searched_plugin_ids.values():
+                module = importlib.import_module(name)
+            else:
+                raise RuntimeError(f"Plugin not found: {name}! Check your plugin name")
+
+            if (plugin := getattr(module, "__plugin__", None)) is None or not isinstance(plugin, Plugin):
+                raise RuntimeError(
+                    f"Module {module.__name__} is not loaded as a plugin! Make sure not to import it before loading."
+                )
+
+            logger.opt(colors=True).success(
+                f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>"'
+                + (f' from "<m>{escape_tag(plugin.module_name)}</m>"' if plugin.module_name != plugin.name else "")
+            )
+            return plugin
+        except Exception as e:
+            logger.opt(colors=True, exception=e).error(
+                f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>'
+            )
+
+    def new_plugin(
+        self,
+        module_name: str,
+        module: ModuleType,
+    ) -> Plugin:
+        plugin_id = _module_name_to_plugin_name(module_name)
+        if plugin_id in self._plugins:
+            raise RuntimeError(f"Plugin {plugin_id} already exists! Check your plugin name.")
+
+        plugin = Plugin(
+            name=plugin_id,
+            module=module,
+            module_name=module_name,
+        )
+
+        self._plugins[plugin_id] = plugin
+        return plugin
+
+    def revert_plugin(self, plugin: Plugin) -> None:
+        if plugin.name not in self._plugins:
+            raise RuntimeError("Plugin not found!")
+        del self._plugins[plugin.name]
+
+    def get_api(self, api_name: str) -> PluginApi | None:
+        if api_name.startswith("/"):
+            api = self.all_plugin_apis[ApiType.HTTP].get(api_name)
+        else:
+            api = self.all_plugin_apis[ApiType.FUNC].get(api_name)
+        return api
+
+
+class PluginFinder(MetaPathFinder):
+    def find_spec(
+        self,
+        fullname: str,
+        path: Sequence[str] | None,
+        target: ModuleType | None = None,
+    ):
+        from . import _manager
+
+        if _manager:
+            module_spec = PathFinder.find_spec(fullname, path, target)
+            if not module_spec:
+                return None
+            module_origin = module_spec.origin
+            if not module_origin:
+                return None
+
+            if fullname in _manager.controlled_modules.values():
+                module_spec.loader = PluginLoader(fullname, module_origin)
+                return module_spec
+        return None
+
+
+class PluginLoader(SourceFileLoader):
+    def __init__(self, fullname: str, path: str) -> None:
+        self.loaded = False
+        super().__init__(fullname, path)
+
+    def create_module(self, spec) -> ModuleType | None:
+        if self.name in sys.modules:
+            self.loaded = True
+            return sys.modules[self.name]
+        return super().create_module(spec)
+
+    def exec_module(self, module: ModuleType) -> None:
+        if self.loaded:
+            return
+
+        from . import _manager
+
+        # create plugin before executing
+        plugin = _manager.new_plugin(
+            self.name,
+            module,
+        )
+
+        setattr(module, "__plugin__", plugin)  # noqa
+
+        # enter plugin context
+        from . import _current_plugin
+
+        _plugin_token = _current_plugin.set(plugin)
+
+        try:
+            super().exec_module(module)
+        except Exception:
+            _manager.revert_plugin(plugin)
+            raise
+        finally:
+            # leave plugin context
+            _current_plugin.reset(_plugin_token)
+
+        # get plugin metadata
+        metadata: PluginMetadata | None = getattr(module, "__plugin_meta__", None)
+        plugin.metadata = metadata
+
+        return
+
+
+# Insert a custom plugin module finder into the front of the Python import system to intercept and load plugin modules
+sys.meta_path.insert(0, PluginFinder())

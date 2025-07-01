@@ -1,0 +1,39 @@
+[project]
+name = "framex"
+version = "0.1.0"
+description = "A lightweight plugin injection framework for Python."
+readme = "README.md"
+authors = [{ name = "touale", email = "touale@local.com" }]
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.13",
+  "loguru>=0.7.3",
+  "pydantic>=2.11.7",
+  "pytz>=2025.2",
+  "ray[serve]>=2.47.1",
+]
+
+[project.scripts]
+framex = "framex:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.16.1",
+  "pre-commit>=4.2.0",
+  "ruff==0.12.0",
+  "types-pytz>=2025.2.0.20250516",
+]
+
+
+[tool.uv]
+default-groups = []
+
+[[tool.uv.index]]
+name = "custom-repo"
+url = "https://pypi.org/simple"
+publish-url = "https://upload.pypi.org/legacy/"
+default = true
