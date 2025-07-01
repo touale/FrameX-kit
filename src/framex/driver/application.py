@@ -14,7 +14,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from framex import __version__
+from framex.consts import API_STR, PROJECT_NAME, VERSION
 
 
 def create_fastapi_application() -> FastAPI:
@@ -32,9 +32,9 @@ def create_fastapi_application() -> FastAPI:
         yield
 
     application = FastAPI(
-        title="123",
+        title=PROJECT_NAME,
         debug=False,
-        version=__version__,
+        version=VERSION,
         openapi_url="/api/v1/openapi.json",
         lifespan=lifespan,
     )
@@ -64,7 +64,7 @@ def create_fastapi_application() -> FastAPI:
     async def log_response(request: Request, call_next):
         response = await call_next(request)
         if (
-            not request.url.path.startswith("/api")
+            not request.url.path.startswith(API_STR)
             or request.url.path in ["/docs", "/api/v1/openapi.json"]
             or b"text/event-stream; charset=utf-8" in response.raw_headers[0]
         ):

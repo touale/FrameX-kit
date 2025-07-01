@@ -2,6 +2,7 @@ import inspect
 
 from ray import serve
 
+from framex.consts import API_STR
 from framex.log import logger
 from framex.plugin.model import ApiType, PluginApi, PluginDeployment
 from framex.utils import escape_tag, extract_method_params, plugin_to_deployment_name
@@ -23,15 +24,17 @@ def on_register(**kwargs):
             for name, func in inspect.getmembers(cls):
                 if getattr(func, "_on_request", False):
                     call_type = func.__expose__call_type
+                    path = func.__expose_path__
 
-                    if not func.__expose_path__:
+                    if not path:
                         call_type = ApiType.FUNC
+                    elif not path.startswith(API_STR):
+                        path = f"{API_STR}{path}" if path.startswith("/") else f"{API_STR}/{path}"
 
                     params = extract_method_params(func)
-
                     plugin_apis.append(
                         PluginApi(
-                            api=func.__expose_path__,
+                            api=path,
                             deployment_name=tag,
                             func_name=name,
                             methods=func.__expose_methods_,
@@ -45,7 +48,7 @@ def on_register(**kwargs):
             plugin.deployments.append(deployment)
 
             logger.opt(colors=True).success(
-                f'Found deploment "<y>{escape_tag(kwargs["name"])}</y>"'
+                f'Found deploment "<m>{escape_tag(kwargs["name"])}</m>"'
                 + (f' from "<m>{escape_tag(plugin.module_name)}</m>"' if plugin.module_name != plugin.name else "")
             )
 
@@ -61,7 +64,6 @@ def on_request(
 ):
     def wrapper(func):
         func._on_request = True
-
         func.__expose_path__ = path
         func.__expose_methods_ = methods
         func.__expose__call_type = call_type

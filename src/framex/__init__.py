@@ -1,6 +1,3 @@
-__version__ = "v1.0"
-
-
 from ray import serve
 
 from framex.driver import APIIngress
@@ -24,7 +21,16 @@ def run():
     )
 
 
-from framex.plugin import BasePlugin, PluginApi, PluginMetadata, call_remote_api, load_plugin, on_register, on_request
+from framex.plugin import (
+    BasePlugin,
+    PluginApi,
+    PluginMetadata,
+    call_remote_api,
+    load_builtin_plugin,
+    load_plugins,
+    on_register,
+    on_request,
+)
 
 __all__ = [
     "APIIngress",
@@ -32,7 +38,8 @@ __all__ = [
     "PluginApi",
     "PluginMetadata",
     "call_remote_api",
-    "load_plugin",
+    "load_builtin_plugin",
+    "load_plugins",
     "on_register",
     "on_request",
 ]

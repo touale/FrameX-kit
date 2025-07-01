@@ -62,8 +62,16 @@ class BasePlugin:
         return await call_remote_api(api, **kwargs)
 
 
-from .load import load_plugin
+from .load import load_builtin_plugin, load_plugins
 from .model import ApiType, PluginApi, PluginMetadata
 from .on import on_register, on_request
 
-__all__ = ["ApiType", "PluginApi", "PluginMetadata", "load_plugin", "on_register", "on_request"]
+__all__ = [
+    "ApiType",
+    "PluginApi",
+    "PluginMetadata",
+    "load_builtin_plugin",
+    "load_plugins",
+    "on_register",
+    "on_request",
+]

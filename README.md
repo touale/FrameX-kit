@@ -84,6 +84,6 @@ class MyPlugin(BasePlugin):
 
 import framex
 
-framex.load_plugin("src/plugin_demo/plugins")
+framex.load_plugins("src/plugin_demo/plugins")
 framex.run()
 ```

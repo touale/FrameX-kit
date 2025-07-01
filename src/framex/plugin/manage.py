@@ -8,7 +8,7 @@ import importlib
 import pkgutil
 import sys
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from importlib.abc import MetaPathFinder
 from importlib.machinery import PathFinder, SourceFileLoader
 from itertools import chain
@@ -40,7 +40,7 @@ class PluginManager:
                     for api in dep.plugin_apis:
                         api_name = f"{api.deployment_name}:{api.func_name}"
                         self._plugin_apis[ApiType.FUNC][api_name] = api
-                        logger.opt(colors=True).success(f'Found plugin func api "<y>{api_name}</y>"')
+                        logger.opt(colors=True).success(f'Found plugin func api "<m>{api_name}</m>"')
 
                         if api.api and (api.call_type == ApiType.HTTP or api.call_type == ApiType.ALL):
                             self._plugin_apis[ApiType.HTTP][api.api] = api
@@ -72,17 +72,27 @@ class PluginManager:
     def available_plugins(self) -> set[str]:
         return self.third_party_plugins | self.searched_plugins
 
-    def _prepare_search_plugins(self, plugins_path: str | set[str]) -> set[str]:
+    def _prepare_plugins(self, plugins_path: set[str]):
         self._plugin_apis = defaultdict(dict)
-        available_plugins = set()
 
-        if isinstance(plugins_path, str):
-            plugins_paths = {plugins_path}
-        else:
-            plugins_paths = plugins_path
+        searched_plugins = set()
+        third_party_plugins = set()
+
+        for plugin_path in plugins_path:
+            if "/" in plugin_path:
+                searched_plugins.add(plugin_path)
+            if "." in plugin_path:
+                third_party_plugins.add(plugin_path)
+
+        # check third party plugins
+        for plugin in third_party_plugins:
+            plugin_id = _module_name_to_plugin_name(plugin)
+            if plugin_id in self._third_party_plugin_ids:
+                raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
+            self._third_party_plugin_ids[plugin_id] = plugin
 
         # check plugins in search path
-        for module_info in pkgutil.iter_modules(plugins_paths):
+        for module_info in pkgutil.iter_modules(searched_plugins):
             # ignore if startswith "_"
             if module_info.name.startswith("_"):
                 continue
@@ -102,15 +112,16 @@ class PluginManager:
                 raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
 
             self._searched_plugin_ids[plugin_id] = module_name
-            available_plugins.add(plugin_id)
-        return available_plugins
 
-    def load_plugin(self, plugins_path: str):
-        available_plugins = self._prepare_search_plugins(plugins_path)
-        for plugin in available_plugins:
-            self._load_plugin(plugin)
+    def load_all_plugin(self, plugins_path: Iterable[str]) -> set[Plugin]:
+        plugins_path = set(plugins_path or [])
+        self._prepare_plugins(plugins_path)
+        return set(filter(None, (self._load_plugin(name) for name in self.available_plugins)))
 
-    def _load_plugin(self, name: str):
+    def _load_plugin(self, name: str) -> Plugin | None:
+        if name in self._plugins:
+            return None
+
         try:
             # load using plugin id
             if name in self._third_party_plugin_ids:
@@ -132,11 +143,12 @@ class PluginManager:
                 f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>"'
                 + (f' from "<m>{escape_tag(plugin.module_name)}</m>"' if plugin.module_name != plugin.name else "")
             )
-            return plugin
+            return plugin  # type: ignore
         except Exception as e:
             logger.opt(colors=True, exception=e).error(
                 f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>'
             )
+            return None
 
     def new_plugin(
         self,
