@@ -1,0 +1,46 @@
+stages:
+  - test
+
+variables:
+  # ci
+  CI_TEMPLATE_REGISTRY_HOST: "docker.io"
+
+  # cache config
+  APT_CACHE_DIR: "$CI_PROJECT_DIR/apt"
+  KANIKO_CACHE_DIR: "$CI_PROJECT_DIR/kaniko"
+
+  # pip config
+  PIP_TIMEOUT: 30
+  PIP_RETRIES: 5
+  PIP_TRUSTED_HOST: ""
+
+  # uv config
+  UV_VERSION: 0.5
+  PYTHON_VERSION: 3.11
+  UV_LINK_MODE: copy
+  UV_FROZEN: true
+
+.base_job_template: &base_job_template
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+  tags:
+    - "k8s_runner_persionnel_matching"
+  before_script:
+    - mkdir -p "$APT_CACHE_DIR/partial"
+
+.python_env_build_template: &python_env_build_template
+  <<: *base_job_template
+  image: docker.io/astral-sh/uv:0.5-python3.11-bookworm-slim
+  script:
+    - echo "Start building python env"
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+secret_detection:
+  rules:
+    - if: "$CI_COMMIT_MESSAGE =~ /^v/ || $CI_COMMIT_TAG"
+      when: never
+    - if: "$CI_COMMIT_BRANCH"

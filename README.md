@@ -28,28 +28,62 @@ ______________________________________________________________________
 ## 🚀 Quick Example
 
 ```python
+# src/plugin_demo/plugins/my_plugin/__init__.py
+from pydantic import BaseModel
+
+from framex import PluginMetadata, logger, on_register, BasePlugin, PluginApi
+from framex.plugin.model import ApiType
+from framex.plugin.on import on_request
+
+__plugin_meta__ = PluginMetadata(
+    name="yuan shen plugin",
+    version="1.0",
+    description="my_plugin description",
+    author="yuan shen zhen hao wan",
+    url="https://github.com/yuan shen",
+    required_remote_apis=["echo:Deployment:__call__", "/api/v1/get_version"],
+)
+
+
 class RequestModel(BaseModel):
     message: str
     id: str
 
 
-@on_register()
+@on_register(num_replicas=1)
 class MyPlugin(BasePlugin):
     def __init__(self, remote_apis: dict[str, PluginApi]):
         super().__init__(remote_apis)
 
-    @on_request(call_type=ApiType.FUNC)
+    @on_request(
+        call_type=ApiType.FUNC
+    )  # Expose your own remote function for others to call
     async def __call__(self, data: dict):
         return {"echo": data}
 
-    @on_request("/health", methods=["GET"], call_type=ApiType.HTTP)
+    @on_request(
+        "/health",
+        methods=["GET", "POST"],
+        call_type=ApiType.HTTP,  # Expose your own remote http api and function for others to call
+    )
     async def health_check(self):
         return {"status": "ok"}
 
     @on_request("/call_remote_plugin", methods=["POST"])
     async def health_check(self, model: MyBaseModel):
-        return await self._call_remote_api(
+        return await self._call_remote_api(  # Call other people's plugins
             "echo:Deployment:__call__",
-            model=RequestModel(message="hello", id="1").model_dump(),
+            model=model,
         )
+
+    ...
+```
+
+```python
+# src/plugin_demo/main.py
+
+import framex
+
+framex.load_plugin("src/plugin_demo/plugins")
+framex.run()
 ```
