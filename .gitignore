@@ -10,4 +10,6 @@ wheels/
 .venv
 .vscode
 
+.history
+
 src/**demo

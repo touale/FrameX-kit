@@ -1,5 +1,7 @@
 import inspect
+from typing import get_type_hints
 
+from pydantic import BaseModel
 from ray import serve
 
 from framex.consts import API_STR
@@ -63,6 +65,20 @@ def on_request(
     call_type: ApiType = ApiType.ALL,
 ):
     def wrapper(func):
+        type_hints = get_type_hints(func, include_extras=True)
+        sig = inspect.signature(func)
+
+        base_model_params = [
+            name
+            for name, param in sig.parameters.items()
+            if name != "self" and isinstance(type_hints.get(name), type) and issubclass(type_hints[name], BaseModel)
+        ]
+
+        if len(base_model_params) > 1:
+            raise TypeError(
+                f"@on_request({path!r}) allows only one BaseModel parameter, but found {len(base_model_params)}: {base_model_params}"
+            )
+
         func._on_request = True
         func.__expose_path__ = path
         func.__expose_methods_ = methods
