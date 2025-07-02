@@ -2,7 +2,7 @@
 
 
 from contextvars import ContextVar
-from typing import Optional, final
+from typing import Optional
 
 from ray import serve
 from ray.serve.handle import DeploymentHandle
@@ -46,28 +46,14 @@ async def call_remote_api(api: PluginApi, **kwargs):
     return await c_handle.remote(**kwargs)
 
 
-class BasePlugin:
-    """Base class for all plugins"""
-
-    def __init__(self, remote_apis: dict[str, "PluginApi"]):
-        self.remote_apis = remote_apis
-
-    @final
-    async def _call_remote_api(self, api_name: str, **kwargs):
-        if not (api := self.remote_apis.get(api_name)):
-            raise RuntimeError(
-                f"API {api_name} is not required by this plugin, current plugins: {self.remote_apis.keys()}"
-            )
-
-        return await call_remote_api(api, **kwargs)
-
-
+from .base_plugin import BasePlugin
 from .load import load_builtin_plugin, load_plugins
 from .model import ApiType, PluginApi, PluginMetadata
 from .on import on_register, on_request
 
 __all__ = [
     "ApiType",
+    "BasePlugin",
     "PluginApi",
     "PluginMetadata",
     "load_builtin_plugin",
