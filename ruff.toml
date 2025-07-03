@@ -1,6 +1,6 @@
 target-version = "py311"
 line-length = 119
-
+respect-gitignore = true
 exclude = [
   ".bzr",
   ".direnv",
@@ -31,7 +31,6 @@ exclude = [
 ]
 
 [lint]
-
 extend-select = [
   "C",     # Complexity
   "E",     # PEP8 errors
@@ -58,20 +57,20 @@ extend-select = [
   "PERF",  # Perflint
 ]
 ignore = [
-  #    "C901", # Function too complex
+  # "C901", # Function too complex
   "E501",  # Line length (handled by ruff-format)
   "UP007", # X | Y style Unions
   "B008",  # Do not perform function calls in argument defaults
   "PT006", # Ignore pytest.mark.parametrize
-  #    "PT011", # Ignore `pytest.raises(ValueError)` is too broad
-  #    "D203", # one-blank-line-before-class
-  #    "D212", # multi-line-summary-first-line
+  # "PT011", # Ignore `pytest.raises(ValueError)` is too broad
+  # "D203", # one-blank-line-before-class
+  # "D212", # multi-line-summary-first-line
   "ERA001",
-  #    "W291",
+  # "W291",
   "RUF001",
   "RET504",
   "SIM108",
-  #    "PT009",
+  # "PT009",
   "RUF003",
   "PTH123",
   "PTH113",
@@ -90,14 +89,13 @@ ignore = [
   "E402",   # Module level import not at top of file
 ]
 
+[lint.flake8-builtins]
+builtins-ignorelist = ["input", "id", "bytes", "type"]
+
 [lint.isort]
 force-wrap-aliases = true
 combine-as-imports = true
 split-on-trailing-comma = true
-
-
-[lint.flake8-builtins]
-builtins-ignorelist = ["input", "id", "bytes", "type"]
 
 [lint.pydocstyle]
 convention = "numpy"
