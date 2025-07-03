@@ -1,3 +1,4 @@
+import asyncio
 from typing import final
 
 from pydantic import BaseModel
@@ -11,6 +12,10 @@ class BasePlugin:
 
     def __init__(self, remote_apis: dict[str, "PluginApi"]):
         self.remote_apis = remote_apis
+        asyncio.create_task(self.on_start())  # noqa
+
+    async def on_start(self):
+        pass
 
     @final
     async def _call_remote_api(self, api_name: str, **kwargs):

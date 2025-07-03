@@ -67,19 +67,23 @@ def create_fastapi_application() -> FastAPI:
             not request.url.path.startswith(API_STR)
             or request.url.path in ["/docs", "/api/v1/openapi.json"]
             or b"text/event-stream; charset=utf-8" in response.raw_headers[0]
+            or response.headers.get("X-Raw-Output", "False") == "True"
         ):
             return response
 
         response_body = [chunk async for chunk in response.body_iterator]
         response.body_iterator = iterate_in_threadpool(iter(response_body))
         response_body = json.loads(response_body[0].decode())
+
+        timestamp = pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+
         if isinstance(response_body, dict) and response_body.get("is_middleware_error", False):
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content={
                     "status": response_body["status"],
                     "message": response_body["message"],
-                    "timestamp": pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
+                    "timestamp": timestamp,
                 },
             )
         return JSONResponse(
@@ -87,7 +91,7 @@ def create_fastapi_application() -> FastAPI:
             content={
                 "status": response.status_code,
                 "message": "success",
-                "timestamp": pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
+                "timestamp": timestamp,
                 "data": response_body,
             },
         )

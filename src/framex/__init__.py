@@ -22,7 +22,6 @@ def run():
 
 
 from framex.plugin import (
-    BasePlugin,
     PluginApi,
     PluginMetadata,
     call_remote_api,

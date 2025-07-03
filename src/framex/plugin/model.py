@@ -27,8 +27,8 @@ class PluginApi(BaseModel):
     api: str | None = None
     deployment_name: str
     func_name: str
-    methods: list[str]
-    params: list[tuple[str, type]]
+    methods: list[str] = ["POST"]
+    params: list[tuple[str, type]] = []
     call_type: ApiType = ApiType.HTTP
 
 
@@ -43,6 +43,7 @@ class Plugin:
     name: str
     module: ModuleType
     module_name: str
+    data_dir: str | None = None
     metadata: PluginMetadata | None = None
     deployments: list[PluginDeployment] = field(default_factory=list)
 

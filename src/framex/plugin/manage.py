@@ -4,6 +4,7 @@
 # Licensed under the MIT License (see full license at the URL above).
 from __future__ import annotations
 
+import hashlib
 import importlib
 import pkgutil
 import sys
@@ -39,12 +40,19 @@ class PluginManager:
                 for dep in plugin.deployments:
                     for api in dep.plugin_apis:
                         api_name = f"{api.deployment_name}:{api.func_name}"
-                        self._plugin_apis[ApiType.FUNC][api_name] = api
-                        logger.opt(colors=True).success(f'Found plugin func api "<m>{api_name}</m>"')
+                        is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
+                        is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
 
-                        if api.api and (api.call_type == ApiType.HTTP or api.call_type == ApiType.ALL):
-                            self._plugin_apis[ApiType.HTTP][api.api] = api
-                            logger.opt(colors=True).success(f'Found plugin http api "<y>{api.api}</y>"')
+                        if api.api:
+                            if is_func:
+                                self._plugin_apis[ApiType.FUNC][api_name] = api
+                                logger.opt(colors=True).success(
+                                    f'Found plugin FUNC API "<y>{api_name}</y>" from {plugin.module_name}'
+                                )
+
+                            if is_http:
+                                self._plugin_apis[ApiType.HTTP][api.api] = api
+                                logger.opt(colors=True).success(f'Found plugin HTTP API "<y>{api.api}</y>"')
 
         return self._plugin_apis
 
@@ -139,9 +147,14 @@ class PluginManager:
                     f"Module {module.__name__} is not loaded as a plugin! Make sure not to import it before loading."
                 )
 
+            # Mkdir data dir for plugin
+            hash_val = hashlib.md5(str(module).encode()).hexdigest()[:4]
+            data_dir = Path.cwd() / "data" / f"{name}@{hash_val}"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            plugin.data_dir = data_dir
+
             logger.opt(colors=True).success(
-                f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>"'
-                + (f' from "<m>{escape_tag(plugin.module_name)}</m>"' if plugin.module_name != plugin.name else "")
+                f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>" from {plugin.module_name}'
             )
             return plugin  # type: ignore
         except Exception as e:

@@ -49,9 +49,8 @@ def on_register(**kwargs):
             deployment = PluginDeployment(plugin_apis=plugin_apis, deployment=cls)
             plugin.deployments.append(deployment)
 
-            logger.opt(colors=True).success(
-                f'Found deploment "<m>{escape_tag(kwargs["name"])}</m>"'
-                + (f' from "<m>{escape_tag(plugin.module_name)}</m>"' if plugin.module_name != plugin.name else "")
+            logger.opt(colors=True).debug(
+                f'Found deploment "<m>{escape_tag(kwargs["name"])}</m> " from {plugin.module_name}'
             )
 
         return cls
@@ -70,7 +69,7 @@ def on_request(
 
         base_model_params = [
             name
-            for name, param in sig.parameters.items()
+            for name in sig.parameters.keys()
             if name != "self" and isinstance(type_hints.get(name), type) and issubclass(type_hints[name], BaseModel)
         ]
 
@@ -78,6 +77,9 @@ def on_request(
             raise TypeError(
                 f"@on_request({path!r}) allows only one BaseModel parameter, but found {len(base_model_params)}: {base_model_params}"
             )
+
+        if not path and call_type in [ApiType.HTTP, ApiType.ALL]:
+            raise TypeError(f"@on_request({path!r}) requires a path when call_type is {call_type}")
 
         func._on_request = True
         func.__expose_path__ = path

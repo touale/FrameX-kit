@@ -7,6 +7,7 @@ from typing import Optional
 from ray import serve
 from ray.serve.handle import DeploymentHandle
 
+from framex.consts import APP_NAME
 from framex.plugin.manage import PluginManager
 from framex.plugin.model import Plugin, PluginApi
 
@@ -38,7 +39,7 @@ def get_http_plugin_apis() -> list["PluginApi"]:
 
 
 async def call_remote_api(api: PluginApi, **kwargs):
-    handle: DeploymentHandle = serve.get_deployment_handle(api.deployment_name, app_name="default")
+    handle: DeploymentHandle = serve.get_deployment_handle(api.deployment_name, app_name=APP_NAME)
     c_handle = getattr(handle, api.func_name)
     if not c_handle:
         raise RuntimeError(f"No handle found for func_name({api.func_name})")
@@ -46,7 +47,7 @@ async def call_remote_api(api: PluginApi, **kwargs):
     return await c_handle.remote(**kwargs)
 
 
-from .base_plugin import BasePlugin
+from .base import BasePlugin
 from .load import load_builtin_plugin, load_plugins
 from .model import ApiType, PluginApi, PluginMetadata
 from .on import on_register, on_request
