@@ -29,7 +29,7 @@ def get_all_deployments() -> list[DeploymentHandle]:
                 for plugin_name in plugin.required_remote_apis
                 if (api := _manager.get_api(plugin_name))
             }
-            deployments.append(dep.deployment.bind(remote_apis=remote_apis))
+            deployments.append(dep.deployment.bind(remote_apis=remote_apis, config=plugin.config))
 
     return deployments
 

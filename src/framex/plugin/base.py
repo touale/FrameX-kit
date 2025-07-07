@@ -10,8 +10,8 @@ from framex.plugin.model import PluginApi
 class BasePlugin:
     """Base class for all plugins"""
 
-    def __init__(self, remote_apis: dict[str, "PluginApi"]):
-        self.remote_apis = remote_apis
+    def __init__(self, **kwargs):
+        self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
         asyncio.create_task(self.on_start())  # noqa
 
     async def on_start(self):

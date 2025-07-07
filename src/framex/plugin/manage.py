@@ -16,6 +16,9 @@ from itertools import chain
 from pathlib import Path
 from types import ModuleType
 
+from pydantic import BaseModel
+
+from framex.config import settings
 from framex.log import logger
 from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
 from framex.utils import escape_tag, path_to_module_name
@@ -152,6 +155,15 @@ class PluginManager:
             data_dir = Path.cwd() / "data" / f"{name}@{hash_val}"
             data_dir.mkdir(parents=True, exist_ok=True)
             plugin.data_dir = data_dir
+
+            # load config
+            if (
+                plugin.metadata.config_class
+                and isinstance(plugin.metadata.config_class, type)
+                and issubclass(plugin.metadata.config_class, BaseModel)
+                and (cfg := settings.plugins.get(name))
+            ):
+                plugin.config = plugin.metadata.config_class(**cfg)
 
             logger.opt(colors=True).success(
                 f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>" from {plugin.module_name}'

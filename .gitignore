@@ -13,3 +13,6 @@ wheels/
 .history
 
 src/**demo
+
+# Config
+config.toml

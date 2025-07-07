@@ -7,6 +7,7 @@ from framex.consts import APP_NAME, BACKEND_NAME, VERSION
 from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, call_remote_api, on_register
 from framex.plugins.proxy.builder import type_map
+from framex.plugins.proxy.config import ProxyPluginConfig
 from plugin_demo.plugins.aaa.t import build_pydantic_model
 
 __plugin_meta__ = PluginMetadata(
@@ -16,18 +17,23 @@ __plugin_meta__ = PluginMetadata(
     author="touale",
     url="https://github.com/touale/FrameX-kit",
     required_remote_apis=[],
+    config_class=ProxyPluginConfig,
 )
 
 
 @on_register()
 class ProxyPlugin(BasePlugin):
-    def __init__(self, remote_apis: dict[str, PluginApi]):
-        self.urls = ["http://172.22.121.63:31617"]
+    def __init__(self, config: ProxyPluginConfig, **kwargs):
+        super().__init__(**kwargs)
+
+        self.config = config
+        self.urls = self.config.proxy_urls
         self._client = httpx.AsyncClient(timeout=600)
 
-        super().__init__(remote_apis)
-
     async def on_start(self):
+        if not self.urls:
+            logger.warning("No url provided, skipping proxy plugin")
+            return
         for url in self.urls:
             await self._parse_openai_docs(url)
         logger.success(f"Succeeded to parse openai docs form {url}")
@@ -67,7 +73,7 @@ class ProxyPlugin(BasePlugin):
                     Model = build_pydantic_model(schema_name, model_schema, components)  # noqa
                     params.append(("request", Model))
 
-                logger.opt(colors=True).debug(f"Found proxy api({method}) <y>{path}</y>, params: {params}")
+                logger.opt(colors=True).info(f"Found proxy api({method}) <y>{url}{path}</y>")
 
                 func_name = body.get("operationId")
                 func = self._create_dynamic_method(func_name, method, params, f"{url}{path}")

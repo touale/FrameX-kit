@@ -15,6 +15,7 @@ class PluginMetadata(BaseModel):
     required_remote_apis: list[str] = Field([], description="The list of required plugins")
     priority: int = Field(0, description="The priority of the plugin")
     tags: list[str] = Field([], description="The tags of the plugin")
+    config_class: type[BaseModel] | None = None
 
 
 class ApiType(StrEnum):
@@ -46,6 +47,7 @@ class Plugin:
     data_dir: str | None = None
     metadata: PluginMetadata | None = None
     deployments: list[PluginDeployment] = field(default_factory=list)
+    config: BaseModel | None = None
 
     @property
     def required_remote_apis(self) -> list[str]:

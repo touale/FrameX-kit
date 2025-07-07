@@ -1,5 +1,5 @@
 from framex.consts import VERSION
-from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register, on_request
+from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
 
 __plugin_meta__ = PluginMetadata(
     name="echo",
@@ -13,8 +13,8 @@ __plugin_meta__ = PluginMetadata(
 
 @on_register()
 class EchoPlugin(BasePlugin):
-    def __init__(self, remote_apis: dict[str, PluginApi]):
-        super().__init__(remote_apis)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     @on_request("/echo", methods=["GET"])
     async def __call__(self, message: str):
