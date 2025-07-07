@@ -20,32 +20,29 @@ variables:
   UV_LINK_MODE: copy
   UV_FROZEN: true
 
-.base_job_template: &base_job_template
+.base_test_job_template: &base_test_job_template
   retry:
     max: 2
     when:
       - runner_system_failure
+  stage: test
   tags:
     - "k8s_runner_persionnel_matching"
+  rules:
+    - if: "$CI_COMMIT_MESSAGE =~ /^v/ || $CI_COMMIT_TAG"
+      when: never
+    - if: "$CI_COMMIT_BRANCH"
+
 
 include:
   - template: Security/Secret-Detection.gitlab-ci.yml
 
 secret_detection:
-  <<: *base_job_template 
-  rules:
-    - if: "$CI_COMMIT_MESSAGE =~ /^v/ || $CI_COMMIT_TAG"
-      when: never
-    - if: "$CI_COMMIT_BRANCH"
-
+  <<: *base_test_job_template 
+  
 check-pre-commit:
-  <<: *base_job_template 
+  <<: *base_test_job_template 
   image: ${CI_TEMPLATE_REGISTRY_HOST}/library/python:3.11-slim
-  stage: test
-  rules:
-    - if: "$CI_COMMIT_MESSAGE =~ /^v/ || $CI_COMMIT_TAG"
-      when: never
-    - if: "$CI_COMMIT_BRANCH"
   before_script:
       - |
         rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d && \
@@ -57,8 +54,22 @@ check-pre-commit:
   script:
     - pip install pre-commit==4.2.0 -i https://pypi.org/simple
     - |
-      pre-commit run --all-files || {
-        echo -e "\n❌ pre-commit failed. Showing diff:\n"
-        git diff
-        exit 1
-      }
+      pre-commit run --all-files --show-diff-on-failure
+
+test-project:
+  <<: *base_test_job_template
+  image: ${CI_TEMPLATE_REGISTRY_HOST}/gzhu/astral-sh/uv:0.5-python3.11-bookworm-slim
+  cache:
+    key: ${CI_PROJECT_ID}-test-cache
+    paths:
+      - "${CI_PROJECT_DIR}/tests/api/cassettes"
+  script:
+    - uv sync --group dev
+
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: cov.xml
+      junit: report.xml
