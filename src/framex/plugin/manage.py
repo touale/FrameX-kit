@@ -27,10 +27,10 @@ from framex.utils import escape_tag, path_to_module_name
 
 @cache
 def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:
-    hash_val = hashlib.md5(module_name).hexdigest()[:4]  # noqa
+    hash_val = hashlib.md5(module_name.encode("utf-8")).hexdigest()[:4]  # noqa
     data_dir = Path.cwd() / "data" / f"{plugin_name}@{hash_val}"
     data_dir.mkdir(parents=True, exist_ok=True)
-    return data_dir
+    return str(data_dir)
 
 
 def _module_name_to_plugin_name(module_name: str) -> str:
@@ -160,7 +160,7 @@ class PluginManager:
                 )
 
             # Mkdir data dir for plugin
-            plugin.data_dir = _get_plugin_data_dir(str(module).encode(), name)
+            plugin.data_dir = _get_plugin_data_dir(str(module), name)
 
             # load config
             if (

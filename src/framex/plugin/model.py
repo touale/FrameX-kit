@@ -22,12 +22,13 @@ class ApiType(StrEnum):
     FUNC = "func"
     HTTP = "http"
     ALL = "all"
+    PROXY = "proxy"
 
 
 class PluginApi(BaseModel):
     api: str | None = None
     deployment_name: str
-    func_name: str
+    func_name: str = "__call__"
     methods: list[str] = ["POST"]
     params: list[tuple[str, type]] = []
     call_type: ApiType = ApiType.HTTP

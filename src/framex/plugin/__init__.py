@@ -4,7 +4,9 @@ from typing import Any, Optional
 from ray import serve
 from ray.serve.handle import DeploymentHandle
 
-from framex.consts import APP_NAME
+from framex.config import settings
+from framex.consts import APP_NAME, PROXY_PLUGIN_NAME
+from framex.log import logger
 from framex.plugin.manage import PluginManager
 from framex.plugin.model import Plugin, PluginApi
 
@@ -22,10 +24,21 @@ def get_all_deployments() -> list[DeploymentHandle]:
     for plugin in get_loaded_plugins():
         for dep in plugin.deployments:
             remote_apis = {
-                plugin_name: api
-                for plugin_name in plugin.required_remote_apis
-                if (api := _manager.get_api(plugin_name))
+                api_name: api for api_name in plugin.required_remote_apis if (api := _manager.get_api(api_name))
             }
+            for api_name in plugin.required_remote_apis:
+                if api_name in remote_apis:
+                    continue
+
+                if (not api_name.startswith("/")) and not settings.enable_proxy:
+                    raise RuntimeError(f"Required remote api({api_name}) not found")
+
+                remote_apis[api_name] = PluginApi(
+                    api=api_name,
+                    deployment_name=PROXY_PLUGIN_NAME,
+                    call_type=ApiType.PROXY,
+                )
+                logger.warning(f"Api({api_name}) not found, use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!")
             deployments.append(dep.deployment.bind(remote_apis=remote_apis, config=plugin.config))
 
     return deployments
@@ -41,7 +54,11 @@ async def call_remote_api(api: PluginApi, **kwargs: Any) -> Any:
     if not c_handle:
         raise RuntimeError(f"No handle found for func_name({api.func_name})")
 
-    return await c_handle.remote(**kwargs)
+    if api.call_type == ApiType.PROXY:
+        kwargs["proxy_path"] = api.api
+
+    res = await c_handle.remote(**kwargs)
+    return data if api.call_type == ApiType.PROXY and (data := res.get("data")) else res
 
 
 from .base import BasePlugin

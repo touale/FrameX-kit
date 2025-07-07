@@ -4,3 +4,4 @@ API_STR = "/api/v1"
 
 BACKEND_NAME = "backend"
 APP_NAME = "default"
+PROXY_PLUGIN_NAME = "proxy:ProxyPlugin"

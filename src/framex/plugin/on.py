@@ -67,6 +67,9 @@ def on_request(
     if methods is None:
         methods = ["GET"]
 
+    if call_type == ApiType.PROXY:
+        raise TypeError("@on_request() does not support PROXY call_type")
+
     def wrapper(func: Callable) -> Callable:
         type_hints = get_type_hints(func, include_extras=True)
         sig = inspect.signature(func)

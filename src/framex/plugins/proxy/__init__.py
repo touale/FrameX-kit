@@ -30,6 +30,8 @@ class ProxyPlugin(BasePlugin):
         self.urls = self.config.proxy_urls
         self._client = httpx.AsyncClient(timeout=600)
 
+        self.func_map: dict[str, Any] = {}
+
         super().__init__(**kwargs)
 
     async def on_start(self) -> None:
@@ -73,7 +75,7 @@ class ProxyPlugin(BasePlugin):
                         raise ValueError(f"Schema '{schema_name}' not found in components.")
 
                     Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
-                    params.append(("request", Model))
+                    params.append(("model", Model))
 
                 logger.opt(colors=True).info(f"Found proxy api({method}) <y>{url}{path}</y>")
 
@@ -81,6 +83,7 @@ class ProxyPlugin(BasePlugin):
                 func = self._create_dynamic_method(func_name, method, params, f"{url}{path}")
                 setattr(self, func_name, func)
 
+                # Register router
                 plugin_api = PluginApi(
                     deployment_name=BACKEND_NAME,
                     func_name="register_route",
@@ -97,6 +100,14 @@ class ProxyPlugin(BasePlugin):
                     handle=handle,
                     direct_output=True,
                 )
+
+                # Proxy api to map
+                self.func_map[path] = func
+
+    async def __call__(self, proxy_path: str, **kwargs: Any) -> Any:
+        if api := self.func_map.get(proxy_path):
+            return await api(**kwargs)
+        raise RuntimeError(f"api({proxy_path}) not found")
 
     def _create_dynamic_method(
         self,
