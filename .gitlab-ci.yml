@@ -55,4 +55,9 @@ check-pre-commit:
       - apt-get install -y --no-install-recommends git
   script:
     - pip install pre-commit -i https://pypi.org/simple
-    - pre-commit run --all-files
+    - |
+      pre-commit run --all-files || {
+        echo -e "\n❌ pre-commit failed. Showing diff:\n"
+        git diff
+        exit 1
+      }
