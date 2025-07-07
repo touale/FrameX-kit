@@ -6,9 +6,8 @@ from pydantic import BaseModel, create_model
 from framex.consts import APP_NAME, BACKEND_NAME, VERSION
 from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, call_remote_api, on_register
-from framex.plugins.proxy.builder import type_map
+from framex.plugins.proxy.builder import create_pydantic_model, type_map
 from framex.plugins.proxy.config import ProxyPluginConfig
-from plugin_demo.plugins.aaa.t import build_pydantic_model
 
 __plugin_meta__ = PluginMetadata(
     name="proxy",
@@ -70,7 +69,7 @@ class ProxyPlugin(BasePlugin):
                     if not (model_schema := components.get(schema_name)):
                         raise ValueError(f"Schema '{schema_name}' not found in components.")
 
-                    Model = build_pydantic_model(schema_name, model_schema, components)  # noqa
+                    Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
                     params.append(("request", Model))
 
                 logger.opt(colors=True).info(f"Found proxy api({method}) <y>{url}{path}</y>")
