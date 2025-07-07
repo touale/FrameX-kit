@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import Depends, Response
 from fastapi.routing import APIRoute
 from pydantic import create_model
@@ -15,9 +17,7 @@ app = create_fastapi_application()
 
 @serve.deployment(
     name=BACKEND_NAME,
-    # num_replicas=1,
     ray_actor_options={"num_cpus": 0.3},
-    # max_ongoing_requests=1,
 )
 @serve.ingress(app)
 class APIIngress:
@@ -50,7 +50,7 @@ class APIIngress:
         params: list[tuple[str, type]],
         handle: DeploymentHandle,
         direct_output: bool = False,
-    ):
+    ) -> None:
         from framex.log import logger
 
         try:
@@ -64,7 +64,7 @@ class APIIngress:
 
             Model = create_model(f"{func_name}_InputModel", **{name: (tp, ...) for name, tp in params})  # type:ignore # noqa
 
-            async def route_handler(response: Response, model: Model = Depends()):  # type: ignore
+            async def route_handler(response: Response, model: Model = Depends()) -> Any:  # type: ignore
                 c_handle = getattr(handle, func_name)
                 if not c_handle:
                     raise RuntimeError(
@@ -90,6 +90,6 @@ class APIIngress:
             )
 
     @app.get("/health")
-    async def health(self, response: Response):
+    async def health(self, response: Response) -> str:
         response.headers["X-Health-Check"] = "Passed"
         return "ok"

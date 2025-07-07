@@ -1,5 +1,5 @@
 import asyncio
-from typing import final
+from typing import Any, final
 
 from pydantic import BaseModel
 
@@ -10,15 +10,15 @@ from framex.plugin.model import PluginApi
 class BasePlugin:
     """Base class for all plugins"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
         asyncio.create_task(self.on_start())  # noqa
 
-    async def on_start(self):
+    async def on_start(self) -> None:
         pass
 
     @final
-    async def _call_remote_api(self, api_name: str, **kwargs):
+    async def _call_remote_api(self, api_name: str, **kwargs: Any) -> Any:
         if not (api := self.remote_apis.get(api_name)):
             raise RuntimeError(
                 f"API {api_name} is not required by this plugin, current plugins: {self.remote_apis.keys()}"

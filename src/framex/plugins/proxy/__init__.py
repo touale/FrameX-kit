@@ -1,4 +1,6 @@
 import inspect
+from collections.abc import Callable
+from typing import Any, cast
 
 import httpx
 from pydantic import BaseModel, create_model
@@ -12,7 +14,8 @@ from framex.plugins.proxy.config import ProxyPluginConfig
 __plugin_meta__ = PluginMetadata(
     name="proxy",
     version=VERSION,
-    description="一个特殊的 framx proxy 插件, 充当透明代理。它接收 API 请求并将其转发到已配置的外部 HTTP 端点,并将响应返回给调用者。",
+    description="一个特殊的 framx proxy 插件, 充当透明代理。"
+    "它接收 API 请求并将其转发到已配置的外部 HTTP 端点,并将响应返回给调用者。",
     author="touale",
     url="https://github.com/touale/FrameX-kit",
     required_remote_apis=[],
@@ -22,14 +25,14 @@ __plugin_meta__ = PluginMetadata(
 
 @on_register()
 class ProxyPlugin(BasePlugin):
-    def __init__(self, config: ProxyPluginConfig, **kwargs):
-        super().__init__(**kwargs)
-
+    def __init__(self, config: ProxyPluginConfig, **kwargs: Any) -> None:
         self.config = config
         self.urls = self.config.proxy_urls
         self._client = httpx.AsyncClient(timeout=600)
 
-    async def on_start(self):
+        super().__init__(**kwargs)
+
+    async def on_start(self) -> None:
         if not self.urls:
             logger.warning("No url provided, skipping proxy plugin")
             return
@@ -37,12 +40,12 @@ class ProxyPlugin(BasePlugin):
             await self._parse_openai_docs(url)
         logger.success(f"Succeeded to parse openai docs form {url}")
 
-    async def _get_openai_docs(self, url):
+    async def _get_openai_docs(self, url: str) -> dict[str, Any]:
         response = await self._client.get(f"{url}/api/v1/openapi.json")
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
-    async def _parse_openai_docs(self, url: str):
+    async def _parse_openai_docs(self, url: str) -> None:
         openapi_data = await self._get_openai_docs(url)
         paths = openapi_data.get("paths", {})
         components = openapi_data.get("components", {}).get("schemas", {})
@@ -101,13 +104,13 @@ class ProxyPlugin(BasePlugin):
         method: str,
         params: list[tuple[str, type]],
         proxy_url: str,
-    ):
+    ) -> Callable[..., Any]:
         # Build a Pydantic request model (for data validation)
         model_name = f"{func_name.title()}_RequestModel"
         RequestModel = create_model(model_name, **{k: (t, ...) for k, t in params})  # type: ignore # noqa
 
         # Construct dynamic methods
-        async def dynamic_method(**kwargs):
+        async def dynamic_method(**kwargs: Any) -> dict[str, Any] | str:
             validated = RequestModel(**kwargs)  # Type Validation
 
             query = {}
@@ -126,7 +129,7 @@ class ProxyPlugin(BasePlugin):
                     json=json_body if method.upper() != "GET" else None,
                 )
                 response.raise_for_status()
-                return response.json()
+                return cast(dict[str, Any], response.json())
             except Exception as e:
                 logger.opt(exception=e, colors=True).error(
                     f"Error calling proxy api({method}) <y>{proxy_url}</y>: {e}"
@@ -141,7 +144,7 @@ class ProxyPlugin(BasePlugin):
             ]
         )
         dynamic_method.__signature__ = sig  # type: ignore
-        dynamic_method.__annotations__ = {k: t for k, t in params}
+        dynamic_method.__annotations__ = dict(params)
         dynamic_method.__name__ = func_name
 
         return dynamic_method

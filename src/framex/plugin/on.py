@@ -1,5 +1,6 @@
 import inspect
-from typing import get_type_hints
+from collections.abc import Callable
+from typing import Any, get_type_hints
 
 from pydantic import BaseModel
 from ray import serve
@@ -12,8 +13,8 @@ from framex.utils import escape_tag, extract_method_params, plugin_to_deployment
 from . import _current_plugin
 
 
-def on_register(**kwargs):
-    def decorator(cls):
+def on_register(**kwargs: Any) -> Callable[[type], type]:
+    def decorator(cls: type) -> type:
         if plugin := _current_plugin.get():
             tag = plugin_to_deployment_name(
                 plugin.name,
@@ -60,31 +61,35 @@ def on_register(**kwargs):
 
 def on_request(
     path: str | None = None,
-    methods: list[str] = ["GET"],
+    methods: list[str] | None = None,
     call_type: ApiType = ApiType.ALL,
-):
-    def wrapper(func):
+) -> Callable:
+    if methods is None:
+        methods = ["GET"]
+
+    def wrapper(func: Callable) -> Callable:
         type_hints = get_type_hints(func, include_extras=True)
         sig = inspect.signature(func)
 
         base_model_params = [
             name
-            for name in sig.parameters.keys()
+            for name in sig.parameters
             if name != "self" and isinstance(type_hints.get(name), type) and issubclass(type_hints[name], BaseModel)
         ]
 
         if len(base_model_params) > 1:
             raise TypeError(
-                f"@on_request({path!r}) allows only one BaseModel parameter, but found {len(base_model_params)}: {base_model_params}"
+                f"@on_request({path!r}) allows only one BaseModel parameter, "
+                "but found {len(base_model_params)}: {base_model_params}"
             )
 
         if not path and call_type in [ApiType.HTTP, ApiType.ALL]:
             raise TypeError(f"@on_request({path!r}) requires a path when call_type is {call_type}")
 
-        func._on_request = True
-        func.__expose_path__ = path
-        func.__expose_methods_ = methods
-        func.__expose__call_type = call_type
+        func._on_request = True  # type: ignore [attr-defined]
+        func.__expose_path__ = path  # type: ignore [attr-defined]
+        func.__expose_methods_ = methods  # type: ignore [attr-defined]
+        func.__expose__call_type = call_type  # type: ignore [attr-defined]
         return func
 
     return wrapper

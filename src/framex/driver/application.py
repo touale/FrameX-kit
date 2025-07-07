@@ -1,8 +1,10 @@
 """Module containing FastAPI instance related functions and classes."""
 
 import json
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
+from typing import Any
 
 import pytz
 from fastapi import FastAPI
@@ -61,7 +63,7 @@ def create_fastapi_application() -> FastAPI:
             },
         )
 
-    async def log_response(request: Request, call_next):
+    async def log_response(request: Request, call_next: Callable) -> Any:
         response = await call_next(request)
         if (
             not request.url.path.startswith(API_STR)

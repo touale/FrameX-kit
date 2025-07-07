@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 
 logger: "Logger" = loguru.logger
 
-
 # class LoguruHandler(logging.Handler):  # pragma: no cover
 #     def emit(self, record: logging.LogRecord):
 #         try:
@@ -26,7 +25,7 @@ logger: "Logger" = loguru.logger
 #         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-def default_filter(record: "Record"):
+def default_filter(record: "Record") -> bool:
     log_level = record["extra"].get("log_level", "DEBUG")
     levelno = logger.level(log_level).no if isinstance(log_level, str) else log_level
     return record["level"].no >= levelno

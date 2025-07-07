@@ -1,8 +1,5 @@
-# _managers: "PluginManager" = []
-
-
 from contextvars import ContextVar
-from typing import Optional
+from typing import Any, Optional
 
 from ray import serve
 from ray.serve.handle import DeploymentHandle
@@ -38,7 +35,7 @@ def get_http_plugin_apis() -> list["PluginApi"]:
     return _manager.http_plugin_apis
 
 
-async def call_remote_api(api: PluginApi, **kwargs):
+async def call_remote_api(api: PluginApi, **kwargs: Any) -> Any:
     handle: DeploymentHandle = serve.get_deployment_handle(api.deployment_name, app_name=APP_NAME)
     c_handle = getattr(handle, api.func_name)
     if not c_handle:

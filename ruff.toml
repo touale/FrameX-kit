@@ -55,38 +55,15 @@ extend-select = [
   "B",     # flake8-bugbear.
   "PT",    # pytest
   "PERF",  # Perflint
+  "FAST",  # FastAPI (FAST)
+  "ANN",   # flake8-annotations
 ]
 ignore = [
-  # "C901", # Function too complex
-  "E501",  # Line length (handled by ruff-format)
-  "UP007", # X | Y style Unions
-  "B008",  # Do not perform function calls in argument defaults
-  "PT006", # Ignore pytest.mark.parametrize
-  # "PT011", # Ignore `pytest.raises(ValueError)` is too broad
-  # "D203", # one-blank-line-before-class
-  # "D212", # multi-line-summary-first-line
+  "B008",   # Do not perform function calls in argument defaults
   "ERA001",
-  # "W291",
-  "RUF001",
-  "RET504",
-  "SIM108",
-  # "PT009",
-  "RUF003",
-  "PTH123",
-  "PTH113",
-  "PTH118",
-  "PTH109",
-  "PTH112",
-  "PTH103",
-  "SIM118",
-  "RUF002",
-  "B006",
-  "PIE810",
-  "PTH107",
   "C901",
-  "C416",
-  "PTH120",
   "E402",   # Module level import not at top of file
+  "ANN401", # Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
 ]
 
 [lint.flake8-builtins]

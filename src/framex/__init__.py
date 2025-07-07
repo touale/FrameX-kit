@@ -4,7 +4,7 @@ from framex.driver import APIIngress
 from framex.log import logger as logger
 
 
-def run():
+def run() -> None:
     logger.debug("Running...")
 
     # Get all DeploymentHandle

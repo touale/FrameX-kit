@@ -11,7 +11,7 @@ import sys
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from importlib.abc import MetaPathFinder
-from importlib.machinery import PathFinder, SourceFileLoader
+from importlib.machinery import ModuleSpec, PathFinder, SourceFileLoader
 from itertools import chain
 from pathlib import Path
 from types import ModuleType
@@ -29,7 +29,7 @@ def _module_name_to_plugin_name(module_name: str) -> str:
 
 
 class PluginManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self._third_party_plugin_ids: dict[str, str] = {}
         self._searched_plugin_ids: dict[str, str] = {}
 
@@ -83,7 +83,7 @@ class PluginManager:
     def available_plugins(self) -> set[str]:
         return self.third_party_plugins | self.searched_plugins
 
-    def _prepare_plugins(self, plugins_path: set[str]):
+    def _prepare_plugins(self, plugins_path: set[str]) -> None:
         self._plugin_apis = defaultdict(dict)
 
         searched_plugins = set()
@@ -212,7 +212,7 @@ class PluginFinder(MetaPathFinder):
         fullname: str,
         path: Sequence[str] | None,
         target: ModuleType | None = None,
-    ):
+    ) -> ModuleSpec | None:
         from . import _manager
 
         if _manager:
@@ -234,7 +234,7 @@ class PluginLoader(SourceFileLoader):
         self.loaded = False
         super().__init__(fullname, path)
 
-    def create_module(self, spec) -> ModuleType | None:
+    def create_module(self, spec: ModuleSpec) -> ModuleType | None:
         if self.name in sys.modules:
             self.loaded = True
             return sys.modules[self.name]

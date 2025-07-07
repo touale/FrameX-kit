@@ -1,10 +1,11 @@
 import inspect
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 
-def plugin_to_deployment_name(plugin_name, obj_name):
+def plugin_to_deployment_name(plugin_name: str, obj_name: str) -> str:
     return f"{plugin_name}:{obj_name}"
 
 
@@ -21,7 +22,7 @@ def escape_tag(s: str) -> str:
     return re.sub(r"</?((?:[fb]g\s)?[^<>\s]*)>", r"\\\g<0>", s)
 
 
-def extract_method_params(func) -> list[tuple[str, Any]]:
+def extract_method_params(func: Callable) -> list[tuple[str, Any]]:
     sig = inspect.signature(func)
     params = []
     for param in sig.parameters.values():
