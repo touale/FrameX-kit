@@ -32,32 +32,38 @@ exclude = [
 
 [lint]
 extend-select = [
+  "A",     # bad name
+  "ANN",   # flake8-annotations
+  "ARG",   # bad arguments
+  "ASYNC", # async
+  "B",     # flake8-bugbear
   "C",     # Complexity
+  "C4",    #flake8-comprehensions
   "E",     # PEP8 errors
+  "ERA",   # commented-out-code
   "F",     # PEP8 formatting
+  "FLY",   # static-join-to-f-string
+  "FAST",  # FastAPI (FAST)
+  "FLY",   # static-join-to-f-string
+  "FURB",  # refurb
   "I",     # Import sorting
+  "INP",   # flake8-no-pep420
+  "N",     # name-conventions
+  "PERF",  # Perflint
+  "PIE",   # Improper comments
+  "PTH",   # use-pathlib
+  "PT",    # pytest
+  "RET",   # unnecessary-return
+  "RUF",   # specific rules
+  "S",     # flake8-bandit
+  "SIM",   # simplify
+  "T10",   # debug found
+  "T201",  # print found
+  "TID",   # tidy-imports
   "UP",    # Pyupgrade upgrades
   "W",     # PEP8 warnings
-  "T201",  # print found
-  "T10",   # dubug found
-  "FLY",   # static-join-to-f-string
-  "RET",   # unnecessary-return
-  "N",     # name-conventions
-  "PIE",   # Improper comments
-  "SIM",   # simplify
-  "ERA",   # commented-out-code
-  "ASYNC", # async
-  "TID",   # tidy-imports
-  "A",     # bad name
-  "ARG",   # bad arguments
-  "PTH",   # use-pathlib
-  "RUF",   # specific rules
-  "B",     # flake8-bugbear.
-  "PT",    # pytest
-  "PERF",  # Perflint
-  "FAST",  # FastAPI (FAST)
-  "ANN",   # flake8-annotations
 ]
+
 ignore = [
   "B008",   # Do not perform function calls in argument defaults
   "ERA001",

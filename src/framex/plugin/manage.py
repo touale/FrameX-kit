@@ -10,6 +10,7 @@ import pkgutil
 import sys
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
+from functools import cache
 from importlib.abc import MetaPathFinder
 from importlib.machinery import ModuleSpec, PathFinder, SourceFileLoader
 from itertools import chain
@@ -22,6 +23,14 @@ from framex.config import settings
 from framex.log import logger
 from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
 from framex.utils import escape_tag, path_to_module_name
+
+
+@cache
+def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:
+    hash_val = hashlib.md5(module_name).hexdigest()[:4]  # noqa
+    data_dir = Path.cwd() / "data" / f"{plugin_name}@{hash_val}"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
 
 
 def _module_name_to_plugin_name(module_name: str) -> str:
@@ -151,10 +160,7 @@ class PluginManager:
                 )
 
             # Mkdir data dir for plugin
-            hash_val = hashlib.md5(str(module).encode()).hexdigest()[:4]
-            data_dir = Path.cwd() / "data" / f"{name}@{hash_val}"
-            data_dir.mkdir(parents=True, exist_ok=True)
-            plugin.data_dir = data_dir
+            plugin.data_dir = _get_plugin_data_dir(str(module).encode(), name)
 
             # load config
             if (
