@@ -1,8 +1,12 @@
 import inspect
+import json
 import re
 from collections.abc import Callable
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
+
+from pydantic import BaseModel
 
 
 def plugin_to_deployment_name(plugin_name: str, obj_name: str) -> str:
@@ -30,3 +34,20 @@ def extract_method_params(func: Callable) -> list[tuple[str, Any]]:
             continue
         params.append((param.name, param.annotation))
     return params
+
+
+class StreamEnventType(StrEnum):
+    MESSAGE_CHUNK = "message_chunk"
+    FINISH = "finish"
+    ERROR = "error"
+    DEBUG = "debug"
+
+
+def make_stream_event(event_type: StreamEnventType, data: str | dict[str, Any] | BaseModel | None) -> str:
+    if not data:
+        data = {}
+    elif isinstance(data, BaseModel):
+        data = data.model_dump()
+    elif isinstance(data, str):
+        data = {"content": data}
+    return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"

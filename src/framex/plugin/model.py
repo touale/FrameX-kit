@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum, StrEnum
 from types import ModuleType
 from typing import Any
 
@@ -32,6 +32,8 @@ class PluginApi(BaseModel):
     methods: list[str] = ["POST"]
     params: list[tuple[str, type]] = []
     call_type: ApiType = ApiType.HTTP
+    tags: list[str | Enum] | None = None
+    stream: bool = False
 
 
 @dataclass(eq=False)

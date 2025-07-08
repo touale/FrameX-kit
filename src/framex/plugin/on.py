@@ -43,6 +43,8 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                             methods=func.__expose_methods_,
                             params=params,
                             call_type=call_type,
+                            tags=[plugin.name],
+                            stream=func.__expose_stream,
                         )
                     )
 
@@ -60,9 +62,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
 
 
 def on_request(
-    path: str | None = None,
-    methods: list[str] | None = None,
-    call_type: ApiType = ApiType.ALL,
+    path: str | None = None, methods: list[str] | None = None, call_type: ApiType = ApiType.ALL, stream: bool = False
 ) -> Callable:
     if methods is None:
         methods = ["GET"]
@@ -93,6 +93,7 @@ def on_request(
         func.__expose_path__ = path  # type: ignore [attr-defined]
         func.__expose_methods_ = methods  # type: ignore [attr-defined]
         func.__expose__call_type = call_type  # type: ignore [attr-defined]
+        func.__expose_stream = stream  # type: ignore [attr-defined]
         return func
 
     return wrapper

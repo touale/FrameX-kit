@@ -1,6 +1,8 @@
+from enum import Enum
 from typing import Any
 
 from fastapi import Depends, Response
+from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRoute
 from pydantic import create_model
 from ray import serve
@@ -40,6 +42,9 @@ class APIIngress:
                     plugin_api.func_name,
                     plugin_api.params,
                     deployment,
+                    stream=plugin_api.stream,
+                    direct_output=False,
+                    tags=plugin_api.tags,
                 )
 
     def register_route(
@@ -49,15 +54,23 @@ class APIIngress:
         func_name: str,
         params: list[tuple[str, type]],
         handle: DeploymentHandle,
+        stream: bool = False,
         direct_output: bool = False,
+        tags: list[str | Enum] | None = None,
     ) -> None:
+        if tags is None:
+            tags = ["default"]
+
         from framex.log import logger
 
         try:
             routes: list[str] = [route.path for route in app.routes if isinstance(route, Route | APIRoute)]
 
             if path in routes:
-                raise RuntimeError(f"Api {path} already registered in {routes}")
+                logger.warning(
+                    f"API({path}) with tags {tags} is already registered in {routes}, skipping duplicate registration."
+                )
+                return
 
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
@@ -72,13 +85,17 @@ class APIIngress:
                     )
 
                 response.headers["X-Raw-Output"] = str(direct_output)
+
+                if stream:
+                    gen = c_handle.options(stream=stream).remote(**model.dict())  # type: ignore
+                    return StreamingResponse(
+                        gen,
+                        media_type="text/event-stream",
+                    )
+
                 return await c_handle.remote(**model.dict())  # type: ignore
 
-            app.add_api_route(
-                path,
-                route_handler,
-                methods=methods,
-            )
+            app.add_api_route(path, route_handler, methods=methods, tags=tags)
 
             logger.opt(colors=True).debug(
                 f"Succeeded to register api({methods}): {path} from {handle.deployment_name}:{func_name}"
