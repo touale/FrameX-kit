@@ -1,4 +1,9 @@
 [semantic_release]
+build_command = """
+    uv lock --upgrade-package "$PACKAGE_NAME"
+    git add uv.lock
+    uv build
+"""
 assets = []
 build_command_env = []
 commit_message = "v{version} release!"
@@ -31,7 +36,7 @@ template_dir = "templates"
 [semantic_release.changelog.default_templates]
 changelog_file = "CHANGELOG.md"
 output_format = "md"
-mask_initial_release = true
+mask_initial_release = false
 
 [semantic_release.changelog.environment]
 block_start_string = "{%"
