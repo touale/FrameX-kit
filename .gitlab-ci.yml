@@ -58,14 +58,14 @@ check-pre-commit:
 
 test-project:
   <<: *base_test_job_template
-  image: ${CI_TEMPLATE_REGISTRY_HOST}/gzhu/astral-sh/uv:0.5-python3.11-bookworm-slim
+  image: ${CI_TEMPLATE_REGISTRY_HOST}/astral-sh/uv:0.5-python3.11-bookworm-slim
   cache:
     key: ${CI_PROJECT_ID}-test-cache
     paths:
       - "${CI_PROJECT_DIR}/tests/api/cassettes"
   script:
     - uv sync --group dev
-
+    - uv run poe test-ci
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
