@@ -18,7 +18,7 @@ def path_to_module_name(path: Path) -> str:
     rel_path = path.resolve().relative_to(Path.cwd().resolve())
     if rel_path.stem == "__init__":
         return ".".join(rel_path.parts[:-1])
-    return ".".join(*rel_path.parts[:-1], rel_path.stem)  # type: ignore
+    return ".".join([*rel_path.parts[:-1], rel_path.stem])  # type: ignore
 
 
 def escape_tag(s: str) -> str:
