@@ -27,7 +27,8 @@ exclude = [
   "dist",
   "node_modules",
   "site-packages",
-  "venv",
+  ".venv",
+  ".history",
 ]
 
 [lint]
