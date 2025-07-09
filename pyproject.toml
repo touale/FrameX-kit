@@ -30,7 +30,7 @@ dev = [
 framex = "framex:main"
 
 [project.optional-dependencies]
-release = ["python-semantic-release>=10.2.0"]
+release = ["poethepoet>=0.36.0", "python-semantic-release>=10.2.0"]
 
 
 [build-system]
