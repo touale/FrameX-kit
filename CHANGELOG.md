@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v0.0.2-beta.1 (2025-07-09)
+
+### Build System
+
+- Add verbose flag to tag step in release task
+  ([`9a1d528`](https://github.com/touale/FrameX-kit/-/commit/9a1d5287723efbaa1630a1ffbf9b358ade45e646))
+
+### Continuous Integration
+
+- Add git fetch to release step for better branch sync
+  ([`c4d0afd`](https://github.com/touale/FrameX-kit/-/commit/c4d0afd00f0b3fad9b1cc3ab1ef6e24313c262a9))
+
+- Disable allow_failure in secret_detection job
+  ([`eb305f0`](https://github.com/touale/FrameX-kit/-/commit/eb305f0929ddc4f218a1b19065fac58f2bccb111))
+
+### Features
+
+- Add 'perf' to patch tags and optimize plugin API handling
+  ([`c27982c`](https://github.com/touale/FrameX-kit/-/commit/c27982c82dca7e5390c37e6addb344f49f3688e1))
+
+### Performance Improvements
+
+- Refine API model typing and adjust on_request call_type
+  ([`e1dda26`](https://github.com/touale/FrameX-kit/-/commit/e1dda267ed28f38fc99c711c9e9cdc6dd6bef61a))
+
+
 ## v0.0.1 (2025-07-09)
 
 ### Build System
