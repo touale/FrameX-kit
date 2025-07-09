@@ -80,7 +80,7 @@ class APIIngress:
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
 
-            Model = create_model(f"{func_name}_InputModel", **{name: (tp, ...) for name, tp in params})  # type:ignore # noqa
+            Model: BaseModel = create_model(f"{func_name}_InputModel", **{name: (tp, ...) for name, tp in params})  # type:ignore # noqa
 
             async def route_handler(response: Response, model: Model = Depends()) -> Any:  # type: ignore
                 c_handle = getattr(handle, func_name)
@@ -92,13 +92,12 @@ class APIIngress:
                 response.headers["X-Raw-Output"] = str(direct_output)
 
                 if stream:
-                    gen = c_handle.options(stream=stream).remote(**model.dict())  # type: ignore
-                    return StreamingResponse(
+                    gen = c_handle.options(stream=stream).remote(**(model.__dict__))
+                    return StreamingResponse(  # type: ignore
                         gen,
                         media_type="text/event-stream",
                     )
-
-                return await c_handle.remote(**model.dict())  # type: ignore
+                return await c_handle.remote(**(model.__dict__))  # type: ignore
 
             app.add_api_route(path, route_handler, methods=methods, tags=tags)
 

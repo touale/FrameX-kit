@@ -61,7 +61,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
 
 
 def on_request(
-    path: str | None = None, methods: list[str] | None = None, call_type: ApiType = ApiType.ALL, stream: bool = False
+    path: str | None = None, methods: list[str] | None = None, call_type: ApiType = ApiType.HTTP, stream: bool = False
 ) -> Callable:
     if methods is None:
         methods = ["GET"]

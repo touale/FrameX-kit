@@ -43,7 +43,7 @@ class StreamEnventType(StrEnum):
     DEBUG = "debug"
 
 
-def make_stream_event(event_type: StreamEnventType, data: str | dict[str, Any] | BaseModel | None) -> str:
+def make_stream_event(event_type: StreamEnventType | str, data: str | dict[str, Any] | BaseModel | None) -> str:
     if not data:
         data = {}
     elif isinstance(data, BaseModel):
