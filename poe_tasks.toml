@@ -62,11 +62,9 @@ test-ci = { sequence = ["_check", "_lint"], help = "Run ci tests." }
 
 # Release
 build = { shell = "uv build", help = "Build source and wheel package" }
-tag = { shell = "semantic-release  -c releaserc.toml version", help = "Create a new version tag" }
+tag = { shell = "semantic-release -c releaserc.toml -vv  version", help = "Create a new version tag" }
 publish = { shell = 'uv publish -u admin -p ${PYPI_PASS} --index custom-repo || true', help = "Publish the package to PyPI" }
 release = { sequence = [
-  "build",
-  "tag",
   "tag",
   "publish",
 ], help = "Build source and wheel package" }
