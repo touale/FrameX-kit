@@ -43,8 +43,6 @@ variables:
         echo 'deb https://mirrors.aliyun.com/debian-security/ bookworm-security main' >> /etc/apt/sources.list && \
         echo 'deb https://mirrors.aliyun.com/debian/ bookworm-updates main' >> /etc/apt/sources.list && \
         apt-get update -y && apt-get install -y --no-install-recommends git
-    - git checkout "$CI_COMMIT_REF_NAME"
-    - git status
 
 # 🔒 Secret scan
 include:
@@ -93,6 +91,10 @@ release:
     - if: '$CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
   variables:
     GIT_DEPTH: 0
+  before_script:
+    - !reference [.base_git_env_template, before_script]
+    - git checkout "$CI_COMMIT_REF_NAME"
+    - git status
   script:
     - uv sync --extra release
     - uv run poe release
