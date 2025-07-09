@@ -1,7 +1,11 @@
+import inspect
+import logging
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TextIO
 
 import loguru
+
+from framex.config import settings
 
 if TYPE_CHECKING:
     # avoid sphinx autodoc resolve annotation failed
@@ -10,19 +14,55 @@ if TYPE_CHECKING:
 
 logger: "Logger" = loguru.logger
 
-# class LoguruHandler(logging.Handler):  # pragma: no cover
-#     def emit(self, record: logging.LogRecord):
-#         try:
-#             level = logger.level(record.levelname).name
-#         except ValueError:
-#             level = record.levelno
 
-#         frame, depth = inspect.currentframe(), 0
-#         while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
-#             frame = frame.f_back
-#             depth += 1
+class LoguruHandler(logging.Handler):  # pragma: no cover
+    def emit(self, record: logging.LogRecord):
+        msg = record.getMessage()
+        if settings.log.simple_log and (
+            (record.name == "ray.serve" and msg.startswith(settings.log.ignored_prefixes)) or record.name == "filelock"
+        ):
+            return
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno  # type: ignore
 
-#         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        frame, depth = inspect.currentframe(), 0
+        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(colors=True, depth=depth, exception=record.exc_info).log(level, msg)
+
+
+class StderrFilter:
+    def __init__(self, original_stderr: TextIO, keyword_to_filter: str):
+        self.original_stderr = original_stderr
+        self.keyword_to_filter = keyword_to_filter
+        self._buffer = ""
+
+    def write(self, message: str):
+        self._buffer += message
+        while "\n" in self._buffer:
+            line, self._buffer = self._buffer.split("\n", 1)
+            if self.keyword_to_filter not in line:
+                self.original_stderr.write(line + "\n")
+
+    def flush(self):
+        if self._buffer and self.keyword_to_filter not in self._buffer:
+            self.original_stderr.write(self._buffer)
+        self._buffer = ""
+        self.original_stderr.flush()
+
+    def fileno(self):
+        # Required for compatibility with Ray's faulthandler
+        return self.original_stderr.fileno()
+
+    def isatty(self):
+        return self.original_stderr.isatty()
+
+    def close(self):
+        return self.original_stderr.close()
 
 
 def default_filter(record: "Record") -> bool:
@@ -47,5 +87,3 @@ logger_id = logger.add(
     filter=default_filter,
     format=default_format,
 )
-
-__autodoc__ = {"logger_id": False}

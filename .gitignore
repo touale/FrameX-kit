@@ -16,3 +16,5 @@ src/**demo
 
 # Config
 config.toml
+
+log

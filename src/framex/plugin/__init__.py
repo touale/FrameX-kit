@@ -20,7 +20,7 @@ def get_loaded_plugins() -> set["Plugin"]:
     return set(_manager._plugins.values())
 
 
-def get_all_deployments() -> list[DeploymentHandle]:
+def init_all_deployments() -> list[DeploymentHandle]:
     deployments = []
     for plugin in get_loaded_plugins():
         for dep in plugin.deployments:
@@ -40,9 +40,9 @@ def get_all_deployments() -> list[DeploymentHandle]:
                     call_type=ApiType.PROXY,
                     plugin_name=PROXY_PLUGIN_NAME,
                 )
-                logger.warning(
-                    f"Api({api_name}) not found, "
-                    f"`{plugin.name}:{dep.deployment.name}` will use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
+                logger.opt(colors=True).warning(
+                    f"Api(<y>{api_name}</y>) not found, "
+                    f"plugin(<y>{dep.deployment.name}</y>) will use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
                 )
             deployments.append(dep.deployment.bind(remote_apis=remote_apis, config=plugin.config))
 

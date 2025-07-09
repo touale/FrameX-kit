@@ -6,9 +6,8 @@ from pydantic import BaseModel
 from ray import serve
 
 from framex.consts import API_STR
-from framex.log import logger
 from framex.plugin.model import ApiType, PluginApi, PluginDeployment
-from framex.utils import escape_tag, extract_method_params, plugin_to_deployment_name
+from framex.utils import extract_method_params, plugin_to_deployment_name
 
 from . import _current_plugin
 
@@ -52,9 +51,9 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
             deployment = PluginDeployment(plugin_apis=plugin_apis, deployment=cls)
             plugin.deployments.append(deployment)
 
-            logger.opt(colors=True).debug(
-                f'Found deploment "<m>{escape_tag(kwargs["name"])}</m> " from {plugin.module_name}'
-            )
+            # logger.opt(colors=True).debug(
+            #     f'Found deploment "<m>{escape_tag(kwargs["name"])}</m> " from {plugin.module_name}'
+            # )
 
         return cls
 

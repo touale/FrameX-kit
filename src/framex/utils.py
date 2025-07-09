@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 
 def plugin_to_deployment_name(plugin_name: str, obj_name: str) -> str:
-    return f"{plugin_name}:{obj_name}"
+    return f"{plugin_name}.{obj_name}"
 
 
 def path_to_module_name(path: Path) -> str:

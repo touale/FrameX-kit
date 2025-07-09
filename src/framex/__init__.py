@@ -1,17 +1,43 @@
+import ray
 from ray import serve
 
 from framex.driver import APIIngress
-from framex.log import logger as logger
+from framex.log import logger
 
 
 def run() -> None:
-    logger.debug("Running...")
+    # step1: setup log
+    import logging
+    import sys
 
-    # Get all DeploymentHandle
+    from framex.log import LoguruHandler, StderrFilter
 
-    from framex.plugin import get_all_deployments, get_http_plugin_apis
+    logging.basicConfig(handlers=[LoguruHandler()], level=0, force=True)
+    sys.stderr = StderrFilter(sys.stderr, "file_system_monitor.cc:116:")
 
-    deployments = get_all_deployments()
+    # step2: setup env
+    import os
+
+    from framex.consts import DEFAULT_ENV
+
+    for key, value in DEFAULT_ENV.items():
+        os.environ.setdefault(key, value)
+
+    # step4: init ray
+    from framex.config import settings
+
+    ray.init(
+        num_cpus=8,
+        dashboard_host=settings.server.dashboard_host,
+        dashboard_port=settings.server.dashboard_port,
+        configure_logging=False,
+    )
+
+    # step5: init all DeploymentHandle
+    logger.info("Start initializing all DeploymentHandle...")
+    from framex.plugin import get_http_plugin_apis, init_all_deployments
+
+    deployments = init_all_deployments()
     http_apis = get_http_plugin_apis()
 
     serve.run(
@@ -39,6 +65,7 @@ __all__ = [
     "call_remote_api",
     "load_builtin_plugin",
     "load_plugins",
+    "logger",
     "on_register",
     "on_request",
 ]

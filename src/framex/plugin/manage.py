@@ -51,20 +51,22 @@ class PluginManager:
             for plugin in self._plugins.values():
                 for dep in plugin.deployments:
                     for api in dep.plugin_apis:
-                        api_name = f"{api.deployment_name}:{api.func_name}"
-                        is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
-                        is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
-
                         if api.api:
+                            api_name = f"{api.deployment_name}.{api.func_name}"
+                            is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
+                            is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
+
                             if is_func:
                                 self._plugin_apis[ApiType.FUNC][api_name] = api
                                 logger.opt(colors=True).success(
-                                    f'Found plugin FUNC API "<y>{api_name}</y>" from {plugin.module_name}'
+                                    f'Found plugin FUNC API "<y>{api_name}</y>" from plugin({plugin.name})'
                                 )
 
                             if is_http:
                                 self._plugin_apis[ApiType.HTTP][api.api] = api
-                                logger.opt(colors=True).success(f'Found plugin HTTP API "<y>{api.api}</y>"')
+                                logger.opt(colors=True).success(
+                                    f'Found plugin HTTP API "<y>{api.api}</y>" from plugin({plugin.name})'
+                                )
 
         return self._plugin_apis
 

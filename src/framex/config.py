@@ -10,15 +10,32 @@ from pydantic_settings import (
 )
 
 
+class LogConfig(BaseModel):
+    simple_log: bool = True
+    ignored_prefixes: tuple[str, ...] = (
+        "Started executing request to method",
+        "CALL register_route",
+        "CALL /api/v1",
+        "Initialized DeploymentHandle",
+        "Finished initializing replica",
+        "Got updated replicas for",
+        "Started <ray.serve._private.router.SharedRouterLongPollClient object",
+    )
+
+
 class ServerConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8080
+
+    dashboard_host: str = "127.0.0.1"
+    dashboard_port: int = 8260
 
 
 class Settings(BaseSettings):
     server: ServerConfig = ServerConfig()
     enable_proxy: bool = False
     plugins: dict[str, Any] = {}
+    log: LogConfig = LogConfig()
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

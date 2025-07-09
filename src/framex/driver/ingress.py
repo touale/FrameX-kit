@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import Any
 
@@ -11,6 +12,7 @@ from starlette.routing import Route
 
 from framex.consts import BACKEND_NAME
 from framex.driver.application import create_fastapi_application
+from framex.log import LoguruHandler
 from framex.plugin.model import ApiType, PluginApi
 from framex.utils import escape_tag
 
@@ -19,11 +21,14 @@ app = create_fastapi_application()
 
 @serve.deployment(
     name=BACKEND_NAME,
-    ray_actor_options={"num_cpus": 0.3},
+    # ray_actor_options={"num_cpus": 0.3},
 )
 @serve.ingress(app)
 class APIIngress:
     def __init__(self, deployments: list[DeploymentHandle], plugin_apis: list["PluginApi"]) -> None:
+        for name in logging.root.manager.loggerDict:
+            logging.getLogger(name).handlers = [LoguruHandler()]
+
         deployments_dict = {dep.deployment_name: dep for dep in deployments}
 
         for plugin_api in plugin_apis:
@@ -81,7 +86,7 @@ class APIIngress:
                 c_handle = getattr(handle, func_name)
                 if not c_handle:
                     raise RuntimeError(
-                        f"No handle found for api({methods}): {path} from {handle.deployment_name}:{func_name}"
+                        f"No handle found for api({methods}): {path} from {handle.deployment_name}.{func_name}"
                     )
 
                 response.headers["X-Raw-Output"] = str(direct_output)
@@ -98,15 +103,16 @@ class APIIngress:
             app.add_api_route(path, route_handler, methods=methods, tags=tags)
 
             logger.opt(colors=True).debug(
-                f"Succeeded to register api({methods}): {path} from {handle.deployment_name}:{func_name}"
+                f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
             )
 
         except Exception as e:
-            logger.opt(exception=e).error(
-                f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}:{func_name}'
-            )
+            logger.opt(exception=e).error(f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}')
 
     @app.get("/health")
     async def health(self, response: Response) -> str:
         response.headers["X-Health-Check"] = "Passed"
         return "ok"
+
+    def __repr__(self):
+        return BACKEND_NAME
