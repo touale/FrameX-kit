@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     plugins: dict[str, Any] = {}
     log: LogConfig = LogConfig()
 
+    load_plugins: list[str] = []
+    load_builtin_plugins: list[str] = []
+
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`
         env_file=(".env", ".env.prod"),

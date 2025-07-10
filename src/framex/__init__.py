@@ -23,6 +23,11 @@ def run() -> None:
     for key, value in DEFAULT_ENV.items():
         os.environ.setdefault(key, value)
 
+    # step 4: setup settings plugins
+    from framex.plugin.load import load_from_settings
+
+    load_from_settings()
+
     # step4: init ray
     from framex.config import settings
 

@@ -1,14 +1,57 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
+# Temporary and binary files
+*~
+*.py[cod]
+*.so
+*.cfg
+!setup.cfg
+*.orig
+*.log
+*.pot
+__pycache__/*
+.cache/*
+.*.swp
+*/.ipynb_checkpoints/*
+*.pyc
+
+# Project files
+.ropeproject
+.project
+.pydevproject
+.settings
+.idea
+.vscode
+
+# Package files
+*.egg
+*.eggs/
+.installed.cfg
 *.egg-info
 
-# Virtual environments
-.venv
-.vscode
+# Unittest and coverage
+htmlcov/*
+.coverage
+.tox
+junit.xml
+coverage.xml
+cov.xml
+report.xml
+
+# Build and docs folder/files
+build/*
+dist/*
+sdist/*
+docs/api/*
+docs/_build/*
+docs/build/*
+cover/*
+MANIFEST
+.mypy_cache/*
+
+# Unused code
+backup/*
+
+# macOS Desktop Services Store
+.DS_Store
 
 .history
 

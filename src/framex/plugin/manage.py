@@ -93,6 +93,7 @@ class PluginManager:
     def available_plugins(self) -> set[str]:
         return self.third_party_plugins | self.searched_plugins
 
+    @logger.catch
     def _prepare_plugins(self, plugins_path: set[str]) -> None:
         self._plugin_apis = defaultdict(dict)
 
@@ -117,7 +118,7 @@ class PluginManager:
         for plugin in third_party_plugins:
             plugin_id = _module_name_to_plugin_name(plugin)
             if plugin_id in self._third_party_plugin_ids:
-                raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
+                raise RuntimeError(f"Plugin already exists: {plugin_id}. Check for duplicate plugin names.")
 
             self._third_party_plugin_ids[plugin_id] = plugin
 
