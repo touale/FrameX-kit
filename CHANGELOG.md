@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.0.2-beta.3 (2025-07-10)
+
+### Performance Improvements
+
+- Enhance plugin loading and settings integration
+  ([`bf64c50`](https://github.com/touale/FrameX-kit/-/commit/bf64c508178b3fe62a33497384695d182d25b80e))
+
+
 ## v0.0.2-beta.2 (2025-07-10)
 
 ### Features
