@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.0.2-beta.2 (2025-07-10)
+
+### Features
+
+- Support mixed plugin import
+  ([`1178495`](https://github.com/touale/FrameX-kit/-/commit/1178495bbcd94dca648be4214e87300326269a45))
+
+### Performance Improvements
+
+- Enhance proxy handling
+  ([`ce18798`](https://github.com/touale/FrameX-kit/-/commit/ce187988139c57ad57e23784ba093d7b49efe803))
+
+
 ## v0.0.2-beta.1 (2025-07-09)
 
 ### Build System
