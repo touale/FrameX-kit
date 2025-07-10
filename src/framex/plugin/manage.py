@@ -102,14 +102,23 @@ class PluginManager:
         for plugin_path in plugins_path:
             if "/" in plugin_path:
                 searched_plugins.add(plugin_path)
-            if "." in plugin_path:
-                third_party_plugins.add(plugin_path)
+            else:
+                if (
+                    plugin_path.endswith(".plugins")
+                    and (module := importlib.import_module(plugin_path))
+                    and hasattr(module, "__path__")
+                    and len(module.__path__) == 1
+                ):
+                    searched_plugins.add(str(module.__path__[0]))
+                else:
+                    third_party_plugins.add(plugin_path)
 
         # check third party plugins
         for plugin in third_party_plugins:
             plugin_id = _module_name_to_plugin_name(plugin)
             if plugin_id in self._third_party_plugin_ids:
                 raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
+
             self._third_party_plugin_ids[plugin_id] = plugin
 
         # check plugins in search path
@@ -134,7 +143,7 @@ class PluginManager:
 
             self._searched_plugin_ids[plugin_id] = module_name
 
-    def load_all_plugin(self, plugins_path: Iterable[str]) -> set[Plugin]:
+    def load_plugins(self, plugins_path: Iterable[str]) -> set[Plugin]:
         plugins_path = set(plugins_path or [])
         self._prepare_plugins(plugins_path)
         return set(filter(None, (self._load_plugin(name) for name in self.available_plugins)))
@@ -165,9 +174,9 @@ class PluginManager:
 
             # load config
             if (
-                plugin.metadata.config_class
-                and isinstance(plugin.metadata.config_class, type)
-                and issubclass(plugin.metadata.config_class, BaseModel)
+                (config_class := getattr(plugin.metadata, "config_class", None))
+                and isinstance(config_class, type)
+                and issubclass(config_class, BaseModel)
                 and (cfg := settings.plugins.get(name))
             ):
                 plugin.config = plugin.metadata.config_class(**cfg)
