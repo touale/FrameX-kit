@@ -170,18 +170,6 @@ class PluginManager:
                     f"Module {module.__name__} is not loaded as a plugin! Make sure not to import it before loading."
                 )
 
-            # Mkdir data dir for plugin
-            plugin.data_dir = _get_plugin_data_dir(str(module), name)
-
-            # load config
-            if (
-                (config_class := getattr(plugin.metadata, "config_class", None))
-                and isinstance(config_class, type)
-                and issubclass(config_class, BaseModel)
-                and (cfg := settings.plugins.get(name))
-            ):
-                plugin.config = plugin.metadata.config_class(**cfg)
-
             logger.opt(colors=True).success(
                 f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>" from {plugin.module_name}'
             )
@@ -288,6 +276,21 @@ class PluginLoader(SourceFileLoader):
         # get plugin metadata
         metadata: PluginMetadata | None = getattr(module, "__plugin_meta__", None)
         plugin.metadata = metadata
+
+        # Mkdir data dir for plugin
+        plugin.data_dir = _get_plugin_data_dir(str(module), plugin.name)
+
+        # load config
+        if (
+            plugin.metadata
+            and (config_class := plugin.metadata.config_class)
+            and isinstance(config_class, type)
+            and issubclass(config_class, BaseModel)
+        ):
+            if cfg := settings.plugins.get(plugin.name):
+                plugin.config = plugin.metadata.config_class(**cfg)
+            else:
+                plugin.config = plugin.metadata.config_class()
 
         return
 
