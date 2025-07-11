@@ -20,6 +20,7 @@ def get_loaded_plugins() -> set["Plugin"]:
     return set(_manager._plugins.values())
 
 
+@logger.catch()
 def init_all_deployments() -> list[DeploymentHandle]:
     deployments = []
     for plugin in get_loaded_plugins():
@@ -31,25 +32,21 @@ def init_all_deployments() -> list[DeploymentHandle]:
                 if api_name in remote_apis:
                     continue
 
-                try:
-                    if api_name.startswith("/") and settings.enable_proxy:
-                        remote_apis[api_name] = PluginApi(
-                            api=api_name,
-                            deployment_name=PROXY_PLUGIN_NAME,
-                            call_type=ApiType.PROXY,
-                            plugin_name=PROXY_PLUGIN_NAME,
-                        )
-                        logger.opt(colors=True).warning(
-                            f"Api(<y>{api_name}</y>) not found, "
-                            f"plugin(<y>{dep.deployment.name}</y>) will "
-                            "use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
-                        )
-
-                    else:
-                        raise RuntimeError(f"Required remote api({api_name}) not found")
-                except Exception as e:
-                    logger.opt(colors=True, exception=e).error(
-                        f"Plugin(<y>{dep.deployment.name}</y>) init failed, required remote api({api_name}) not found"
+                if api_name.startswith("/") and settings.enable_proxy:
+                    remote_apis[api_name] = PluginApi(
+                        api=api_name,
+                        deployment_name=PROXY_PLUGIN_NAME,
+                        call_type=ApiType.PROXY,
+                        plugin_name=PROXY_PLUGIN_NAME,
+                    )
+                    logger.opt(colors=True).warning(
+                        f"Api(<y>{api_name}</y>) not found, "
+                        f"plugin(<y>{dep.deployment.name}</y>) will "
+                        "use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
+                    )
+                else:
+                    raise RuntimeError(
+                        f"Plugin(<y>{dep.deployment.name}</y>) init failed, Required remote api({api_name}) not found"
                     )
 
             deployments.append(dep.deployment.bind(remote_apis=remote_apis, config=plugin.config))
