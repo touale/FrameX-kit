@@ -292,8 +292,6 @@ class PluginLoader(SourceFileLoader):
             else:
                 plugin.config = plugin.metadata.config_class()
 
-        return
-
 
 # Insert a custom plugin module finder into the front of the Python import system to intercept and load plugin modules
 sys.meta_path.insert(0, PluginFinder())

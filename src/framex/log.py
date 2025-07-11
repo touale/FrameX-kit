@@ -16,7 +16,7 @@ logger: "Logger" = loguru.logger
 
 
 class LoguruHandler(logging.Handler):  # pragma: no cover
-    def emit(self, record: logging.LogRecord):
+    def emit(self, record: logging.LogRecord) -> None:
         msg = record.getMessage()
         if settings.log.simple_log and (
             (record.name == "ray.serve" and msg.startswith(settings.log.ignored_prefixes)) or record.name == "filelock"
@@ -41,28 +41,28 @@ class StderrFilter:
         self.keyword_to_filter = keyword_to_filter
         self._buffer = ""
 
-    def write(self, message: str):
+    def write(self, message: str) -> None:
         self._buffer += message
         while "\n" in self._buffer:
             line, self._buffer = self._buffer.split("\n", 1)
             if self.keyword_to_filter not in line:
                 self.original_stderr.write(line + "\n")
 
-    def flush(self):
+    def flush(self) -> None:
         if self._buffer and self.keyword_to_filter not in self._buffer:
             self.original_stderr.write(self._buffer)
         self._buffer = ""
         self.original_stderr.flush()
 
-    def fileno(self):
+    def fileno(self) -> int:
         # Required for compatibility with Ray's faulthandler
         return self.original_stderr.fileno()
 
-    def isatty(self):
+    def isatty(self) -> bool:
         return self.original_stderr.isatty()
 
-    def close(self):
-        return self.original_stderr.close()
+    def close(self) -> None:
+        self.original_stderr.close()
 
 
 def default_filter(record: "Record") -> bool:

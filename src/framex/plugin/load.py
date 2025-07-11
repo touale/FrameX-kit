@@ -13,7 +13,7 @@ def load_builtin_plugin(name: str) -> set[Plugin]:
 
 
 @logger.catch(reraise=True)
-def load_from_settings():
+def load_from_settings() -> set[Plugin]:
     from framex.config import settings
 
     # Get all builtin_plugins
