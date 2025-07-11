@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.0.2-beta.4 (2025-07-11)
+
+### Performance Improvements
+
+- Optimize plugin config and data dir setup
+  ([`1a15f5b`](https://github.com/touale/FrameX-kit/-/commit/1a15f5b0e614b205e33a9c1761faa5e08b5340bf))
+
+
 ## v0.0.2-beta.3 (2025-07-10)
 
 ### Performance Improvements
