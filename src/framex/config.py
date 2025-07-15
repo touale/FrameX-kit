@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     log: LogConfig = LogConfig()
 
     # plugins config
-    enable_proxy: bool = True
+    enable_proxy: bool = False
     plugins: dict[str, Any] = {}
 
     # allow load plugins
