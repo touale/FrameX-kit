@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v0.0.2-beta.5 (2025-07-15)
+
+### Code Style
+
+- Add return type annotations for better type checking
+  ([`ff32a01`](https://github.com/touale/FrameX-kit/-/commit/ff32a018b2ad50dd7900d876c8b4d6af7c3d84fa))
+
+### Features
+
+- Add multi TOML and YAML support for plugin configs
+  ([`7210af1`](https://github.com/touale/FrameX-kit/-/commit/7210af1faa7a8fd82012cc59ab654322dca28ae2))
+
+- Add Ray and non-Ray mode support for server
+  ([`ce02945`](https://github.com/touale/FrameX-kit/-/commit/ce029454eaa9393eb51b4b5aeb30c711d8010368))
+
+### Refactoring
+
+- Add logger catch and optimize proxy handling in plugin init
+  ([`578b4ee`](https://github.com/touale/FrameX-kit/-/commit/578b4ee5d78000c979b6cd0864772595b6370b18))
+
+### Testing
+
+- Add test coverage and pytest config for better reliability
+  ([`5119039`](https://github.com/touale/FrameX-kit/-/commit/5119039e0239d5690fdb7e933eb06b711ec04a1d))
+
+
 ## v0.0.2-beta.4 (2025-07-11)
 
 ### Performance Improvements
