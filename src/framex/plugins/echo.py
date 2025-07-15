@@ -2,6 +2,8 @@ import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from pydantic import BaseModel
+
 from framex.consts import VERSION
 from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
 from framex.plugin.model import ApiType
@@ -17,6 +19,11 @@ __plugin_meta__ = PluginMetadata(
 )
 
 
+class EchoModel(BaseModel):
+    id: int
+    name: str = "原神"
+
+
 @on_register()
 class EchoPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
@@ -25,6 +32,10 @@ class EchoPlugin(BasePlugin):
     @on_request("/echo", methods=["GET"])
     async def echo(self, message: str) -> str:
         return message
+
+    @on_request("/echo_model", methods=["POST"])
+    async def echo_model(self, message: str, model: EchoModel) -> str:
+        return f"{message},{model.model_dump()}"
 
     @on_request("/echo_stream", methods=["GET"], stream=True)
     async def echo_stream(self, message: str) -> AsyncGenerator[str, None]:

@@ -25,7 +25,9 @@ def load_from_settings() -> set[Plugin]:
     candidate_builtin_plugins = set(settings.load_builtin_plugins) - loaded_builtin_plugins
 
     # Check if proxy is enabled but not allow to load
-    if settings.enable_proxy and "proxy" not in loaded_builtin_plugins and "proxy" not in candidate_builtin_plugins:
+    if (
+        settings.enable_proxy and "proxy" not in loaded_builtin_plugins and "proxy" not in candidate_builtin_plugins
+    ):  # pragma: no cover
         raise RuntimeError(
             "`enable_proxy` == True, but `proxy` is not in `load_builtin_plugins`.\n"
             "Please add `proxy` to `load_builtin_plugins` in your settings file."

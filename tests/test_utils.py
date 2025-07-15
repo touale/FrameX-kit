@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from framex.utils import StreamEnventType, make_stream_event
 
 
-class TestModel(BaseModel):
+class StreamDataModel(BaseModel):
     content: str
     id: int
 
@@ -22,7 +22,7 @@ class TestModel(BaseModel):
         ),
         (
             StreamEnventType.DEBUG,
-            TestModel(content="data a", id=1),
+            StreamDataModel(content="data a", id=1),
             'event: debug\ndata: {"content": "data a", "id": 1}\n\n',
         ),
     ],

@@ -84,7 +84,7 @@ def create_fastapi_application() -> FastAPI:
             },
         )
 
-    async def log_response(request: Request, call_next: Callable) -> Any:
+    async def log_response(request: Request, call_next: Callable) -> Any:  # pragma: no cover
         response = await call_next(request)
         if (
             not request.url.path.startswith(API_STR)

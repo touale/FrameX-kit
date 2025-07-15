@@ -9,7 +9,13 @@ __plugin_meta__ = PluginMetadata(
     description="原神会调用远程方法哟",
     author="原神",
     url="https://github.com/touale/FrameX-kit",
-    required_remote_apis=["/api/v1/echo", "echo.EchoPlugin.confess", "/api/v1/echo_stream"],
+    required_remote_apis=[
+        "/api/v1/echo",
+        "echo.EchoPlugin.confess",
+        "/api/v1/echo_stream",
+        "/api/v1/echo_model",
+        
+    ],
 )
 
 
@@ -27,5 +33,9 @@ class InvokerPlugin(BasePlugin):
         stream = await self._call_remote_api("/api/v1/echo_stream", message=message)
         stream_text = "".join([extract_content(c) for c in stream if "message_chunk" in c])
         confess = await self._call_remote_api("echo.EchoPlugin.confess", message=message)
+        echo_model = await self._call_remote_api(
+            "/api/v1/echo_model", message=message, model={"id": 1, "name": "原神"}
+        )
+        remote_version = await self._call_remote_api("/api/v1/base/version")
 
-        return [echo, stream_text, confess]
+        return [echo, stream_text, confess, echo_model, remote_version]

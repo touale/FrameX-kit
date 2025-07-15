@@ -31,7 +31,7 @@ class APIIngress:
 
         app.state.ingress = self
 
-        if not deployments or not plugin_apis:
+        if not deployments or not plugin_apis:  # pragma: no cover
             raise RuntimeError("deployments or plugin_apis is empty")
 
         self.deployments_dict = {dep.deployment_name: dep for dep in deployments}

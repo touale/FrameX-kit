@@ -23,4 +23,5 @@ exclude_also =
     @(abc\.)?abstractmethod
     pass
     def __str__
+    if settings.server.use_ray:
     

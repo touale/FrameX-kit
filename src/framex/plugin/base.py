@@ -28,7 +28,8 @@ class BasePlugin:
     async def _call_remote_api(self, api_name: str, **kwargs: Any) -> Any:
         if not (api := self.remote_apis.get(api_name)):
             raise RuntimeError(
-                f"API {api_name} is not required by this plugin, current plugins: {self.remote_apis.keys()}"
+                f"API {api_name} is not in `required_remote_apis` by this plugin, "
+                f"current plugins: {self.remote_apis.keys()}"
             )
 
         param_type_map = dict(api.params)
@@ -41,7 +42,7 @@ class BasePlugin:
             ):
                 try:
                     kwargs[key] = expected_type(**val)
-                except Exception as e:
+                except Exception as e:  # pragma: no cover
                     raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
 
         return await call_remote_api(api, **kwargs)

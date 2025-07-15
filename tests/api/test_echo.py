@@ -12,6 +12,14 @@ def test_echo(client: TestClient):
     assert res["data"] == params["message"]
 
 
+def test_echo_model(client: TestClient):
+    params = {"message": "hello world"}
+    data = {"id": 1, "name": "原神"}
+    res = client.post(f"{API_STR}/echo_model", params=params, json=data).json()
+    assert res["status"] == 200
+    assert res["data"] == "hello world,{'id': 1, 'name': '原神'}"
+
+
 def test_echo_stream(client: TestClient):
     params = {"message": "hello world"}
     with client.stream("GET", f"{API_STR}/echo_stream", params=params) as res:
