@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v0.0.2-beta.6 (2025-07-15)
+
+### Bug Fixes
+
+- Fix ray cannot recognize other routes
+  ([`9145a83`](https://github.com/touale/FrameX-kit/-/commit/9145a83715caded218d4a4c4a8bcaeace66f739f))
+
+### Chores
+
+- Disable proxy by default in config
+  ([`59763bc`](https://github.com/touale/FrameX-kit/-/commit/59763bc36404733d3d1a72d98db693156a6f886d))
+
+- Simplify proxy config and default values
+  ([`8292de3`](https://github.com/touale/FrameX-kit/-/commit/8292de3e313cc52b61c6be8bce4498637f1e4ab1))
+
+### Features
+
+- Add health check, invoker plugin, and test cases
+  ([`11fe877`](https://github.com/touale/FrameX-kit/-/commit/11fe877f4f5d79add245d12d01615fda095fc3e8))
+
+### Refactoring
+
+- Refactor call remote func
+  ([`dec8fee`](https://github.com/touale/FrameX-kit/-/commit/dec8fee25901af167eb15c22b402061fd44425c8))
+
+
 ## v0.0.2-beta.5 (2025-07-15)
 
 ### Code Style
