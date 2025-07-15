@@ -19,6 +19,11 @@ from framex.utils import escape_tag
 app = create_fastapi_application()
 
 
+@app.get("/health")
+async def health() -> str:
+    return "ok"
+
+
 @api_ingress(app=app, name=BACKEND_NAME)
 class APIIngress:
     def __init__(self, deployments: list[DeploymentHandle], plugin_apis: list["PluginApi"]) -> None:
@@ -112,10 +117,6 @@ class APIIngress:
 
         except Exception as e:
             logger.opt(exception=e).error(f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}')
-
-    @app.get("/health")
-    async def health(self) -> str:
-        return "ok"
 
     def __repr__(self):
         return BACKEND_NAME

@@ -36,6 +36,7 @@ coverage.xml
 cov.xml
 report.xml
 .coverage.*
+**/cassettes
 
 # Build and docs folder/files
 build/*

@@ -4,6 +4,7 @@ from typing import Any
 
 from framex.consts import VERSION
 from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
+from framex.plugin.model import ApiType
 from framex.utils import StreamEnventType, make_stream_event
 
 __plugin_meta__ = PluginMetadata(
@@ -31,3 +32,7 @@ class EchoPlugin(BasePlugin):
             yield make_stream_event(StreamEnventType.MESSAGE_CHUNK, char)
             await asyncio.sleep(0.1)
         yield make_stream_event(StreamEnventType.FINISH)
+
+    @on_request(call_type=ApiType.FUNC)
+    async def confess(self, message: str) -> str:
+        return f"我是原神哟! 收到您的消息{message}"

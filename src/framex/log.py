@@ -32,10 +32,10 @@ class LoguruHandler(logging.Handler):  # pragma: no cover
             frame = frame.f_back
             depth += 1
 
-        logger.opt(colors=True, depth=depth, exception=record.exc_info).log(level, msg)
+        logger.opt(depth=depth, exception=record.exc_info).log(level, msg)
 
 
-class StderrFilter:
+class StderrFilter:  # pragma: no cover
     def __init__(self, original_stderr: TextIO, keyword_to_filter: str):
         self.original_stderr = original_stderr
         self.keyword_to_filter = keyword_to_filter
@@ -68,8 +68,8 @@ class StderrFilter:
 def default_filter(record: "Record") -> bool:
     log_level = record["extra"].get("log_level", "DEBUG")
     levelno = logger.level(log_level).no if isinstance(log_level, str) else log_level
-
-    if record["name"] and record["name"].startswith("http"):
+    ingore_prefixes = ("http", "vcr")
+    if record["name"] and record["name"].startswith(ingore_prefixes):
         return False
     return record["level"].no >= levelno
 
@@ -92,7 +92,7 @@ logger_id = logger.add(
 )
 
 
-def setup_logger() -> None:
+def setup_logger() -> None:  # pragma: no cover
     # Update log config
     import logging
 

@@ -31,26 +31,26 @@ def create_fastapi_application() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # noqa
-        from framex.log import logger
-
-        logger.info("Starting FastAPI application...")
-
-        import asyncio
-
-        from ray.serve.handle import DeploymentHandle
-
         from framex.config import settings
 
-        deployments: list[DeploymentHandle] = list(app.state.deployments_dict.values())
+        if not settings.server.use_ray:
+            from framex.log import logger
 
-        @logger.catch
-        async def _on_start(deployment: DeploymentHandle) -> None:
-            func = getattr(deployment, "on_start")
-            call = func.remote if settings.server.use_ray else func
-            await call()
+            logger.info("Starting FastAPI application...")
 
-        for deployment in deployments:
-            asyncio.create_task(_on_start(deployment))  # noqa
+            import asyncio
+
+            from ray.serve.handle import DeploymentHandle
+
+            deployments: list[DeploymentHandle] = list(app.state.deployments_dict.values())
+
+            @logger.catch
+            async def _on_start(deployment: DeploymentHandle) -> None:
+                func = getattr(deployment, "on_start")
+                await func()
+
+            for deployment in deployments:
+                asyncio.create_task(_on_start(deployment))  # noqa
 
         yield
 

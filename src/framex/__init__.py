@@ -1,7 +1,9 @@
+from fastapi import FastAPI
+
 from framex.log import logger
 
 
-def run(*, blocking: bool = True, test_mode: bool = False) -> None:
+def run(*, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
     from framex.config import settings
 
     if test_mode:
@@ -63,6 +65,10 @@ def run(*, blocking: bool = True, test_mode: bool = False) -> None:
         from framex.driver.ingress import APIIngress, app
 
         api_ingress = APIIngress(deployments=deployments, plugin_apis=http_apis)
+
+        if test_mode:
+            return app
+
         uvicorn.run(
             app,
             host=settings.server.host,
@@ -70,6 +76,7 @@ def run(*, blocking: bool = True, test_mode: bool = False) -> None:
             reload=False,
             loop="asyncio",
         )
+    return None
 
 
 from framex.plugin import (

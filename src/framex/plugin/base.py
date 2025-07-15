@@ -2,6 +2,7 @@ from typing import Any, final
 
 from pydantic import BaseModel
 
+from framex.config import settings
 from framex.log import setup_logger
 from framex.plugin import call_remote_api
 from framex.plugin.model import PluginApi
@@ -14,7 +15,11 @@ class BasePlugin:
         setup_logger()
 
         self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
-        # asyncio.create_task(self.on_start())
+
+        if settings.server.use_ray:
+            import asyncio
+
+            asyncio.create_task(self.on_start())  # noqa: RUF006
 
     async def on_start(self) -> None:
         pass

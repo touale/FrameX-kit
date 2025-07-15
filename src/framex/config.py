@@ -24,23 +24,20 @@ class PluginConfigSource(PydanticBaseSettingsSource):
     def _load_plugins(self) -> dict[str, Any]:
         plugin_configs: dict[str, dict] = {}
 
-        if not self.data_dir.is_dir():
+        if not self.data_dir.is_dir():  # pragma: no cover
             return {}
 
         for plugin_dir in self.data_dir.iterdir():
-            if not plugin_dir.is_dir():
-                continue
-
-            name = plugin_dir.name.split("@")[0]
-            for file in plugin_dir.iterdir():
-                if file.suffix in (".yaml", ".yml"):
-                    with file.open("r", encoding="utf-8") as f:
-                        plugin_configs[name] = yaml.safe_load(f)
-                    break
-                if file.suffix == ".toml":
-                    with file.open("rb") as f:
-                        plugin_configs[name] = tomli.load(f)
-                    break
+            if plugin_dir.is_dir() and (name := plugin_dir.name.split("@")[0]):
+                for file in plugin_dir.iterdir():
+                    if file.suffix in (".yaml", ".yml"):
+                        with file.open("r", encoding="utf-8") as f:
+                            plugin_configs[name] = yaml.safe_load(f)
+                        break
+                    if file.suffix == ".toml":
+                        with file.open("rb") as f:
+                            plugin_configs[name] = tomli.load(f)
+                        break
         return {"plugins": plugin_configs}
 
     def __call__(self) -> dict[str, Any]:
@@ -73,6 +70,10 @@ class ServerConfig(BaseModel):
     use_ray: bool = True
 
 
+class TestConfig(BaseModel):
+    disable_record_request: bool = False
+
+
 class Settings(BaseSettings):
     server: ServerConfig = ServerConfig()
     log: LogConfig = LogConfig()
@@ -87,6 +88,8 @@ class Settings(BaseSettings):
 
     # dir
     data_dir: Path = Path("data")
+
+    test: TestConfig = TestConfig()
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`
@@ -109,11 +112,11 @@ class Settings(BaseSettings):
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (
             env_settings,
+            dotenv_settings,
             PluginConfigSource(settings_cls),
             TomlConfigSettingsSource(settings_cls),
             YamlConfigSettingsSource(settings_cls),
             PyprojectTomlConfigSettingsSource(settings_cls),
-            dotenv_settings,
             init_settings,
             file_secret_settings,
         )
