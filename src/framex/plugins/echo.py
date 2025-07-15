@@ -30,4 +30,4 @@ class EchoPlugin(BasePlugin):
         for char in f"原神真好玩呀, {message}":
             yield make_stream_event(StreamEnventType.MESSAGE_CHUNK, char)
             await asyncio.sleep(0.1)
-        yield make_stream_event(StreamEnventType.FINISH, char)
+        yield make_stream_event(StreamEnventType.FINISH)

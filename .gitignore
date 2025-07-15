@@ -35,6 +35,7 @@ junit.xml
 coverage.xml
 cov.xml
 report.xml
+.coverage.*
 
 # Build and docs folder/files
 build/*

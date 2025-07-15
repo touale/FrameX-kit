@@ -67,6 +67,8 @@ extend-select = [
 
 ignore = [
   "B008",   # Do not perform function calls in argument defaults
+  "B009",   # get-attr-with-constant
+  "B010",   # set-attr-with-constant
   "ERA001",
   "C901",
   "E402",   # Module level import not at top of file

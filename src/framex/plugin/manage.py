@@ -28,7 +28,10 @@ from framex.utils import escape_tag, path_to_module_name
 @cache
 def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:
     hash_val = hashlib.md5(module_name.encode("utf-8")).hexdigest()[:4]  # noqa
-    data_dir = Path.cwd() / "data" / f"{plugin_name}@{hash_val}"
+
+    from framex.config import settings
+
+    data_dir = Path.cwd() / settings.data_dir / f"{plugin_name}@{hash_val}"
     data_dir.mkdir(parents=True, exist_ok=True)
     return str(data_dir)
 
@@ -257,7 +260,7 @@ class PluginLoader(SourceFileLoader):
             module,
         )
 
-        setattr(module, "__plugin__", plugin)  # noqa
+        setattr(module, "__plugin__", plugin)
 
         # enter plugin context
         from . import _current_plugin

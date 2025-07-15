@@ -83,7 +83,7 @@ class ProxyPlugin(BasePlugin):
                     Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
                     params.append(("model", Model))
 
-                logger.opt(colors=True).info(f"Found proxy api({method}) <y>{url}{path}</y>")
+                logger.opt(colors=True).debug(f"Found proxy api({method}) <y>{url}{path}</y>")
 
                 func_name = body.get("operationId")
                 is_stream = path in self.config.force_stream_apis
