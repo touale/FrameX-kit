@@ -58,7 +58,7 @@ test-all = { sequence = [
   "_test-pre-commit",
   "test",
 ], help = "Run all tests." }
-test-ci = { sequence = ["_check", "_lint"], help = "Run ci tests." }
+test-ci = { sequence = ["_check", "_lint", "test"], help = "Run ci tests." }
 
 # Release
 build = { shell = "uv build", help = "Build source and wheel package" }

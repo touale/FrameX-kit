@@ -31,7 +31,7 @@ class APIIngress:
 
         app.state.ingress = self
 
-        if not deployments or not plugin_apis:  # pragma: no cover
+        if not deployments or not plugin_apis:
             raise RuntimeError("deployments or plugin_apis is empty")
 
         self.deployments_dict = {dep.deployment_name: dep for dep in deployments}
@@ -117,6 +117,14 @@ class APIIngress:
 
         except Exception as e:
             logger.opt(exception=e).error(f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}')
+
+    @app.get("/debug")
+    async def inner(self) -> str:
+        """
+        I don't understand why I have to write this route in inner class.
+        If I don't write it, Ray will not be able to recognize other routes later.
+        """
+        return "debug"
 
     def __repr__(self):
         return BACKEND_NAME
