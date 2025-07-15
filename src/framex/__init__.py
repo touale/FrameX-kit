@@ -1,11 +1,12 @@
-import ray
-from ray import serve
-
-from framex.driver import APIIngress
 from framex.log import logger
 
 
-def run() -> None:
+def run(*, blocking: bool = True, test_mode: bool = False) -> None:
+    from framex.config import settings
+
+    if test_mode:
+        settings.server.use_ray = False
+
     # step1: setup log
     import logging
     import sys
@@ -28,28 +29,47 @@ def run() -> None:
 
     load_from_settings()
 
-    # step4: init ray
-    from framex.config import settings
-
-    ray.init(
-        num_cpus=8,
-        dashboard_host=settings.server.dashboard_host,
-        dashboard_port=settings.server.dashboard_port,
-        configure_logging=False,
-    )
-
     # step5: init all DeploymentHandle
     logger.info("Start initializing all DeploymentHandle...")
     from framex.plugin import get_http_plugin_apis, init_all_deployments
 
     deployments = init_all_deployments()
     http_apis = get_http_plugin_apis()
+    from framex.driver.ingress import APIIngress
 
-    serve.run(
-        APIIngress.bind(deployments=deployments, plugin_apis=http_apis),  # type: ignore
-        blocking=True,
-        #   _local_testing_mode=True
-    )
+    if settings.server.use_ray:
+        # step4: init ray
+
+        import ray
+        from ray import serve
+
+        ray.init(
+            num_cpus=8,
+            dashboard_host=settings.server.dashboard_host,
+            dashboard_port=settings.server.dashboard_port,
+            configure_logging=False,
+        )
+        serve.start(detached=True, http_options={"host": settings.server.host, "port": settings.server.port})
+        api_ingress = APIIngress.bind(deployments=deployments, plugin_apis=http_apis)  # type: ignore
+
+        serve.run(
+            api_ingress,  # type: ignore
+            blocking=blocking,
+            # _local_testing_mode=test_mode,
+        )
+    else:
+        import uvicorn
+
+        from framex.driver.ingress import APIIngress, app
+
+        api_ingress = APIIngress(deployments=deployments, plugin_apis=http_apis)
+        uvicorn.run(
+            app,
+            host=settings.server.host,
+            port=settings.server.port,
+            reload=False,
+            loop="asyncio",
+        )
 
 
 from framex.plugin import (

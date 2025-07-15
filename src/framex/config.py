@@ -70,14 +70,23 @@ class ServerConfig(BaseModel):
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = 8260
 
+    use_ray: bool = True
+
 
 class Settings(BaseSettings):
     server: ServerConfig = ServerConfig()
+    log: LogConfig = LogConfig()
+
+    # plugins config
     enable_proxy: bool = False
     plugins: dict[str, Any] = {}
-    log: LogConfig = LogConfig()
+
+    # allow load plugins
     load_plugins: list[str] = []
     load_builtin_plugins: list[str] = []
+
+    # dir
+    data_dir: Path = Path("data")
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

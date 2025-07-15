@@ -1,9 +1,8 @@
-import asyncio
 from typing import Any, final
 
 from pydantic import BaseModel
 
-from framex.log import LoguruHandler
+from framex.log import setup_logger
 from framex.plugin import call_remote_api
 from framex.plugin.model import PluginApi
 
@@ -12,14 +11,10 @@ class BasePlugin:
     """Base class for all plugins"""
 
     def __init__(self, **kwargs: Any) -> None:
-        # Update log config
-        import logging
-
-        for name in logging.root.manager.loggerDict:
-            logging.getLogger(name).handlers = [LoguruHandler()]
+        setup_logger()
 
         self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
-        asyncio.create_task(self.on_start())  # noqa
+        # asyncio.create_task(self.on_start())
 
     async def on_start(self) -> None:
         pass

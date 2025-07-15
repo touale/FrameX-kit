@@ -6,7 +6,7 @@ from ray import serve
 from ray.serve.handle import DeploymentHandle
 
 from framex.config import settings
-from framex.consts import APP_NAME, PROXY_PLUGIN_NAME
+from framex.consts import APP_NAME, BACKEND_NAME, PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin.manage import PluginManager
 from framex.plugin.model import Plugin, PluginApi
@@ -48,8 +48,12 @@ def init_all_deployments() -> list[DeploymentHandle]:
                     raise RuntimeError(
                         f"Plugin(<y>{dep.deployment.name}</y>) init failed, Required remote api({api_name}) not found"
                     )
+            if settings.server.use_ray:
+                deployment = dep.deployment.bind(remote_apis=remote_apis, config=plugin.config)
+            else:
+                deployment = dep.deployment(remote_apis=remote_apis, config=plugin.config)
 
-            deployments.append(dep.deployment.bind(remote_apis=remote_apis, config=plugin.config))
+            deployments.append(deployment)
 
     return deployments
 
@@ -65,10 +69,23 @@ async def _check_is_gen_api(path: str) -> bool:
     return cast(bool, await c_handle.remote(path=path))
 
 
+async def _get_handle(api: PluginApi) -> Any:
+    if settings.server.use_ray:
+        return serve.get_deployment_handle(api.deployment_name, app_name=APP_NAME)
+
+    from framex.driver.ingress import app
+
+    return (
+        app.state.deployments_dict.get(api.deployment_name)
+        if api.deployment_name != BACKEND_NAME
+        else app.state.ingress
+    )
+
+
 async def call_remote_api(api: PluginApi, **kwargs: Any) -> Any:
-    handle: DeploymentHandle = serve.get_deployment_handle(api.deployment_name, app_name=APP_NAME)
-    c_handle = getattr(handle, api.func_name)
-    if not c_handle:
+    handle = await _get_handle(api)
+
+    if not handle or not (c_handle := getattr(handle, api.func_name)):
         raise RuntimeError(f"No handle found for func_name({api.func_name})")
 
     stream = api.stream
@@ -78,10 +95,19 @@ async def call_remote_api(api: PluginApi, **kwargs: Any) -> Any:
         stream = await _check_is_gen_api(api.api)
 
     if stream:
-        gen = c_handle.options(stream=True).remote(**kwargs)
+        if settings.server.use_ray:
+            c_handle = c_handle.options(stream=True).remote
+        gen = c_handle(**kwargs)
         return [chunk async for chunk in gen]
 
-    res = await c_handle.remote(**kwargs)
+    if settings.server.use_ray:
+        res = await c_handle.remote(**kwargs)
+    elif handle.__module__ == "framex.driver.ingress" and c_handle.__name__ == "register_route":
+        # Only banckend can be call with sync func!
+        res = c_handle(**kwargs)
+    else:
+        res = await c_handle(**kwargs)
+
     return data if api.call_type == ApiType.PROXY and (data := res.get("data")) else res
 
 

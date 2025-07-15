@@ -37,6 +37,7 @@ class ProxyPlugin(BasePlugin):
         super().__init__(**kwargs)
 
     async def on_start(self) -> None:
+        await super().on_start()
         if not self.config.proxy_urls:
             logger.warning("No url provided, skipping proxy plugin")
             return
@@ -95,9 +96,16 @@ class ProxyPlugin(BasePlugin):
                     deployment_name=BACKEND_NAME,
                     func_name="register_route",
                 )
-                from ray import serve
 
-                handle = serve.get_deployment_handle(PROXY_PLUGIN_NAME, app_name=APP_NAME)
+                from framex.config import settings
+
+                if settings.server.use_ray:
+                    from ray import serve
+
+                    handle = serve.get_deployment_handle(PROXY_PLUGIN_NAME, app_name=APP_NAME)
+                else:
+                    handle = self
+
                 await call_remote_api(
                     plugin_api,
                     path=path,

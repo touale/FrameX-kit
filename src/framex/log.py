@@ -68,6 +68,9 @@ class StderrFilter:
 def default_filter(record: "Record") -> bool:
     log_level = record["extra"].get("log_level", "DEBUG")
     levelno = logger.level(log_level).no if isinstance(log_level, str) else log_level
+
+    if record["name"] and record["name"].startswith("http"):
+        return False
     return record["level"].no >= levelno
 
 
@@ -87,3 +90,12 @@ logger_id = logger.add(
     filter=default_filter,
     format=default_format,
 )
+
+
+def setup_logger() -> None:
+    # Update log config
+    import logging
+
+    for name in logging.root.manager.loggerDict:
+        if name.startswith("ray"):
+            logging.getLogger(name).handlers = [LoguruHandler()]
