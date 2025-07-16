@@ -67,8 +67,6 @@ class ServerConfig(BaseModel):
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = 8260
 
-    use_ray: bool = True
-
 
 class TestConfig(BaseModel):
     disable_record_request: bool = False
@@ -90,6 +88,8 @@ class Settings(BaseSettings):
     data_dir: Path = Path("data")
 
     test: TestConfig = TestConfig()
+
+    use_ray: bool = True
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

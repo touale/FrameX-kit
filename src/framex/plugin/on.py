@@ -3,9 +3,8 @@ from collections.abc import Callable
 from typing import Any, get_type_hints
 
 from pydantic import BaseModel
-from ray import serve
 
-from framex.config import settings
+from framex.adapter import get_adapter
 from framex.consts import API_STR
 from framex.plugin.model import ApiType, PluginApi, PluginDeployment
 from framex.utils import extract_method_params, plugin_to_deployment_name
@@ -48,18 +47,10 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                         )
                     )
 
-            if settings.server.use_ray:
-                cls = serve.deployment(**kwargs)(cls)
-            else:
-                # Set default deployment_name
-                setattr(cls, "deployment_name", tag)
+            cls = get_adapter().to_deployment(cls, **kwargs)
 
             deployment = PluginDeployment(plugin_apis=plugin_apis, deployment=cls)
             plugin.deployments.append(deployment)
-
-            # logger.opt(colors=True).debug(
-            #     f'Found deploment "<m>{escape_tag(kwargs["name"])}</m> " from {plugin.module_name}'
-            # )
 
         return cls
 

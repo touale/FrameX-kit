@@ -8,7 +8,7 @@ from pydantic import create_model
 from ray.serve.handle import DeploymentHandle
 from starlette.routing import Route
 
-from framex.config import settings
+from framex.adapter import get_adapter
 from framex.consts import BACKEND_NAME
 from framex.driver.application import create_fastapi_application
 from framex.driver.decorator import api_ingress
@@ -72,7 +72,7 @@ class APIIngress:
         if tags is None:
             tags = ["default"]
 
-        use_ray: bool = settings.server.use_ray
+        adapter = get_adapter()
 
         from framex.log import logger
 
@@ -100,14 +100,12 @@ class APIIngress:
                 response.headers["X-Raw-Output"] = str(direct_output)
 
                 if stream:
-                    call = c_handle.options(stream=stream).remote if use_ray else c_handle
-                    gen = call(**(model.__dict__))
+                    gen = adapter._stream_call(c_handle, **(model.__dict__))
                     return StreamingResponse(  # type: ignore
                         gen,
                         media_type="text/event-stream",
                     )
-                call = c_handle.remote if use_ray else c_handle
-                return await call(**model.__dict__)  # type: ignore
+                return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
 
             app.add_api_route(path, route_handler, methods=methods, tags=tags)
 

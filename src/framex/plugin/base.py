@@ -2,9 +2,9 @@ from typing import Any, final
 
 from pydantic import BaseModel
 
+from framex.adapter import get_adapter
 from framex.config import settings
 from framex.log import setup_logger
-from framex.plugin import call_remote_api
 from framex.plugin.model import PluginApi
 
 
@@ -16,7 +16,7 @@ class BasePlugin:
 
         self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
 
-        if settings.server.use_ray:
+        if settings.use_ray:
             import asyncio
 
             asyncio.create_task(self.on_start())  # noqa: RUF006
@@ -44,5 +44,4 @@ class BasePlugin:
                     kwargs[key] = expected_type(**val)
                 except Exception as e:  # pragma: no cover
                     raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
-
-        return await call_remote_api(api, **kwargs)
+        return await get_adapter().call_func(api, **kwargs)

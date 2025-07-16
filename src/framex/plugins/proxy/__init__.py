@@ -6,9 +6,10 @@ from typing import Any, cast
 import httpx
 from pydantic import BaseModel, create_model
 
-from framex.consts import APP_NAME, BACKEND_NAME, PROXY_PLUGIN_NAME, VERSION
+from framex.adapter import get_adapter
+from framex.consts import BACKEND_NAME, PROXY_PLUGIN_NAME, VERSION
 from framex.log import logger
-from framex.plugin import BasePlugin, PluginApi, PluginMetadata, call_remote_api, on_register
+from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
 from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
 from framex.plugins.proxy.builder import create_pydantic_model, type_map
@@ -55,6 +56,8 @@ class ProxyPlugin(BasePlugin):
         return cast(dict[str, Any], response.json())
 
     async def _parse_openai_docs(self, url: str) -> None:
+        adapter = get_adapter()
+
         openapi_data = await self._get_openai_docs(url)
         paths = openapi_data.get("paths", {})
         components = openapi_data.get("components", {}).get("schemas", {})
@@ -97,16 +100,8 @@ class ProxyPlugin(BasePlugin):
                     func_name="register_route",
                 )
 
-                from framex.config import settings
-
-                if settings.server.use_ray:
-                    from ray import serve
-
-                    handle = serve.get_deployment_handle(PROXY_PLUGIN_NAME, app_name=APP_NAME)
-                else:
-                    handle = self
-
-                await call_remote_api(
+                handle = adapter.get_handle(PROXY_PLUGIN_NAME)
+                await adapter.call_func(
                     plugin_api,
                     path=path,
                     methods=[method],
