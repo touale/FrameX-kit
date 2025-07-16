@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.0.2-beta.7 (2025-07-16)
+
+### Features
+
+- Introduce adapter to reduce dependence on `use_ray` config
+  ([`487316c`](https://github.com/touale/FrameX-kit/-/commit/487316cbdc4d49cdd03c836c029fcaff1ef74618))
+
+
 ## v0.0.2-beta.6 (2025-07-15)
 
 ### Bug Fixes
