@@ -16,7 +16,7 @@ class BasePlugin:
 
         self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
 
-        if settings.use_ray:
+        if settings.server.use_ray:
             import asyncio
 
             asyncio.create_task(self.on_start())  # noqa: RUF006

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from framex.config import settings
 from framex.log import logger
 
 
@@ -13,11 +14,13 @@ def _set_env() -> None:
 
 
 def run(*, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
+    if test_mode and settings.server.use_ray:
+        raise RuntimeError("FlameX can not run when `test_mode` == True, and `use_ray` == True")
+
     # step1: setup log
     import logging
     import sys
 
-    from framex.config import settings
     from framex.log import LoguruHandler, StderrFilter
 
     logging.basicConfig(handlers=[LoguruHandler()], level=0, force=True)
@@ -29,17 +32,17 @@ def run(*, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
     # step 4: setup settings plugins
     from framex.plugin.load import load_from_settings
 
-    load_from_settings()
+    load_from_settings(settings=settings)
 
     # step5: init all DeploymentHandle
     logger.info("Start initializing all DeploymentHandle...")
     from framex.plugin import get_http_plugin_apis, init_all_deployments
 
-    deployments = init_all_deployments()
+    deployments = init_all_deployments(enable_proxy=settings.server.enable_proxy)
     http_apis = get_http_plugin_apis()
     from framex.driver.ingress import APIIngress
 
-    if settings.use_ray:
+    if settings.server.use_ray:
         # step4: init ray
 
         import ray

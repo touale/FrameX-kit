@@ -14,8 +14,7 @@ class AdapterMode(StrEnum):
 
 
 class BaseAdapter(abc.ABC):
-    def __init__(self, mode: AdapterMode):
-        self.mode = mode
+    mode: AdapterMode
 
     def to_ingress(self, cls: type, app: FastAPI, **kwargs: Any) -> type:  # noqa: ARG002
         return cls

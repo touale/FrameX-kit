@@ -33,7 +33,7 @@ def create_fastapi_application() -> FastAPI:
     async def lifespan(app: FastAPI):  # noqa
         from framex.config import settings
 
-        if not settings.use_ray:
+        if not settings.server.use_ray:
             from framex.log import logger
 
             logger.info("Starting FastAPI application...")

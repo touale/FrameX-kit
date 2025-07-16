@@ -1,3 +1,4 @@
+from framex.config import Settings
 from framex.log import logger
 from framex.plugin.model import Plugin
 
@@ -13,9 +14,7 @@ def load_builtin_plugin(*names: str) -> set[Plugin]:
 
 
 @logger.catch(reraise=True)
-def load_from_settings() -> set[Plugin]:
-    from framex.config import settings
-
+def load_from_settings(settings: Settings) -> set[Plugin]:
     # Get all builtin_plugins
     loaded_builtin_plugins = {
         plugin.name for plugin in get_loaded_plugins() if plugin.module_name.startswith("framex.plugins.")
@@ -26,7 +25,9 @@ def load_from_settings() -> set[Plugin]:
 
     # Check if proxy is enabled but not allow to load
     if (
-        settings.enable_proxy and "proxy" not in loaded_builtin_plugins and "proxy" not in candidate_builtin_plugins
+        settings.server.enable_proxy
+        and "proxy" not in loaded_builtin_plugins
+        and "proxy" not in candidate_builtin_plugins
     ):  # pragma: no cover
         raise RuntimeError(
             "`enable_proxy` == True, but `proxy` is not in `load_builtin_plugins`.\n"

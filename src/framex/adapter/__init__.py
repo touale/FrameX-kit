@@ -9,5 +9,5 @@ _adapter: BaseAdapter | None = None
 def get_adapter() -> BaseAdapter:
     global _adapter
     if _adapter is None:
-        _adapter = RayAdapter() if settings.use_ray else LocalAdapter()
+        _adapter = RayAdapter() if settings.server.use_ray else LocalAdapter()
     return _adapter

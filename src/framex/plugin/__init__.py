@@ -4,7 +4,6 @@ from typing import Optional
 from ray.serve.handle import DeploymentHandle
 
 from framex.adapter import get_adapter
-from framex.config import settings
 from framex.consts import PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin.manage import PluginManager
@@ -20,7 +19,7 @@ def get_loaded_plugins() -> set["Plugin"]:
 
 
 @logger.catch()
-def init_all_deployments() -> list[DeploymentHandle]:
+def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
     deployments = []
     for plugin in get_loaded_plugins():
         for dep in plugin.deployments:
@@ -31,7 +30,7 @@ def init_all_deployments() -> list[DeploymentHandle]:
                 if api_name in remote_apis:
                     continue
 
-                if api_name.startswith("/") and settings.enable_proxy:
+                if api_name.startswith("/") and enable_proxy:
                     remote_apis[api_name] = PluginApi(
                         api=api_name,
                         deployment_name=PROXY_PLUGIN_NAME,

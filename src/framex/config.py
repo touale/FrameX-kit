@@ -67,6 +67,9 @@ class ServerConfig(BaseModel):
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = 8260
 
+    use_ray: bool = True
+    enable_proxy: bool = False
+
 
 class TestConfig(BaseModel):
     disable_record_request: bool = False
@@ -77,7 +80,6 @@ class Settings(BaseSettings):
     log: LogConfig = LogConfig()
 
     # plugins config
-    enable_proxy: bool = False
     plugins: dict[str, Any] = {}
 
     # allow load plugins
@@ -89,13 +91,12 @@ class Settings(BaseSettings):
 
     test: TestConfig = TestConfig()
 
-    use_ray: bool = True
-
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`
         env_file=(".env", ".env.prod"),
         extra="ignore",
-        case_sensitive=True,
+        env_nested_delimiter="__",
+        case_sensitive=False,
         pyproject_toml_table_header=("tool", "framex"),
         toml_file="config.toml",
         yaml_file="config.yaml",
