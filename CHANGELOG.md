@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.2 (2025-07-17)
+
+### Features
+
+- Add reversion param to _setup_sentry and run
+  ([`588a78e`](https://github.com/touale/FrameX-kit/-/commit/588a78eefcac498a171ba61e08666b9a105ed8db))
+
+
 ## v0.1.1 (2025-07-17)
 
 ### Documentation
