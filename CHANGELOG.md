@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v0.1.0-beta.1 (2025-07-17)
+
+### Chores
+
+- Disable Sentry in pytest config
+  ([`e9243a0`](https://github.com/touale/FrameX-kit/-/commit/e9243a0e0b56c71e2632e02d9a5e16ec291a2993))
+
+### Features
+
+- Integrate Sentry for error tracking and logging
+  ([`5b9847e`](https://github.com/touale/FrameX-kit/-/commit/5b9847ef6665e692f2c74bfca6979489c5f7fc81))
+
+### Refactoring
+
+- Rename and restructure settings for server and proxy
+  ([`a39738f`](https://github.com/touale/FrameX-kit/-/commit/a39738fa838574d685f594485830f524cc96572d))
+
+### Update
+
+- Optimize log filtering logic for sentry and ignore prefixes
+  ([`5140174`](https://github.com/touale/FrameX-kit/-/commit/5140174b0e279725aed70e9d3c8c0c4836838b25))
+
+
 ## v0.0.2-beta.7 (2025-07-16)
 
 ### Features
