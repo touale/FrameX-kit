@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.3 (2025-07-17)
+
+### Bug Fixes
+
+- Ensure reversion starts with 'v' in _setup_sentry
+  ([`a0f12c7`](https://github.com/touale/FrameX-kit/-/commit/a0f12c72afb531708a26615fd7a4fecc255bad25))
+
+
 ## v0.1.2 (2025-07-17)
 
 ### Features
