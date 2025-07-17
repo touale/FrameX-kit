@@ -1,5 +1,5 @@
 [project]
-name = "framex"
+name = "framex-kit"
 version = "0.1.0"
 description = "A lightweight plugin injection framework for Python."
 readme = "README.md"
@@ -54,3 +54,6 @@ name = "custom-repo"
 url = "https://pypi.org/simple"
 publish-url = "https://upload.pypi.org/legacy/"
 default = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/framex"]

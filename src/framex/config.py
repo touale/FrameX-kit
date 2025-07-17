@@ -79,7 +79,7 @@ class ServerConfig(BaseModel):
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = 8260
 
-    use_ray: bool = True
+    use_ray: bool = False
     enable_proxy: bool = False
 
 

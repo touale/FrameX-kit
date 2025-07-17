@@ -25,10 +25,14 @@ def _setup_sentry() -> None:  # pragma: no cover
 
         adapter_mode = get_adapter().mode
 
+        import os
+
+        reversion = os.getenv("REVERSION")
+
         sentry_sdk.init(
             dsn=settings.sentry.dsn,
             debug=settings.sentry.debug,
-            release=VERSION,
+            release=reversion,
             environment=f"{settings.sentry.env}_{adapter_mode}",
             ignore_errors=settings.sentry.ignore_errors,
             include_local_variables=True,
@@ -40,9 +44,10 @@ def _setup_sentry() -> None:  # pragma: no cover
                 "enable_logs": settings.sentry.enable_logs,
             },
         )
+        logger.success(f"Successfully setup sentry with env: {settings.sentry.env}_{adapter_mode}, release: {VERSION}")
 
 
-def run(*, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
+def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
     if test_mode and settings.server.use_ray:
         raise RuntimeError("FlameX can not run when `test_mode` == True, and `use_ray` == True")
 
@@ -81,7 +86,12 @@ def run(*, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
             dashboard_host=settings.server.dashboard_host,
             dashboard_port=settings.server.dashboard_port,
             configure_logging=False,
-            runtime_env={"worker_process_setup_hook": _setup_sentry},
+            runtime_env={
+                "env_vars": {
+                    "REVERSION": reversion or VERSION,
+                },
+                "worker_process_setup_hook": _setup_sentry,
+            },
         )
         serve.start(detached=True, http_options={"host": settings.server.host, "port": settings.server.port})
         api_ingress = APIIngress.bind(deployments=deployments, plugin_apis=http_apis)  # type: ignore
