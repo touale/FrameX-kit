@@ -2,6 +2,144 @@
 
 <!-- version list -->
 
+## v0.1.0-beta.1 (2025-07-17)
+
+### Chores
+
+- Disable Sentry in pytest config
+  ([`e9243a0`](https://github.com/touale/FrameX-kit/-/commit/e9243a0e0b56c71e2632e02d9a5e16ec291a2993))
+
+### Features
+
+- Integrate Sentry for error tracking and logging
+  ([`5b9847e`](https://github.com/touale/FrameX-kit/-/commit/5b9847ef6665e692f2c74bfca6979489c5f7fc81))
+
+### Refactoring
+
+- Rename and restructure settings for server and proxy
+  ([`a39738f`](https://github.com/touale/FrameX-kit/-/commit/a39738fa838574d685f594485830f524cc96572d))
+
+### Update
+
+- Optimize log filtering logic for sentry and ignore prefixes
+  ([`5140174`](https://github.com/touale/FrameX-kit/-/commit/5140174b0e279725aed70e9d3c8c0c4836838b25))
+
+
+## v0.0.2-beta.7 (2025-07-16)
+
+### Features
+
+- Introduce adapter to reduce dependence on `use_ray` config
+  ([`487316c`](https://github.com/touale/FrameX-kit/-/commit/487316cbdc4d49cdd03c836c029fcaff1ef74618))
+
+
+## v0.0.2-beta.6 (2025-07-15)
+
+### Bug Fixes
+
+- Fix ray cannot recognize other routes
+  ([`9145a83`](https://github.com/touale/FrameX-kit/-/commit/9145a83715caded218d4a4c4a8bcaeace66f739f))
+
+### Chores
+
+- Disable proxy by default in config
+  ([`59763bc`](https://github.com/touale/FrameX-kit/-/commit/59763bc36404733d3d1a72d98db693156a6f886d))
+
+- Simplify proxy config and default values
+  ([`8292de3`](https://github.com/touale/FrameX-kit/-/commit/8292de3e313cc52b61c6be8bce4498637f1e4ab1))
+
+### Features
+
+- Add health check, invoker plugin, and test cases
+  ([`11fe877`](https://github.com/touale/FrameX-kit/-/commit/11fe877f4f5d79add245d12d01615fda095fc3e8))
+
+### Refactoring
+
+- Refactor call remote func
+  ([`dec8fee`](https://github.com/touale/FrameX-kit/-/commit/dec8fee25901af167eb15c22b402061fd44425c8))
+
+
+## v0.0.2-beta.5 (2025-07-15)
+
+### Code Style
+
+- Add return type annotations for better type checking
+  ([`ff32a01`](https://github.com/touale/FrameX-kit/-/commit/ff32a018b2ad50dd7900d876c8b4d6af7c3d84fa))
+
+### Features
+
+- Add multi TOML and YAML support for plugin configs
+  ([`7210af1`](https://github.com/touale/FrameX-kit/-/commit/7210af1faa7a8fd82012cc59ab654322dca28ae2))
+
+- Add Ray and non-Ray mode support for server
+  ([`ce02945`](https://github.com/touale/FrameX-kit/-/commit/ce029454eaa9393eb51b4b5aeb30c711d8010368))
+
+### Refactoring
+
+- Add logger catch and optimize proxy handling in plugin init
+  ([`578b4ee`](https://github.com/touale/FrameX-kit/-/commit/578b4ee5d78000c979b6cd0864772595b6370b18))
+
+### Testing
+
+- Add test coverage and pytest config for better reliability
+  ([`5119039`](https://github.com/touale/FrameX-kit/-/commit/5119039e0239d5690fdb7e933eb06b711ec04a1d))
+
+
+## v0.0.2-beta.4 (2025-07-11)
+
+### Performance Improvements
+
+- Optimize plugin config and data dir setup
+  ([`1a15f5b`](https://github.com/touale/FrameX-kit/-/commit/1a15f5b0e614b205e33a9c1761faa5e08b5340bf))
+
+
+## v0.0.2-beta.3 (2025-07-10)
+
+### Performance Improvements
+
+- Enhance plugin loading and settings integration
+  ([`bf64c50`](https://github.com/touale/FrameX-kit/-/commit/bf64c508178b3fe62a33497384695d182d25b80e))
+
+
+## v0.0.2-beta.2 (2025-07-10)
+
+### Features
+
+- Support mixed plugin import
+  ([`1178495`](https://github.com/touale/FrameX-kit/-/commit/1178495bbcd94dca648be4214e87300326269a45))
+
+### Performance Improvements
+
+- Enhance proxy handling
+  ([`ce18798`](https://github.com/touale/FrameX-kit/-/commit/ce187988139c57ad57e23784ba093d7b49efe803))
+
+
+## v0.0.2-beta.1 (2025-07-09)
+
+### Build System
+
+- Add verbose flag to tag step in release task
+  ([`9a1d528`](https://github.com/touale/FrameX-kit/-/commit/9a1d5287723efbaa1630a1ffbf9b358ade45e646))
+
+### Continuous Integration
+
+- Add git fetch to release step for better branch sync
+  ([`c4d0afd`](https://github.com/touale/FrameX-kit/-/commit/c4d0afd00f0b3fad9b1cc3ab1ef6e24313c262a9))
+
+- Disable allow_failure in secret_detection job
+  ([`eb305f0`](https://github.com/touale/FrameX-kit/-/commit/eb305f0929ddc4f218a1b19065fac58f2bccb111))
+
+### Features
+
+- Add 'perf' to patch tags and optimize plugin API handling
+  ([`c27982c`](https://github.com/touale/FrameX-kit/-/commit/c27982c82dca7e5390c37e6addb344f49f3688e1))
+
+### Performance Improvements
+
+- Refine API model typing and adjust on_request call_type
+  ([`e1dda26`](https://github.com/touale/FrameX-kit/-/commit/e1dda267ed28f38fc99c711c9e9cdc6dd6bef61a))
+
+
 ## v0.0.1 (2025-07-09)
 
 ### Build System

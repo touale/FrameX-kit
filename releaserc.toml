@@ -58,7 +58,7 @@ default = "gitlab-releaser <gitlab-releaser>"
 
 [semantic_release.commit_parser_options]
 minor_tags = ["update"]
-patch_tags = ["feat", "fix", "build"]
+patch_tags = ["feat", "fix", "build", "perf"]
 allowed_tags = [
   "build",
   "chore",

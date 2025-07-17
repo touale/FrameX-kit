@@ -1,10 +1,10 @@
-import asyncio
 from typing import Any, final
 
 from pydantic import BaseModel
 
-from framex.log import LoguruHandler
-from framex.plugin import call_remote_api
+from framex.adapter import get_adapter
+from framex.config import settings
+from framex.log import setup_logger
 from framex.plugin.model import PluginApi
 
 
@@ -12,14 +12,14 @@ class BasePlugin:
     """Base class for all plugins"""
 
     def __init__(self, **kwargs: Any) -> None:
-        # Update log config
-        import logging
-
-        for name in logging.root.manager.loggerDict:
-            logging.getLogger(name).handlers = [LoguruHandler()]
+        setup_logger()
 
         self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
-        asyncio.create_task(self.on_start())  # noqa
+
+        if settings.server.use_ray:
+            import asyncio
+
+            asyncio.create_task(self.on_start())  # noqa: RUF006
 
     async def on_start(self) -> None:
         pass
@@ -28,7 +28,8 @@ class BasePlugin:
     async def _call_remote_api(self, api_name: str, **kwargs: Any) -> Any:
         if not (api := self.remote_apis.get(api_name)):
             raise RuntimeError(
-                f"API {api_name} is not required by this plugin, current plugins: {self.remote_apis.keys()}"
+                f"API {api_name} is not in `required_remote_apis` by this plugin, "
+                f"current plugins: {self.remote_apis.keys()}"
             )
 
         param_type_map = dict(api.params)
@@ -41,7 +42,6 @@ class BasePlugin:
             ):
                 try:
                     kwargs[key] = expected_type(**val)
-                except Exception as e:
+                except Exception as e:  # pragma: no cover
                     raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
-
-        return await call_remote_api(api, **kwargs)
+        return await get_adapter().call_func(api, **kwargs)

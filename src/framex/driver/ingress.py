@@ -1,4 +1,3 @@
-import logging
 from enum import Enum
 from typing import Any
 
@@ -6,35 +5,42 @@ from fastapi import Depends, Response
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRoute
 from pydantic import create_model
-from ray import serve
 from ray.serve.handle import DeploymentHandle
 from starlette.routing import Route
 
+from framex.adapter import get_adapter
 from framex.consts import BACKEND_NAME
 from framex.driver.application import create_fastapi_application
-from framex.log import LoguruHandler
+from framex.driver.decorator import api_ingress
+from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi
 from framex.utils import escape_tag
 
 app = create_fastapi_application()
 
 
-@serve.deployment(
-    name=BACKEND_NAME,
-    # ray_actor_options={"num_cpus": 0.3},
-)
-@serve.ingress(app)
+@app.get("/health")
+async def health() -> str:
+    return "ok"
+
+
+@api_ingress(app=app, name=BACKEND_NAME)
 class APIIngress:
     def __init__(self, deployments: list[DeploymentHandle], plugin_apis: list["PluginApi"]) -> None:
-        for name in logging.root.manager.loggerDict:
-            logging.getLogger(name).handlers = [LoguruHandler()]
+        setup_logger()
 
-        deployments_dict = {dep.deployment_name: dep for dep in deployments}
+        app.state.ingress = self
+
+        if not deployments or not plugin_apis:
+            raise RuntimeError("deployments or plugin_apis is empty")
+
+        self.deployments_dict = {dep.deployment_name: dep for dep in deployments}
+        app.state.deployments_dict = self.deployments_dict
 
         for plugin_api in plugin_apis:
             if (
                 plugin_api.api
-                and (deployment := deployments_dict.get(plugin_api.deployment_name))
+                and (deployment := self.deployments_dict.get(plugin_api.deployment_name))
                 and plugin_api.call_type
                 in [
                     ApiType.HTTP,
@@ -66,6 +72,8 @@ class APIIngress:
         if tags is None:
             tags = ["default"]
 
+        adapter = get_adapter()
+
         from framex.log import logger
 
         try:
@@ -80,9 +88,9 @@ class APIIngress:
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
 
-            Model = create_model(f"{func_name}_InputModel", **{name: (tp, ...) for name, tp in params})  # type:ignore # noqa
+            Model: BaseModel = create_model(f"{func_name}_InputModel", **{name: (tp, ...) for name, tp in params})  # type:ignore # noqa
 
-            async def route_handler(response: Response, model: Model = Depends()) -> Any:  # type: ignore
+            async def route_handler(response: Response, model: Model = Depends()) -> Any:  # type: ignore [valid-type]
                 c_handle = getattr(handle, func_name)
                 if not c_handle:
                     raise RuntimeError(
@@ -92,27 +100,29 @@ class APIIngress:
                 response.headers["X-Raw-Output"] = str(direct_output)
 
                 if stream:
-                    gen = c_handle.options(stream=stream).remote(**model.dict())  # type: ignore
-                    return StreamingResponse(
+                    gen = adapter._stream_call(c_handle, **(model.__dict__))
+                    return StreamingResponse(  # type: ignore
                         gen,
                         media_type="text/event-stream",
                     )
-
-                return await c_handle.remote(**model.dict())  # type: ignore
+                return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
 
             app.add_api_route(path, route_handler, methods=methods, tags=tags)
 
-            logger.opt(colors=True).debug(
+            logger.opt(colors=True).success(
                 f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
             )
 
         except Exception as e:
             logger.opt(exception=e).error(f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}')
 
-    @app.get("/health")
-    async def health(self, response: Response) -> str:
-        response.headers["X-Health-Check"] = "Passed"
-        return "ok"
+    @app.get("/debug")
+    async def inner(self) -> str:
+        """
+        I don't understand why I have to write this route in inner class.
+        If I don't write it, Ray will not be able to recognize other routes later.
+        """
+        return "debug"
 
     def __repr__(self):
         return BACKEND_NAME

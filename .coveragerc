@@ -1,0 +1,27 @@
+[run]
+branch = true
+data_file = .coverage/.coverage
+parallel = true
+concurrency = thread
+sigterm = true
+source = src
+
+# plugins = coverage_plugins.subprocess
+
+[report]
+exclude_also =
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == "__main__":
+    def main():
+    if TYPE_CHECKING:
+    class .*Protocol\):
+    @(abc\.)?abstractmethod
+    pass
+    def __str__
+    if settings.server.use_ray:
+    

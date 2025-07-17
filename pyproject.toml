@@ -1,6 +1,6 @@
 [project]
 name = "framex"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 description = "A lightweight plugin injection framework for Python."
 readme = "README.md"
 authors = [{ name = "touale", email = "touale@local.com" }]
@@ -14,15 +14,23 @@ dependencies = [
   "pydantic-settings>=2.10.1",
   "pytz>=2025.2",
   "ray[serve]>=2.47.1",
+  "sentry-sdk[fastapi]>=2.33.0",
+  "tomli>=2.2.1",
 ]
 
 [dependency-groups]
 dev = [
+  "coverage>=7.9.2",
   "mypy>=1.16.1",
   "poethepoet>=0.36.0",
   "pre-commit>=4.2.0",
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+  "pytest-env>=1.1.5",
+  "pytest-recording>=0.13.4",
   "ruff==0.12.0",
   "types-pytz>=2025.2.0.20250516",
+  "types-pyyaml>=6.0.12.20250516",
 ]
 
 

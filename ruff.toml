@@ -27,7 +27,8 @@ exclude = [
   "dist",
   "node_modules",
   "site-packages",
-  "venv",
+  ".venv",
+  ".history",
 ]
 
 [lint]
@@ -66,13 +67,18 @@ extend-select = [
 
 ignore = [
   "B008",   # Do not perform function calls in argument defaults
+  "B009",   # get-attr-with-constant
+  "B010",   # set-attr-with-constant
   "ERA001",
   "C901",
   "E402",   # Module level import not at top of file
   "ANN401", # Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
   "ANN204", # ANN204 Missing return type annotation for special method
-  "ANN201", # Missing return type annotation for public function
+  # "ANN201", # Missing return type annotation for public function
 ]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "ANN201", "ANN001"]
 
 [lint.flake8-builtins]
 builtins-ignorelist = ["input", "id", "bytes", "type"]

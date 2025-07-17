@@ -28,7 +28,10 @@ from framex.utils import escape_tag, path_to_module_name
 @cache
 def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:
     hash_val = hashlib.md5(module_name.encode("utf-8")).hexdigest()[:4]  # noqa
-    data_dir = Path.cwd() / "data" / f"{plugin_name}@{hash_val}"
+
+    from framex.config import settings
+
+    data_dir = Path.cwd() / settings.data_dir / f"{plugin_name}@{hash_val}"
     data_dir.mkdir(parents=True, exist_ok=True)
     return str(data_dir)
 
@@ -51,22 +54,21 @@ class PluginManager:
             for plugin in self._plugins.values():
                 for dep in plugin.deployments:
                     for api in dep.plugin_apis:
-                        if api.api:
-                            api_name = f"{api.deployment_name}.{api.func_name}"
-                            is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
-                            is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
+                        api_name = f"{api.deployment_name}.{api.func_name}"
+                        is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
+                        is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
 
-                            if is_func:
-                                self._plugin_apis[ApiType.FUNC][api_name] = api
-                                logger.opt(colors=True).success(
-                                    f'Found plugin FUNC API "<y>{api_name}</y>" from plugin({plugin.name})'
-                                )
+                        if is_func:
+                            self._plugin_apis[ApiType.FUNC][api_name] = api
+                            logger.opt(colors=True).success(
+                                f'Found plugin FUNC API "<y>{api_name}</y>" from plugin({plugin.name})'
+                            )
 
-                            if is_http:
-                                self._plugin_apis[ApiType.HTTP][api.api] = api
-                                logger.opt(colors=True).success(
-                                    f'Found plugin HTTP API "<y>{api.api}</y>" from plugin({plugin.name})'
-                                )
+                        if api.api and is_http:
+                            self._plugin_apis[ApiType.HTTP][api.api] = api
+                            logger.opt(colors=True).success(
+                                f'Found plugin HTTP API "<y>{api.api}</y>" from plugin({plugin.name})'
+                            )
 
         return self._plugin_apis
 
@@ -94,6 +96,7 @@ class PluginManager:
     def available_plugins(self) -> set[str]:
         return self.third_party_plugins | self.searched_plugins
 
+    @logger.catch
     def _prepare_plugins(self, plugins_path: set[str]) -> None:
         self._plugin_apis = defaultdict(dict)
 
@@ -103,14 +106,23 @@ class PluginManager:
         for plugin_path in plugins_path:
             if "/" in plugin_path:
                 searched_plugins.add(plugin_path)
-            if "." in plugin_path:
-                third_party_plugins.add(plugin_path)
+            else:
+                if (
+                    plugin_path.endswith(".plugins")
+                    and (module := importlib.import_module(plugin_path))
+                    and hasattr(module, "__path__")
+                    and len(module.__path__) == 1
+                ):
+                    searched_plugins.add(str(module.__path__[0]))
+                else:
+                    third_party_plugins.add(plugin_path)
 
         # check third party plugins
         for plugin in third_party_plugins:
             plugin_id = _module_name_to_plugin_name(plugin)
             if plugin_id in self._third_party_plugin_ids:
-                raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
+                raise RuntimeError(f"Plugin already exists: {plugin_id}. Check for duplicate plugin names.")
+
             self._third_party_plugin_ids[plugin_id] = plugin
 
         # check plugins in search path
@@ -135,7 +147,7 @@ class PluginManager:
 
             self._searched_plugin_ids[plugin_id] = module_name
 
-    def load_all_plugin(self, plugins_path: Iterable[str]) -> set[Plugin]:
+    def load_plugins(self, plugins_path: Iterable[str]) -> set[Plugin]:
         plugins_path = set(plugins_path or [])
         self._prepare_plugins(plugins_path)
         return set(filter(None, (self._load_plugin(name) for name in self.available_plugins)))
@@ -160,18 +172,6 @@ class PluginManager:
                 raise RuntimeError(
                     f"Module {module.__name__} is not loaded as a plugin! Make sure not to import it before loading."
                 )
-
-            # Mkdir data dir for plugin
-            plugin.data_dir = _get_plugin_data_dir(str(module), name)
-
-            # load config
-            if (
-                plugin.metadata.config_class
-                and isinstance(plugin.metadata.config_class, type)
-                and issubclass(plugin.metadata.config_class, BaseModel)
-                and (cfg := settings.plugins.get(name))
-            ):
-                plugin.config = plugin.metadata.config_class(**cfg)
 
             logger.opt(colors=True).success(
                 f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>" from {plugin.module_name}'
@@ -260,7 +260,7 @@ class PluginLoader(SourceFileLoader):
             module,
         )
 
-        setattr(module, "__plugin__", plugin)  # noqa
+        setattr(module, "__plugin__", plugin)
 
         # enter plugin context
         from . import _current_plugin
@@ -280,7 +280,20 @@ class PluginLoader(SourceFileLoader):
         metadata: PluginMetadata | None = getattr(module, "__plugin_meta__", None)
         plugin.metadata = metadata
 
-        return
+        # Mkdir data dir for plugin
+        plugin.data_dir = _get_plugin_data_dir(str(module), plugin.name)
+
+        # load config
+        if (
+            plugin.metadata
+            and (config_class := plugin.metadata.config_class)
+            and isinstance(config_class, type)
+            and issubclass(config_class, BaseModel)
+        ):
+            if cfg := settings.plugins.get(plugin.name):
+                plugin.config = plugin.metadata.config_class(**cfg)
+            else:
+                plugin.config = plugin.metadata.config_class()
 
 
 # Insert a custom plugin module finder into the front of the Python import system to intercept and load plugin modules

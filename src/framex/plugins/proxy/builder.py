@@ -31,11 +31,9 @@ def create_pydantic_model(
             # Nested $ref support
             ref = prop_schema["$ref"]
             ref_name = ref.split("/")[-1]
-            nested_schema = components.get(ref_name)
-            if nested_schema is None:
-                raise ValueError(f"Missing schema for ref: {ref_name}")
-            nested_model = create_pydantic_model(ref_name, nested_schema, components)
-            annotation = nested_model
+            if nested_schema := components.get(ref_name):
+                nested_model = create_pydantic_model(ref_name, nested_schema, components)
+                annotation = nested_model
         else:
             typ = prop_schema.get("type", "string")
             annotation = type_map.get(typ, str)
