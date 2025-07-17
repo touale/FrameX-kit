@@ -9,7 +9,7 @@ from framex.plugin.model import PluginApi
 
 
 class AdapterMode(StrEnum):
-    LOCAL = "local"
+    LOCAL = "noray"
     RAY = "ray"
 
 

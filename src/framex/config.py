@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import tomli
 import yaml
@@ -60,6 +60,18 @@ class LogConfig(BaseModel):
     )
 
 
+class SentryConfig(BaseModel):
+    enable: bool = False
+    dsn: str = ""
+    env: str = ""  # local, prod, dev
+    debug: bool = False
+    ignore_errors: list[str] = []
+
+    lifecycle: Literal["manual", "trace"] = "manual"
+
+    enable_logs: bool = False
+
+
 class ServerConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8080
@@ -90,6 +102,8 @@ class Settings(BaseSettings):
     data_dir: Path = Path("data")
 
     test: TestConfig = TestConfig()
+
+    sentry: SentryConfig = SentryConfig()
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

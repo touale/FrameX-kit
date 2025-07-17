@@ -71,6 +71,8 @@ def default_filter(record: "Record") -> bool:
     ingore_prefixes = ("http", "vcr")
     if record["name"] and record["name"].startswith(ingore_prefixes):
         return False
+    if record["name"].startswith("sentry") and record["level"].name == "DEBUG":
+        return False
     return record["level"].no >= levelno
 
 
