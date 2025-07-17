@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.1.1 (2025-07-17)
+
+### Documentation
+
+- Update LICENSE
+  ([`b1512b2`](https://github.com/touale/FrameX-kit/-/commit/b1512b28a2af22254532c31128430c9877eb6bf8))
+
+### Features
+
+- Rename to framex-kit, add reversion env, default use_ray false
+  ([`ca0c993`](https://github.com/touale/FrameX-kit/-/commit/ca0c993cb74ed97c7ec023090038878b15fbccb9))
+
+
 ## v0.1.0 (2025-07-17)
 
 
