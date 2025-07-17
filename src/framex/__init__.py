@@ -29,6 +29,9 @@ def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
 
         reversion = reversion or os.getenv("REVERSION")
 
+        if reversion and not reversion.startswith("v"):
+            reversion = f"v{reversion}"
+
         sentry_sdk.init(
             dsn=settings.sentry.dsn,
             debug=settings.sentry.debug,
