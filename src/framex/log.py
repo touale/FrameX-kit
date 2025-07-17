@@ -69,10 +69,12 @@ def default_filter(record: "Record") -> bool:
     log_level = record["extra"].get("log_level", "DEBUG")
     levelno = logger.level(log_level).no if isinstance(log_level, str) else log_level
     ingore_prefixes = ("http", "vcr")
-    if record["name"] and record["name"].startswith(ingore_prefixes):
+    if record["name"] and (
+        record["name"].startswith(ingore_prefixes)
+        or (record["name"].startswith("sentry") and record["level"].name == "DEBUG")
+    ):
         return False
-    if record["name"].startswith("sentry") and record["level"].name == "DEBUG":
-        return False
+
     return record["level"].no >= levelno
 
 
