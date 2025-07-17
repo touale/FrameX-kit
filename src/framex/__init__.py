@@ -14,7 +14,7 @@ def _setup_env() -> None:
         os.environ.setdefault(key, value)
 
 
-def _setup_sentry() -> None:  # pragma: no cover
+def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
     if settings.sentry.enable and settings.sentry.dsn and settings.sentry.env:
         import sentry_sdk
 
@@ -27,7 +27,7 @@ def _setup_sentry() -> None:  # pragma: no cover
 
         import os
 
-        reversion = os.getenv("REVERSION")
+        reversion = reversion or os.getenv("REVERSION")
 
         sentry_sdk.init(
             dsn=settings.sentry.dsn,
@@ -44,10 +44,14 @@ def _setup_sentry() -> None:  # pragma: no cover
                 "enable_logs": settings.sentry.enable_logs,
             },
         )
-        logger.success(f"Successfully setup sentry with env: {settings.sentry.env}_{adapter_mode}, release: {VERSION}")
+        logger.success(
+            f"Successfully setup sentry with env: {settings.sentry.env}_{adapter_mode}, release: {reversion}"
+        )
 
 
 def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
+    reversion = reversion or VERSION
+
     if test_mode and settings.server.use_ray:
         raise RuntimeError("FlameX can not run when `test_mode` == True, and `use_ray` == True")
 
@@ -88,7 +92,7 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
             configure_logging=False,
             runtime_env={
                 "env_vars": {
-                    "REVERSION": reversion or VERSION,
+                    "REVERSION": reversion,
                 },
                 "worker_process_setup_hook": _setup_sentry,
             },
@@ -101,7 +105,7 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
             blocking=blocking,
         )
     else:
-        _setup_sentry()
+        _setup_sentry(reversion=reversion)
 
         import uvicorn
 
