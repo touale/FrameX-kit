@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.1.4-beta.1 (2025-07-18)
+
+### Bug Fixes
+
+- Fixed the problem of abnormal parameters of proxy plugin parsing remote API
+  ([`51a7083`](https://github.com/touale/FrameX-kit/-/commit/51a708343e04a935a9ca4cd35967e56f3be6f2d1))
+
+### Continuous Integration
+
+- Add pre-commit cache and env var to .gitlab-ci.yml
+  ([`2614993`](https://github.com/touale/FrameX-kit/-/commit/2614993f16542e2fd868c851448288c4856111bf))
+
+
 ## v0.1.3 (2025-07-17)
 
 ### Bug Fixes
