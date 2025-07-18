@@ -9,6 +9,7 @@ variables:
   # Cache
   APT_CACHE_DIR: "$CI_PROJECT_DIR/apt"
   KANIKO_CACHE_DIR: "$CI_PROJECT_DIR/kaniko"
+  PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.pre-commit"
 
   # Pip
   PIP_TIMEOUT: 30
@@ -57,6 +58,10 @@ check-pre-commit:
   <<: *base_test_job_template
   <<: *base_git_env_template
   image: ${CI_TEMPLATE_REGISTRY_HOST}/library/python:3.11-slim
+  cache:
+    key: ${CI_PROJECT_ID}-pre-commit-cache
+    paths:
+      - $PRE_COMMIT_HOME
   script:
     - pip install pre-commit==4.2.0 -i https://pypi.org/simple
     - |
