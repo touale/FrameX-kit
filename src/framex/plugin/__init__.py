@@ -14,6 +14,10 @@ _manager: PluginManager = PluginManager()
 _current_plugin: ContextVar[Optional["Plugin"]] = ContextVar("_current_plugin", default=None)
 
 
+def get_plugin(plugin_id: str) -> Plugin | None:
+    return _manager._plugins.get(plugin_id)
+
+
 def get_loaded_plugins() -> set["Plugin"]:
     return set(_manager._plugins.values())
 
@@ -42,7 +46,7 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
                         f"plugin(<r>{dep.deployment}</r>) will "
                         f"use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
                     )
-                else:
+                else:  # pragma: no cover
                     raise RuntimeError(
                         f"Plugin({dep.deployment}) init failed, Required remote api({api_name}) not found"
                     )

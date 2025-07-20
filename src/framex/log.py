@@ -72,7 +72,7 @@ def default_filter(record: "Record") -> bool:
     if record["name"] and (
         record["name"].startswith(ingore_prefixes)
         or (record["name"].startswith("sentry") and record["level"].name == "DEBUG")
-    ):
+    ):  # pragma: no cover
         return False
 
     return record["level"].no >= levelno

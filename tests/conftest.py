@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -36,8 +37,9 @@ def before_record_request(request):
     return None
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def test_app() -> FastAPI:
+    framex.load_plugins(str(Path(__file__).parent / "plugins"))
     return framex.run(test_mode=True)  # type: ignore [return-value]
 
 

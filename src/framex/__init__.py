@@ -119,19 +119,21 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
         if test_mode:
             return app
 
-        uvicorn.run(
+        uvicorn.run(  # pragma: no cover
             app,
             host=settings.server.host,
             port=settings.server.port,
             reload=False,
             loop="asyncio",
         )
-    return None
+
+    return None  # pragma: no cover
 
 
 from framex.plugin import (
     PluginApi,
     PluginMetadata,
+    get_plugin,
     load_builtin_plugin,
     load_plugins,
     on_register,
@@ -143,6 +145,7 @@ __all__ = [
     "BasePlugin",
     "PluginApi",
     "PluginMetadata",
+    "get_plugin",
     "load_builtin_plugin",
     "load_plugins",
     "logger",

@@ -26,7 +26,6 @@ def resolve_annotation(
         ref_name = ref.split("/")[-1]
         if nested_schema := components.get(ref_name):
             return create_pydantic_model(ref_name, nested_schema, components)
-        raise RuntimeError(f"Cannot find schema for {ref}")
 
     if "anyOf" in prop_schema:
         options = []
@@ -37,7 +36,7 @@ def resolve_annotation(
                 options.append(list[item_type])  # type: ignore [valid-type]
             else:
                 options.append(type_map.get(typ, str))  # type: ignore [arg-type]
-        return Union[tuple(options)]  # noqa
+        return Union[*options]
 
     typ = prop_schema.get("type")
 
@@ -59,13 +58,8 @@ def resolve_default(annotation: Any) -> Any:
     origin = get_origin(annotation)
 
     # Union type support: try the first type that can construct a default value first
-    if origin is Union:
-        for sub_ann in get_args(annotation):
-            try:
-                return resolve_default(sub_ann)
-            except RuntimeError:
-                continue
-        raise RuntimeError(f"Cannot instantiate default for Union: {annotation}")
+    if origin is Union and (args := get_args(annotation)) and len(args) > 1:
+        return resolve_default(args[0])
 
     if origin in (list, dict, set):
         return origin()

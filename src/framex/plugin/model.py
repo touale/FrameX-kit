@@ -55,3 +55,9 @@ class Plugin:
     @property
     def required_remote_apis(self) -> list[str]:
         return self.metadata.required_remote_apis if self.metadata else []
+
+    @property
+    def version(self) -> str:
+        if self.metadata:
+            return self.metadata.version
+        return "unknown"

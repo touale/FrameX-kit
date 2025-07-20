@@ -17,6 +17,7 @@ repos:
       - id: check-case-conflict
       - id: detect-private-key
       - id: name-tests-test
+        files: ^tests/(?!plugins/).+\.py$
         args:
           - "--pytest-test-first"
 
