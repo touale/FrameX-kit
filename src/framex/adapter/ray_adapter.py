@@ -9,7 +9,7 @@ from framex.adapter.base import AdapterMode, BaseAdapter
 from framex.consts import APP_NAME
 
 
-class RayAdapter(BaseAdapter):
+class RayAdapter(BaseAdapter):  # pragma: no cover
     mode = AdapterMode.RAY
 
     @override

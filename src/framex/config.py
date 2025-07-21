@@ -85,6 +85,7 @@ class ServerConfig(BaseModel):
 
 class TestConfig(BaseModel):
     disable_record_request: bool = False
+    silent: bool = False
 
 
 class Settings(BaseSettings):

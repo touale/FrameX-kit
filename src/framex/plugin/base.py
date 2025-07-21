@@ -26,7 +26,7 @@ class BasePlugin:
 
     @final
     async def _call_remote_api(self, api_name: str, **kwargs: Any) -> Any:
-        if not (api := self.remote_apis.get(api_name)):
+        if not (api := self.remote_apis.get(api_name)):  # pragma: no cover
             raise RuntimeError(
                 f"API {api_name} is not in `required_remote_apis` by this plugin, "
                 f"current plugins: {self.remote_apis.keys()}"

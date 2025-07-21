@@ -4,12 +4,13 @@ from typing import Optional
 from ray.serve.handle import DeploymentHandle
 
 from framex.adapter import get_adapter
+from framex.config import settings
 from framex.consts import PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin.manage import PluginManager
 from framex.plugin.model import Plugin, PluginApi
 
-_manager: PluginManager = PluginManager()
+_manager: PluginManager = PluginManager(silent=settings.test.silent)
 
 _current_plugin: ContextVar[Optional["Plugin"]] = ContextVar("_current_plugin", default=None)
 

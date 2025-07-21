@@ -41,9 +41,12 @@ def _module_name_to_plugin_name(module_name: str) -> str:
 
 
 class PluginManager:
-    def __init__(self) -> None:
+    def __init__(self, silent: bool = False) -> None:
+        self.silent = silent
+
         self._third_party_plugin_ids: dict[str, str] = {}
         self._searched_plugin_ids: dict[str, str] = {}
+        self._install_plugin_ids: list[str] = []
 
         self._plugins: dict[str, Plugin] = {}
         self._plugin_apis: dict[ApiType, dict[str, PluginApi]] = defaultdict(dict)
@@ -153,8 +156,10 @@ class PluginManager:
         return set(filter(None, (self._load_plugin(name) for name in self.available_plugins)))
 
     def _load_plugin(self, name: str) -> Plugin | None:
-        if name in self._plugins:
+        if name in self._install_plugin_ids:
             return None
+
+        self._install_plugin_ids.append(name)
 
         try:
             # load using plugin id
@@ -178,7 +183,7 @@ class PluginManager:
             )
             return plugin  # type: ignore
         except Exception as e:
-            logger.opt(colors=True, exception=e).error(
+            logger.opt(colors=True, exception=e if not self.silent else False).error(
                 f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>'
             )
             return None
