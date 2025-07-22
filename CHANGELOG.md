@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.1.4-beta.2 (2025-07-22)
+
+### Bug Fixes
+
+- Optimize pre-commit install and add test silent mode
+  ([`24dda1e`](https://github.com/touale/FrameX-kit/-/commit/24dda1e2a63c13b2611093b5667fdd2f17497fa5))
+
+### Refactoring
+
+- Enhance BaseAdapter and remove redundant code in Local/Ray Adapters
+  ([`43dad3a`](https://github.com/touale/FrameX-kit/-/commit/43dad3a8b4410c016ca900bd5aadb78e9a1ba8c4))
+
+### Testing
+
+- Add pytest-asyncio, asyncio_mode, and plugin tests
+  ([`1b2fcc9`](https://github.com/touale/FrameX-kit/-/commit/1b2fcc901f587a9c1e8157a979990e5de6edb14e))
+
+
 ## v0.1.4-beta.1 (2025-07-18)
 
 ### Bug Fixes
