@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v0.1.5-beta.1 (2025-07-22)
+
+### Bug Fixes
+
+- Lock ray version to 2.47.1 and update uv.lock
+  ([`1a7d274`](https://github.com/touale/FrameX-kit/-/commit/1a7d274bfa5c16e0591d6571fca74c9829038890))
+
+- Remove str handle type in APIIngress and ProxyPlugin
+  ([`071d88c`](https://github.com/touale/FrameX-kit/-/commit/071d88ce2a4ab213ff673f17684a0a21e3ecc417))
+
+
 ## v0.1.4 (2025-07-22)
 
 ### Continuous Integration
