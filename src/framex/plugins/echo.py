@@ -37,7 +37,7 @@ class EchoPlugin(BasePlugin):
     async def echo_model(self, message: str, model: EchoModel) -> str:
         return f"{message},{model.model_dump()}"
 
-    @on_request("/echo_stream", methods=["GET"], stream=True)
+    @on_request("/api/v1/echo_stream", methods=["GET"], stream=True)
     async def echo_stream(self, message: str) -> AsyncGenerator[str, None]:
         for char in f"原神真好玩呀, {message}":
             yield make_stream_event(StreamEnventType.MESSAGE_CHUNK, char)

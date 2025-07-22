@@ -24,7 +24,7 @@ class PluginConfigSource(PydanticBaseSettingsSource):
     def _load_plugins(self) -> dict[str, Any]:
         plugin_configs: dict[str, dict] = {}
 
-        if not self.data_dir.is_dir():  # pragma: no cover
+        if not self.data_dir.is_dir():
             return {}
 
         for plugin_dir in self.data_dir.iterdir():
@@ -85,6 +85,7 @@ class ServerConfig(BaseModel):
 
 class TestConfig(BaseModel):
     disable_record_request: bool = False
+    silent: bool = False
 
 
 class Settings(BaseSettings):

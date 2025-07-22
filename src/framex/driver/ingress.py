@@ -114,7 +114,7 @@ class APIIngress:
             logger.opt(exception=e).error(f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}')
 
     @app.get("/debug")
-    async def inner(self) -> str:
+    async def inner(self) -> str:  # pragma: no cover
         """
         I don't understand why I have to write this route in inner class.
         If I don't write it, Ray will not be able to recognize other routes later.

@@ -4,14 +4,19 @@ from typing import Optional
 from ray.serve.handle import DeploymentHandle
 
 from framex.adapter import get_adapter
+from framex.config import settings
 from framex.consts import PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin.manage import PluginManager
 from framex.plugin.model import Plugin, PluginApi
 
-_manager: PluginManager = PluginManager()
+_manager: PluginManager = PluginManager(silent=settings.test.silent)
 
 _current_plugin: ContextVar[Optional["Plugin"]] = ContextVar("_current_plugin", default=None)
+
+
+def get_plugin(plugin_id: str) -> Plugin | None:
+    return _manager._plugins.get(plugin_id)
 
 
 def get_loaded_plugins() -> set["Plugin"]:
@@ -42,7 +47,7 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
                         f"plugin(<r>{dep.deployment}</r>) will "
                         f"use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
                     )
-                else:
+                else:  # pragma: no cover
                     raise RuntimeError(
                         f"Plugin({dep.deployment}) init failed, Required remote api({api_name}) not found"
                     )

@@ -159,6 +159,7 @@ class ProxyPlugin(BasePlugin):
 
         # Construct dynamic methods
         async def dynamic_method(**kwargs: Any) -> AsyncGenerator[str, None] | dict[str, Any] | str:
+            logger.info(f"Calling proxy url: {url} with kwargs: {kwargs}")
             validated = RequestModel(**kwargs)  # Type Validation
 
             query = {}
