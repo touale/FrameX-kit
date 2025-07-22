@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.4 (2025-07-22)
+
+### Continuous Integration
+
+- Skip release job for merge requests
+  ([`8db6b74`](https://github.com/touale/FrameX-kit/-/commit/8db6b74eaff125e9fb080c6a972d50235a14646e))
+
+
 ## v0.1.4-beta.2 (2025-07-22)
 
 ### Bug Fixes
