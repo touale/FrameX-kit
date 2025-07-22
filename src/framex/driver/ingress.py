@@ -61,7 +61,7 @@ class APIIngress:
         methods: list[str],
         func_name: str,
         params: list[tuple[str, type]],
-        handle: DeploymentHandle,
+        handle: DeploymentHandle | str,
         stream: bool = False,
         direct_output: bool = False,
         tags: list[str | Enum] | None = None,
@@ -70,6 +70,8 @@ class APIIngress:
             tags = ["default"]
 
         adapter = get_adapter()
+        if isinstance(handle, str):
+            handle = adapter.get_handle(handle)
 
         from framex.log import logger
 

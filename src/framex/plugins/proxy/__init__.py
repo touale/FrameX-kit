@@ -100,7 +100,7 @@ class ProxyPlugin(BasePlugin):
                     func_name="register_route",
                 )
 
-                handle = adapter.get_handle(PROXY_PLUGIN_NAME)
+                handle = PROXY_PLUGIN_NAME
                 await adapter.call_func(
                     plugin_api,
                     path=path,
