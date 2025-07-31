@@ -1,6 +1,6 @@
 [project]
 name = "framex-kit"
-version = "0.1.5"
+version = "0.1.6"
 description = "A lightweight plugin injection framework for Python."
 readme = "README.md"
 authors = [{ name = "touale", email = "touale@local.com" }]

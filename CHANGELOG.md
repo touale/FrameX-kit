@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.6 (2025-07-31)
+
+### Features
+
+- Add path white/black lists to ProxyPlugin and modify APIIngress return type
+  ([`a0f5ba8`](https://github.com/touale/FrameX-kit/-/commit/a0f5ba8a219cfdbbbc2b16a9cf071a6b6d364b98))
+
+
 ## v0.1.5 (2025-07-22)
 
 
