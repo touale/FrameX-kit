@@ -65,7 +65,7 @@ class APIIngress:
         stream: bool = False,
         direct_output: bool = False,
         tags: list[str | Enum] | None = None,
-    ) -> None:
+    ) -> bool:
         if tags is None:
             tags = ["default"]
 
@@ -80,7 +80,7 @@ class APIIngress:
                 logger.warning(
                     f"API({path}) with tags {tags} is already registered in {routes}, skipping duplicate registration."
                 )
-                return
+                return False
 
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
@@ -109,9 +109,12 @@ class APIIngress:
             logger.opt(colors=True).success(
                 f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
             )
+            return True
 
         except Exception as e:
             logger.opt(exception=e).error(f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}')
+
+        return False
 
     @app.get("/debug")
     async def inner(self) -> str:  # pragma: no cover

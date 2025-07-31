@@ -63,6 +63,12 @@ class ProxyPlugin(BasePlugin):
         components = openapi_data.get("components", {}).get("schemas", {})
 
         for path, details in paths.items():
+            # Check if the path is legal!
+            if self.config.white_list and path not in self.config.white_list:
+                continue
+            if self.config.black_list and path in self.config.black_list:
+                continue
+
             for method, body in details.items():
                 if parameters := body.get("parameters"):
                     params = [
