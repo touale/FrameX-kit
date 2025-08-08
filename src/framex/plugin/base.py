@@ -1,10 +1,8 @@
 from typing import Any, final
 
-from pydantic import BaseModel
-
-from framex.adapter import get_adapter
 from framex.config import settings
 from framex.log import setup_logger
+from framex.plugin import call_plugin_api
 from framex.plugin.model import PluginApi
 
 
@@ -26,22 +24,4 @@ class BasePlugin:
 
     @final
     async def _call_remote_api(self, api_name: str, **kwargs: Any) -> Any:
-        if not (api := self.remote_apis.get(api_name)):  # pragma: no cover
-            raise RuntimeError(
-                f"API {api_name} is not in `required_remote_apis` by this plugin, "
-                f"current plugins: {self.remote_apis.keys()}"
-            )
-
-        param_type_map = dict(api.params)
-        for key, val in kwargs.items():
-            if (
-                isinstance(val, dict)
-                and (expected_type := param_type_map.get(key))
-                and isinstance(expected_type, type)
-                and issubclass(expected_type, BaseModel)
-            ):
-                try:
-                    kwargs[key] = expected_type(**val)
-                except Exception as e:  # pragma: no cover
-                    raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
-        return await get_adapter().call_func(api, **kwargs)
+        return await call_plugin_api(api_name, self.remote_apis, **kwargs)

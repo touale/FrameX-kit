@@ -1,6 +1,7 @@
 from contextvars import ContextVar
-from typing import Optional
+from typing import Any, Optional
 
+from pydantic import BaseModel
 from ray.serve.handle import DeploymentHandle
 
 from framex.adapter import get_adapter
@@ -58,6 +59,40 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
     return deployments
 
 
+async def call_plugin_api(api_name: str, interval_apis: dict[str, PluginApi] | None = None, **kwargs: Any) -> Any:
+    api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
+
+    if not api:
+        if api_name.startswith("/") and settings.server.enable_proxy:
+            api = PluginApi(
+                api=api_name,
+                deployment_name=PROXY_PLUGIN_NAME,
+                call_type=ApiType.PROXY,
+                plugin_name=PROXY_PLUGIN_NAME,
+            )
+            logger.opt(colors=True).warning(
+                f"Api(<r>{api_name}</r>) not found, use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
+            )
+        else:
+            raise RuntimeError(
+                f"API {api_name} is not found, please check if the plugin is loaded or the API name is correct."
+            )
+
+    param_type_map = dict(api.params)
+    for key, val in kwargs.items():
+        if (
+            isinstance(val, dict)
+            and (expected_type := param_type_map.get(key))
+            and isinstance(expected_type, type)
+            and issubclass(expected_type, BaseModel)
+        ):
+            try:
+                kwargs[key] = expected_type(**val)
+            except Exception as e:  # pragma: no cover
+                raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
+    return await get_adapter().call_func(api, **kwargs)
+
+
 def get_http_plugin_apis() -> list["PluginApi"]:
     return _manager.http_plugin_apis
 
@@ -65,7 +100,7 @@ def get_http_plugin_apis() -> list["PluginApi"]:
 from .base import BasePlugin
 from .load import load_builtin_plugin, load_plugins
 from .model import ApiType, PluginMetadata
-from .on import on_register, on_request
+from .on import on_register, on_request, remote
 
 __all__ = [
     "ApiType",
@@ -75,4 +110,5 @@ __all__ = [
     "load_plugins",
     "on_register",
     "on_request",
+    "remote",
 ]

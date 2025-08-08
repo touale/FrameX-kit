@@ -1,6 +1,9 @@
+import asyncio
+import inspect
 from collections.abc import Callable
 from typing import Any, cast
 
+import ray
 from fastapi import FastAPI
 from ray import serve
 from typing_extensions import override
@@ -20,6 +23,19 @@ class RayAdapter(BaseAdapter):  # pragma: no cover
     @override
     def to_deployment(self, cls: type, **kwargs: Any) -> type:
         return cast(type, serve.deployment(**kwargs)(cls))
+
+    @override
+    def to_remote_func(
+        self,
+        func: Callable,
+    ) -> Callable:
+        if inspect.iscoroutinefunction(func):
+
+            def _sync_wrapper(*args: tuple[Any, ...], **kwargs: Any) -> Any:
+                return asyncio.run(func(*args, **kwargs))
+
+            return ray.remote(_sync_wrapper)  # type: ignore [no-any-return]
+        return ray.remote(func)  # type: ignore [no-any-return]
 
     @override
     def get_handle(self, deployment_name: str) -> Any:

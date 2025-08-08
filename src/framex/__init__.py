@@ -138,6 +138,7 @@ from framex.plugin import (
     load_plugins,
     on_register,
     on_request,
+    remote,
 )
 
 __all__ = [
@@ -151,4 +152,5 @@ __all__ = [
     "logger",
     "on_register",
     "on_request",
+    "remote",
 ]

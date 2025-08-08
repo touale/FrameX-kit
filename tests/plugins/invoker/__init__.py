@@ -1,7 +1,8 @@
+import time
 from typing import Any
 
 from framex.consts import VERSION
-from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
+from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request, remote
 
 __plugin_meta__ = PluginMetadata(
     name="invoker",
@@ -25,10 +26,39 @@ class InvokerPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
+    @staticmethod
+    @remote()
+    def remote_sleep() -> str:
+        time.sleep(0.1)
+        return "remote_sleep"
+
+    @staticmethod
+    @remote()
+    def remote_func_with_params(a: str) -> str:
+        return f"remote_func_with_params: {a}"
+
+    @staticmethod
+    @remote()
+    async def remote_func_async() -> str:
+        return "remote_func_async"
+
+    @staticmethod
+    @remote()
+    async def remote_func_async_with_params(a: int, b: str) -> str:
+        return f"remote_func_async_with_params: {a},{b}"
+
     @on_request("/evoke_echo", methods=["GET"])
     async def evoke(self, message: str) -> list[Any]:
         def extract_content(chunk: str) -> str:
             return chunk.split('"content": "')[-1].split('"')[0]
+
+        # Call the remote sleep function
+        remote_res = (
+            await self.remote_sleep.remote()
+            + await self.remote_func_with_params.remote("123")
+            + await self.remote_func_async.remote()
+            + await self.remote_func_async_with_params.remote(100, "abc")
+        )
 
         echo = await self._call_remote_api("/api/v1/echo", message=message)
         stream = await self._call_remote_api("/api/v1/echo_stream", message=message)
@@ -46,4 +76,4 @@ class InvokerPlugin(BasePlugin):
             },
         )
 
-        return [echo, stream_text, confess, echo_model, remote_version, match_result]
+        return [echo, stream_text, confess, echo_model, remote_res, remote_version, match_result]

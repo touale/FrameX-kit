@@ -70,6 +70,12 @@ def resolve_default(annotation: Any) -> Any:
     raise RuntimeError(f"Cannot instantiate default for unsupported type: {annotation}")
 
 
+def reset_created_models() -> None:
+    """Reset the created models cache."""
+    global _created_models
+    _created_models = {}
+
+
 def create_pydantic_model(
     name: str,
     schema: dict,

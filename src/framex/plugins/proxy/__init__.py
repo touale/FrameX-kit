@@ -123,8 +123,8 @@ class ProxyPlugin(BasePlugin):
                 self.func_map[path] = func
 
     async def __call__(self, proxy_path: str, **kwargs: Any) -> Any:
-        if api := self.func_map.get(proxy_path):
-            return await api(**kwargs)
+        if func := self.func_map.get(proxy_path):
+            return await func(**kwargs)
         raise RuntimeError(f"api({proxy_path}) not found")
 
     async def fetch_response(

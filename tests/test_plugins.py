@@ -47,6 +47,9 @@ def get_alias_type_map(fields: dict[str, Any]) -> dict[str, type]:
 def test_resolve_annotation():
     builder = importlib.import_module("framex.plugins.proxy.builder")
     resolve_annotation: Callable = getattr(builder, "resolve_annotation")
+    reset_created_models: Callable = getattr(builder, "reset_created_models")
+
+    reset_created_models()
 
     # Test BaseType gen
     assert resolve_annotation({"type": "string", "title": "Task"}, {}) is str
@@ -128,3 +131,7 @@ def test_resolve_default():
     with pytest.raises(RuntimeError) as exc_info:
         resolve_default(lambda x: x)
     assert "Cannot instantiate default" in str(exc_info.value)
+
+
+# if __name__ == "__main__":
+#     test_resolve_annotation()

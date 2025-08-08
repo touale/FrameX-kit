@@ -93,3 +93,10 @@ def on_request(
         return func
 
     return wrapper
+
+
+def remote() -> Callable:
+    def wrapper(func: Callable) -> Callable:
+        return get_adapter().to_remote_func(func)
+
+    return wrapper
