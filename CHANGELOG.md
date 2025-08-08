@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.7 (2025-08-08)
+
+### Features
+
+- Add remote func support and update tests
+  ([`fff01e3`](https://github.com/touale/FrameX-kit/-/commit/fff01e3cd72b20155f8b07c13fe6ecc85a0fb602))
+
+
 ## v0.1.6 (2025-07-31)
 
 ### Features
