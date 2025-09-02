@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.8 (2025-09-02)
+
+### Features
+
+- Optimize API handling and plugin management
+  ([`de76f9f`](https://github.com/touale/FrameX-kit/-/commit/de76f9f3f776a856e864306e6592f21fb3aacc2a))
+
+
 ## v0.1.7 (2025-08-08)
 
 ### Features
