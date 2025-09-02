@@ -28,12 +28,9 @@ async def health() -> str:
 class APIIngress:
     def __init__(self, deployments: list[DeploymentHandle], plugin_apis: list["PluginApi"]) -> None:
         setup_logger()
-
         app.state.ingress = self
-
         self.deployments_dict = {dep.deployment_name: dep for dep in deployments}
         app.state.deployments_dict = self.deployments_dict
-
         for plugin_api in plugin_apis:
             if (
                 plugin_api.api
@@ -68,23 +65,18 @@ class APIIngress:
     ) -> bool:
         if tags is None:
             tags = ["default"]
-
         adapter = get_adapter()
-
         from framex.log import logger
 
         try:
             routes: list[str] = [route.path for route in app.routes if isinstance(route, Route | APIRoute)]
-
             if path in routes:
                 logger.warning(
                     f"API({path}) with tags {tags} is already registered in {routes}, skipping duplicate registration."
                 )
                 return False
-
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
-
             Model: BaseModel = create_model(f"{func_name}_InputModel", **{name: (tp, ...) for name, tp in params})  # type:ignore # noqa
 
             async def route_handler(response: Response, model: Model = Depends()) -> Any:  # type: ignore [valid-type]
@@ -93,9 +85,7 @@ class APIIngress:
                     raise RuntimeError(
                         f"No handle found for api({methods}): {path} from {handle.deployment_name}.{func_name}"
                     )
-
                 response.headers["X-Raw-Output"] = str(direct_output)
-
                 if stream:
                     gen = adapter._stream_call(c_handle, **(model.__dict__))
                     return StreamingResponse(  # type: ignore
@@ -105,24 +95,18 @@ class APIIngress:
                 return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
 
             app.add_api_route(path, route_handler, methods=methods, tags=tags)
-
             logger.opt(colors=True).success(
                 f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
             )
             return True
-
         except Exception as e:
             logger.opt(exception=e).error(f'Failed to register api "{escape_tag(path)}" from {handle.deployment_name}')
 
         return False
 
-    @app.get("/debug")
+    @app.get("/ping")
     async def inner(self) -> str:  # pragma: no cover
-        """
-        I don't understand why I have to write this route in inner class.
-        If I don't write it, Ray will not be able to recognize other routes later.
-        """
-        return "debug"
+        return "pong"
 
     def __repr__(self):
         return BACKEND_NAME

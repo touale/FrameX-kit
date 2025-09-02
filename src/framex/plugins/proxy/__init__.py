@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import httpx
 from pydantic import BaseModel, create_model
+from typing_extensions import override
 
 from framex.adapter import get_adapter
 from framex.consts import BACKEND_NAME, PROXY_PLUGIN_NAME, VERSION
@@ -32,11 +33,10 @@ class ProxyPlugin(BasePlugin):
     def __init__(self, config: ProxyPluginConfig, **kwargs: Any) -> None:
         self.config = config
         self._client = httpx.AsyncClient(timeout=600)
-
         self.func_map: dict[str, Any] = {}
-
         super().__init__(**kwargs)
 
+    @override
     async def on_start(self) -> None:
         await super().on_start()
         if not self.config.proxy_urls:
@@ -57,19 +57,17 @@ class ProxyPlugin(BasePlugin):
 
     async def _parse_openai_docs(self, url: str) -> None:
         adapter = get_adapter()
-
         openapi_data = await self._get_openai_docs(url)
         paths = openapi_data.get("paths", {})
         components = openapi_data.get("components", {}).get("schemas", {})
-
         for path, details in paths.items():
             # Check if the path is legal!
             if self.config.white_list and path not in self.config.white_list:
                 continue
             if self.config.black_list and path in self.config.black_list:
                 continue
-
             for method, body in details.items():
+                # Process request parameters
                 if parameters := body.get("parameters"):
                     params = [
                         (name, c_type)
@@ -79,6 +77,7 @@ class ProxyPlugin(BasePlugin):
                 else:
                     params = []
 
+                # Process request body
                 if request_body := body.get("requestBody"):
                     schema_name = (
                         request_body.get("content", {})
@@ -92,9 +91,7 @@ class ProxyPlugin(BasePlugin):
 
                     Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
                     params.append(("model", Model))
-
                 logger.opt(colors=True).debug(f"Found proxy api({method}) <y>{url}{path}</y>")
-
                 func_name = body.get("operationId")
                 is_stream = path in self.config.force_stream_apis
                 func = self._create_dynamic_method(func_name, method, params, f"{url}{path}", stream=is_stream)
@@ -105,7 +102,6 @@ class ProxyPlugin(BasePlugin):
                     deployment_name=BACKEND_NAME,
                     func_name="register_route",
                 )
-
                 handle = adapter.get_handle(PROXY_PLUGIN_NAME)
                 await adapter.call_func(
                     plugin_api,
@@ -143,9 +139,7 @@ class ProxyPlugin(BasePlugin):
             return stream_generator()
 
         response = await self._client.request(**kwargs)
-
         response.raise_for_status()
-
         try:
             return cast(dict, response.json())
         except json.JSONDecodeError:
@@ -167,7 +161,6 @@ class ProxyPlugin(BasePlugin):
         async def dynamic_method(**kwargs: Any) -> AsyncGenerator[str, None] | dict[str, Any] | str:
             logger.info(f"Calling proxy url: {url} with kwargs: {kwargs}")
             validated = RequestModel(**kwargs)  # Type Validation
-
             query = {}
             json_body = None
             for field_name, value in validated:
@@ -175,7 +168,6 @@ class ProxyPlugin(BasePlugin):
                     json_body = value.model_dump()
                 else:
                     query[field_name] = value
-
             try:
                 return await self.fetch_response(
                     stream=stream,
@@ -198,5 +190,8 @@ class ProxyPlugin(BasePlugin):
         dynamic_method.__signature__ = sig  # type: ignore
         dynamic_method.__annotations__ = dict(params)
         dynamic_method.__name__ = func_name
-
         return dynamic_method
+
+    @override
+    def _post_call_remote_api_hook(self, data: Any) -> Any:
+        return data.get("data") or data

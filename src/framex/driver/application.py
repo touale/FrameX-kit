@@ -93,11 +93,9 @@ def create_fastapi_application() -> FastAPI:
             or response.headers.get("X-Raw-Output", "False") == "True"
         ):
             return response
-
         response_body = [chunk async for chunk in response.body_iterator]
         response.body_iterator = iterate_in_threadpool(iter(response_body))
         response_body = json.loads(response_body[0].decode())
-
         timestamp = pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
 
         if isinstance(response_body, dict) and response_body.get("is_middleware_error", False):
@@ -120,12 +118,10 @@ def create_fastapi_application() -> FastAPI:
         )
 
     application.add_middleware(BaseHTTPMiddleware, dispatch=log_response)
-
     application.add_middleware(
         CORSMiddleware,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
     return application

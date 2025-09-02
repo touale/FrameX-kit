@@ -11,9 +11,7 @@ class BasePlugin:
 
     def __init__(self, **kwargs: Any) -> None:
         setup_logger()
-
         self.remote_apis: dict[str, PluginApi] = kwargs.get("remote_apis", {})
-
         if settings.server.use_ray:
             import asyncio
 
@@ -24,4 +22,8 @@ class BasePlugin:
 
     @final
     async def _call_remote_api(self, api_name: str, **kwargs: Any) -> Any:
-        return await call_plugin_api(api_name, self.remote_apis, **kwargs)
+        res = await call_plugin_api(api_name, self.remote_apis, **kwargs)
+        return self._post_call_remote_api_hook(res)
+
+    def _post_call_remote_api_hook(self, data: Any) -> Any:
+        return data

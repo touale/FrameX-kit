@@ -19,10 +19,8 @@ def load_from_settings(settings: Settings) -> set[Plugin]:
     loaded_builtin_plugins = {
         plugin.name for plugin in get_loaded_plugins() if plugin.module_name.startswith("framex.plugins.")
     }
-
     # Candidate builtin_plugins
     candidate_builtin_plugins = set(settings.load_builtin_plugins) - loaded_builtin_plugins
-
     # Check if proxy is enabled but not allow to load
     if (
         settings.server.enable_proxy
@@ -37,5 +35,4 @@ def load_from_settings(settings: Settings) -> set[Plugin]:
     # Load other plugins from settings
     builtin_plugin_instances = load_builtin_plugin(*candidate_builtin_plugins) if candidate_builtin_plugins else set()
     plugin_instances = load_plugins(*settings.load_plugins) if settings.load_plugins else set()
-
     return builtin_plugin_instances | plugin_instances

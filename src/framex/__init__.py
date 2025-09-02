@@ -80,7 +80,6 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
 
     deployments = init_all_deployments(enable_proxy=settings.server.enable_proxy)
     http_apis = get_http_plugin_apis()
-    from framex.driver.ingress import APIIngress
 
     if settings.server.use_ray:
         # step4: init ray
@@ -101,6 +100,8 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
             },
         )
         serve.start(detached=True, http_options={"host": settings.server.host, "port": settings.server.port})
+        from framex.driver.ingress import APIIngress
+
         api_ingress = APIIngress.bind(deployments=deployments, plugin_apis=http_apis)  # type: ignore
 
         serve.run(
@@ -131,6 +132,7 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
 
 
 from framex.plugin import (
+    BasePlugin,
     PluginApi,
     PluginMetadata,
     get_plugin,
@@ -142,7 +144,6 @@ from framex.plugin import (
 )
 
 __all__ = [
-    "APIIngress",
     "BasePlugin",
     "PluginApi",
     "PluginMetadata",

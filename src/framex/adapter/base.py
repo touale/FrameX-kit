@@ -38,20 +38,14 @@ class BaseAdapter(abc.ABC):
     async def call_func(self, api: PluginApi, **kwargs: Any) -> Any:
         func = self.get_handle_func(api.deployment_name, api.func_name)
         stream = api.stream
-
         if api.call_type == ApiType.PROXY:
             kwargs["proxy_path"] = api.api
             stream = await self._check_is_gen_api(api.api)
-
         if stream:
             return [chunk async for chunk in self._stream_call(func, **kwargs)]
-
         if inspect.iscoroutinefunction(func) or isinstance(func, DeploymentHandle):
-            res = await self._acall(func, **kwargs)
-        else:
-            res = self._call(func, **kwargs)
-
-        return data if api.call_type == ApiType.PROXY and (data := res.get("data")) else res
+            return await self._acall(func, **kwargs)  # type: ignore
+        return self._call(func, **kwargs)
 
     def get_handle_func(self, deployment_name: str, func_name: str) -> Any:
         handle = self.get_handle(deployment_name)

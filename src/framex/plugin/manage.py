@@ -60,19 +60,16 @@ class PluginManager:
                         api_name = f"{api.deployment_name}.{api.func_name}"
                         is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
                         is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
-
                         if is_func:
                             self._plugin_apis[ApiType.FUNC][api_name] = api
                             logger.opt(colors=True).success(
                                 f'Found plugin FUNC API "<y>{api_name}</y>" from plugin({plugin.name})'
                             )
-
                         if api.api and is_http:
                             self._plugin_apis[ApiType.HTTP][api.api] = api
                             logger.opt(colors=True).success(
                                 f'Found plugin HTTP API "<y>{api.api}</y>" from plugin({plugin.name})'
                             )
-
         return self._plugin_apis
 
     @property
@@ -102,7 +99,6 @@ class PluginManager:
     @logger.catch
     def _prepare_plugins(self, plugins_path: set[str]) -> None:
         self._plugin_apis = defaultdict(dict)
-
         searched_plugins = set()
         third_party_plugins = set()
 
@@ -133,21 +129,16 @@ class PluginManager:
             # ignore if startswith "_"
             if module_info.name.startswith("_"):
                 continue
-
             if not (module_spec := module_info.module_finder.find_spec(module_info.name, None)):
                 continue
-
             if not module_spec.origin:
                 continue
-
             # get module name from path, pkgutil does not return the actual module name
             module_path = Path(module_spec.origin).resolve()
             module_name = path_to_module_name(module_path)
             plugin_id = module_name.rsplit(".", 1)[-1]
-
             if plugin_id in self._third_party_plugin_ids or plugin_id in self._searched_plugin_ids:
                 raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
-
             self._searched_plugin_ids[plugin_id] = module_name
 
     def load_plugins(self, plugins_path: Iterable[str]) -> set[Plugin]:
@@ -158,7 +149,6 @@ class PluginManager:
     def _load_plugin(self, name: str) -> Plugin | None:
         if name in self._install_plugin_ids:
             return None
-
         self._install_plugin_ids.append(name)
 
         try:
@@ -172,12 +162,10 @@ class PluginManager:
                 module = importlib.import_module(name)
             else:
                 raise RuntimeError(f"Plugin not found: {name}! Check your plugin name")
-
             if (plugin := getattr(module, "__plugin__", None)) is None or not isinstance(plugin, Plugin):
                 raise RuntimeError(
                     f"Module {module.__name__} is not loaded as a plugin! Make sure not to import it before loading."
                 )
-
             logger.opt(colors=True).success(
                 f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>" from {plugin.module_name}'
             )
@@ -196,13 +184,11 @@ class PluginManager:
         plugin_id = _module_name_to_plugin_name(module_name)
         if plugin_id in self._plugins:
             raise RuntimeError(f"Plugin {plugin_id} already exists! Check your plugin name.")
-
         plugin = Plugin(
             name=plugin_id,
             module=module,
             module_name=module_name,
         )
-
         self._plugins[plugin_id] = plugin
         return plugin
 
@@ -235,7 +221,6 @@ class PluginFinder(MetaPathFinder):
             module_origin = module_spec.origin
             if not module_origin:
                 return None
-
             if fullname in _manager.controlled_modules.values():
                 module_spec.loader = PluginLoader(fullname, module_origin)
                 return module_spec
@@ -264,7 +249,6 @@ class PluginLoader(SourceFileLoader):
             self.name,
             module,
         )
-
         setattr(module, "__plugin__", plugin)
 
         # enter plugin context
@@ -284,10 +268,8 @@ class PluginLoader(SourceFileLoader):
         # get plugin metadata
         metadata: PluginMetadata | None = getattr(module, "__plugin_meta__", None)
         plugin.metadata = metadata
-
         # Mkdir data dir for plugin
         plugin.data_dir = _get_plugin_data_dir(str(module), plugin.name)
-
         # load config
         if (
             plugin.metadata

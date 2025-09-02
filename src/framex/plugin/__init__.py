@@ -35,13 +35,11 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
             for api_name in plugin.required_remote_apis:
                 if api_name in remote_apis:
                     continue
-
                 if api_name.startswith("/") and enable_proxy:
                     remote_apis[api_name] = PluginApi(
                         api=api_name,
                         deployment_name=PROXY_PLUGIN_NAME,
                         call_type=ApiType.PROXY,
-                        plugin_name=PROXY_PLUGIN_NAME,
                     )
                     logger.opt(colors=True).warning(
                         f"Api(<r>{api_name}</r>) not found, "
@@ -59,16 +57,18 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
     return deployments
 
 
-async def call_plugin_api(api_name: str, interval_apis: dict[str, PluginApi] | None = None, **kwargs: Any) -> Any:
+async def call_plugin_api(
+    api_name: str,
+    interval_apis: dict[str, PluginApi] | None = None,
+    **kwargs: Any,
+) -> Any:
     api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
-
     if not api:
         if api_name.startswith("/") and settings.server.enable_proxy:
             api = PluginApi(
                 api=api_name,
                 deployment_name=PROXY_PLUGIN_NAME,
                 call_type=ApiType.PROXY,
-                plugin_name=PROXY_PLUGIN_NAME,
             )
             logger.opt(colors=True).warning(
                 f"Api(<r>{api_name}</r>) not found, use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
@@ -77,7 +77,6 @@ async def call_plugin_api(api_name: str, interval_apis: dict[str, PluginApi] | N
             raise RuntimeError(
                 f"API {api_name} is not found, please check if the plugin is loaded or the API name is correct."
             )
-
     param_type_map = dict(api.params)
     for key, val in kwargs.items():
         if (

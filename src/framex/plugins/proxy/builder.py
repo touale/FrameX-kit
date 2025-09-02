@@ -26,7 +26,6 @@ def resolve_annotation(
         ref_name = ref.split("/")[-1]
         if nested_schema := components.get(ref_name):
             return create_pydantic_model(ref_name, nested_schema, components)
-
     if "anyOf" in prop_schema:
         options = []
         for option_schema in prop_schema["anyOf"]:
@@ -37,9 +36,7 @@ def resolve_annotation(
             else:
                 options.append(type_map.get(typ, str))  # type: ignore [arg-type]
         return Union[*options]
-
     typ = prop_schema.get("type")
-
     if typ == "array":
         prop_schema = prop_schema.get("items", {})
         if "$ref" in prop_schema:
@@ -47,26 +44,20 @@ def resolve_annotation(
         else:
             item_type = type_map.get(prop_schema.get("type", "string"), str)
         return list[item_type]  # type: ignore [valid-type]
-
     if typ:
         return type_map.get(typ, str)
-
     raise RuntimeError(f"Unsupported prop_schema: {prop_schema}")
 
 
 def resolve_default(annotation: Any) -> Any:
     origin = get_origin(annotation)
-
     # Union type support: try the first type that can construct a default value first
     if origin is Union and (args := get_args(annotation)) and len(args) > 1:
         return resolve_default(args[0])
-
     if origin in (list, dict, set):
         return origin()
-
     if isinstance(annotation, type):
         return annotation()
-
     raise RuntimeError(f"Cannot instantiate default for unsupported type: {annotation}")
 
 
@@ -83,15 +74,12 @@ def create_pydantic_model(
 ) -> type[BaseModel]:
     if name in _created_models:
         return _created_models[name]
-
     fields: dict[str, tuple[Any, Any]] = {}
     props = schema.get("properties", {})
     required_fields = schema.get("required", [])
-
     for field_name, prop_schema in props.items():
         # Get annotation
         annotation = resolve_annotation(prop_schema, components)
-
         # Get default value
         if field_name in required_fields:
             default = ...
@@ -99,9 +87,7 @@ def create_pydantic_model(
             default = prop_schema["default"]
         else:
             default = resolve_default(annotation)
-
         fields[field_name] = (annotation, default)
-
     model: type[BaseModel] = create_model(name, **fields)  # type: ignore
     _created_models[name] = model
     return model
