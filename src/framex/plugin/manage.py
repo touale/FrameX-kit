@@ -27,7 +27,7 @@ from framex.utils import escape_tag, path_to_module_name
 
 @cache
 def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:
-    hash_val = hashlib.md5(module_name.encode("utf-8")).hexdigest()[:4]  # noqa
+    hash_val: str = hashlib.md5(module_name.encode("utf-8")).hexdigest()[:4]  # noqa
 
     from framex.config import settings
 

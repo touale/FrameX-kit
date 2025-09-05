@@ -9,7 +9,7 @@ def load_plugins(*plugin_dir: str) -> set[Plugin]:
     return _manager.load_plugins(plugin_dir)
 
 
-def load_builtin_plugin(*names: str) -> set[Plugin]:
+def load_builtin_plugins(*names: str) -> set[Plugin]:
     return load_plugins(*[f"framex.plugins.{name}" for name in names])
 
 
@@ -33,6 +33,6 @@ def load_from_settings(settings: Settings) -> set[Plugin]:
         )
 
     # Load other plugins from settings
-    builtin_plugin_instances = load_builtin_plugin(*candidate_builtin_plugins) if candidate_builtin_plugins else set()
+    builtin_plugin_instances = load_builtin_plugins(*candidate_builtin_plugins) if candidate_builtin_plugins else set()
     plugin_instances = load_plugins(*settings.load_plugins) if settings.load_plugins else set()
     return builtin_plugin_instances | plugin_instances

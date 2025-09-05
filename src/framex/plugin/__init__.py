@@ -50,7 +50,9 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
                     raise RuntimeError(
                         f"Plugin({dep.deployment}) init failed, Required remote api({api_name}) not found"
                     )
-            deployment = get_adapter().bind(dep.deployment, remote_apis=remote_apis, config=plugin.config)
+            deployment = get_adapter().bind(
+                dep.deployment, remote_apis=remote_apis, config=plugin.config, data_dir=plugin.data_dir
+            )
 
             deployments.append(deployment)
 
@@ -97,7 +99,7 @@ def get_http_plugin_apis() -> list["PluginApi"]:
 
 
 from .base import BasePlugin
-from .load import load_builtin_plugin, load_plugins
+from .load import load_builtin_plugins, load_plugins
 from .model import ApiType, PluginMetadata
 from .on import on_register, on_request, remote
 
@@ -105,7 +107,7 @@ __all__ = [
     "ApiType",
     "BasePlugin",
     "PluginMetadata",
-    "load_builtin_plugin",
+    "load_builtin_plugins",
     "load_plugins",
     "on_register",
     "on_request",

@@ -1,0 +1,17 @@
+[book]
+authors = ["touale"]
+language = "en"
+src = "src"
+title = "FrameX: The Plug-In Paradigm for Algorithmic Systems"
+multilingual = false
+
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]
+
+[output.html]
+additional-css = ["theme/pagetoc.css"]
+additional-js = ["theme/pagetoc.js"]
+
+[preprocessor.katex]
+after = ["links"]
