@@ -12,6 +12,8 @@ renderer = ["html"]
 [output.html]
 additional-css = ["theme/pagetoc.css"]
 additional-js = ["theme/pagetoc.js"]
+git-repository-url = "https://github.com/touale/FrameX-kit"
+edit-url-template = "https://github.com/touale/FrameX-kit/edit/master/book/{path}"
 
 [preprocessor.katex]
 after = ["links"]
