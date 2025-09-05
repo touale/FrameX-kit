@@ -1,23 +1,12 @@
-# FrameX
+# Overview
 
-[![pipeline status](https://github.com/touale/FrameX-kit/badges/master/pipeline.svg)](https://github.com/touale/FrameX-kit/-/commits/master)
-[![coverage report](https://github.com/touale/FrameX-kit/badges/master/coverage.svg)](https://github.com/touale/FrameX-kit/-/commits/master)
-[![Latest Release](https://github.com/touale/FrameX-kit/-/badges/release.svg?value_width=100)](https://github.com/touale/FrameX-kit/-/releases)
+## What is FrameX?
 
 **FrameX** is a lightweight, pluggable Python framework designed for building modular and extensible algorithmic systems.\
 It provides a clean architecture that supports **dynamic plugin registration**, **isolated execution**, and **secure invocation**, making it well-suited for multi-algorithm collaboration, heterogeneous task scheduling, and distributed deployments.
 
 As an infrastructure layer for algorithms, FrameX emphasizes **extensibility**, **isolation**, and **runtime flexibility**, enabling teams to construct complex algorithmic platforms with modular components.\
 Each algorithm can be developed, deployed, and loaded as an independent plugin, achieving infinite scalability.
-
-______________________________________________________________________
-
-## Project Information
-
-- **Author:** Touale Cula
-- **License:** MIT
-- **Source Code:** [FrameX Repository](https://github.com/touale/FrameX-kit)
-- **Online Documentation:** [FrameX Docs](https://touale.github.io/FrameX-kit/)
 
 ______________________________________________________________________
 
