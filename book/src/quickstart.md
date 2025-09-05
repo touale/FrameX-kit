@@ -2,6 +2,8 @@
 
 - Python 3.11+
 
+______________________________________________________________________
+
 ## Install cookiecutter
 
 Make sure you have Python 3.11 or above installed, then execute the following command in the command line:
@@ -170,16 +172,10 @@ demo_project
 |   `-- demo_project
 |       |-- __init__.py
 |       |-- __main__.py
-|       |-- __pycache__
-|       |   |-- __init__.cpython-311.pyc
-|       |   `-- __main__.cpython-311.pyc
 |       |-- consts.py
 |       |-- log.py
 |       `-- plugins
 |           |-- __init__.py
-|           |-- __pycache__
-|           |   |-- __init__.cpython-311.pyc
-|           |   `-- demo.cpython-311.pyc
 |           `-- demo.py
 |-- tests
 |   |-- __init__.py
@@ -189,11 +185,11 @@ demo_project
 8 directories, 21 files
 ```
 
-The initialization template will automatically create a plugin example for you and open interfaces such as "/api/v1/demo_get", "/api/v1/demo_post", "/api/v1/demo_stream".
-
 ## Initialize the plugin
 
-After the plugin is created, you can install dependencies using the following command in the project directory. Note that you need to be in the touale intranet:
+After the plugin is created, the initialization template will automatically create a plugin example for you and open interfaces such as `/api/v1/demo_get`, `/api/v1/demo_post`, `/api/v1/demo_stream`.
+
+You can install dependencies using the following command in the project directory. Note that you need to be in the touale intranet:
 
 ```
 uv sync --dev
@@ -226,6 +222,8 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 ```
+
+______________________________________________________________________
 
 Visit http://127.0.0.1:8080/docs in your browser and you will see the online documentation
 after the framework loads your plugin.
