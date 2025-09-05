@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.9 (2025-09-05)
+
+### Features
+
+- Update plugin loading and config handling, add documentation book for framex
+  ([`b686a9b`](https://github.com/touale/FrameX-kit/-/commit/b686a9b53fd3d7d919f884b4595655b204c03fb6))
+
+
 ## v0.1.8 (2025-09-02)
 
 ### Features
