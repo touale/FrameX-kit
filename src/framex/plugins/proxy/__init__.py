@@ -38,7 +38,6 @@ class ProxyPlugin(BasePlugin):
 
     @override
     async def on_start(self) -> None:
-        await super().on_start()
         if not self.config.proxy_urls:
             logger.warning("No url provided, skipping proxy plugin")
             return

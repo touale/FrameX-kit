@@ -30,14 +30,19 @@ class PluginConfigSource(PydanticBaseSettingsSource):
         for plugin_dir in self.data_dir.iterdir():
             if plugin_dir.is_dir() and (name := plugin_dir.name.split("@")[0]):
                 for file in plugin_dir.iterdir():
-                    if file.suffix in (".yaml", ".yml"):
-                        with file.open("r", encoding="utf-8") as f:
-                            plugin_configs[name] = yaml.safe_load(f)
+                    if not file.is_file():
+                        continue
+                    if file.stem.lower() != "config":
                         break
                     if file.suffix == ".toml":
                         with file.open("rb") as f:
                             plugin_configs[name] = tomli.load(f)
                         break
+                    if file.suffix in (".yaml", ".yml"):
+                        with file.open("r", encoding="utf-8") as f:
+                            plugin_configs[name] = yaml.safe_load(f)
+                        break
+
         return {"plugins": plugin_configs}
 
     def __call__(self) -> dict[str, Any]:
