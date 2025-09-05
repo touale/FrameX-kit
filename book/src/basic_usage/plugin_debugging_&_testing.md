@@ -2,7 +2,9 @@
 
 Debugging FrameX plugins is straightforward. When **Ray is disabled** (`[server].use_ray = false`), your plugin code runs in a standard FastAPI app, so you can set breakpoints and debug just like any regular Python service.
 
-## Debugging
+______________________________________________________________________
+
+## 1) Debugging
 
 1. Disable Ray in your config.toml:
 
@@ -16,7 +18,7 @@ use_ray = false
 
 > With Ray disabled, there’s no difference from debugging a standard FastAPI application.
 
-## Testing
+## 2) Testing
 
 FrameX integrates naturally with pytest and fastapi.testclient. You can run the app in test mode and exercise your plugin’s HTTP endpoints and streaming behavior.
 
@@ -40,7 +42,7 @@ def client(test_app: FastAPI) -> Generator[TestClient, None, None]:
         yield c
 ```
 
-### Example Tests (HTTP, JSON body, Streaming)
+### Example Tests
 
 ````
 import json

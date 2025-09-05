@@ -74,7 +74,7 @@ What these fields mean
 
 ______________________________________________________________________
 
-## Discovery Rules & Requirements
+## 3) Discovery Rules & Requirements
 
 - Location: All application plugins must reside under the plugins/ package (e.g., src/your_project- ins/).
 - Metadata: Every plugin module/package must define __plugin_meta__ = PluginMetadata(...).

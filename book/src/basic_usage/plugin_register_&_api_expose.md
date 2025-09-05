@@ -31,8 +31,6 @@ __plugin_meta__ = PluginMetadata(
 )
 ```
 
-______________________________________________________________________
-
 ## 2) Plugin Class & Registration
 
 Each plugin must implement a class decorated with `@on_register()` and inherit from `BasePlugin`.
@@ -57,8 +55,6 @@ Notes:
 
 - Use `__init__` for fast, synchronous setup. (Initialization of parameter values)
 - Use `on_start` for asynchronous or heavy initialization (DB, message queues, engines).
-
-______________________________________________________________________
 
 ## 3) Exposing APIs with `@on_request(...)`
 

@@ -4,7 +4,7 @@ FrameX supports **TOML**, **YAML**, and **ENV** (including `.env`) configuration
 
 We **recommend TOML** for multi-level configuration, as it is cleanly hierarchical and scales well when new plugin options are added.
 
-## System Settings (Overview)
+## 1) System Config (Overview)
 
 The runtime loads a top-level `Settings` model that typically includes:
 
@@ -36,7 +36,7 @@ host = "127.0.0.1"
 port = 8080
 ```
 
-## Plugin Config (typed)
+## 2) Plugin Config (typed)
 
 Each plugin can define a dedicated typed config model and have it injected automatically at registration time.
 
@@ -77,7 +77,7 @@ class ProxyPlugin(BasePlugin):
 
 Noted, use config for **logical settings** and data_dir for **on-disk artifacts** (prompts, models, caches, custom rules, etc.).
 
-## Where to Put Plugin Config
+## 3) Where to Put Plugin Config
 
 There are two supported locations. Choose one per plugin:
 
@@ -114,7 +114,7 @@ proxy_urls = ["http://127.0.0.1:8080"]
 force_stream_apis = ["/api/v1/chat"]
 ```
 
-## Supported Formats & Loading Order
+## 4) Supported Formats & Loading Order
 
 Supported sources (from highest to lowest precedence):
 

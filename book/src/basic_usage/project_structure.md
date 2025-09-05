@@ -29,7 +29,9 @@ demo_project
 `-- uv.lock
 ```
 
-## Key Directories and Files
+______________________________________________________________________
+
+## 1) Key Directories and Files
 
 - src/ – Main source code directory.
   - __main__.py: **Application entry point.**
@@ -43,12 +45,12 @@ demo_project
 - poe_tasks.toml – Task automation configuration.
 - releaserc.toml – Release configuration.
 
-## Plugin Directory
+## 2) Plugin Directory
 
 All FrameX plugins must live inside the plugins/ directory.
 You can structure them in two ways:
 
-### 1. Single-file plugin
+### Single-file plugin
 
 Each .py file inside plugins/ is treated as one plugin.
 Example:
@@ -59,7 +61,7 @@ src/demo_project/plugins/
 └── demo.py     # defines one plugin
 ```
 
-### 2. Folder-based plugin
+### Folder-based plugin
 
 A plugin can also be organized as a package (folder). This is recommended for more complex plugins with multiple modules.
 Example:
@@ -80,7 +82,9 @@ Here, two plugins are defined:
 - echo – a simple single-file plugin (echo.py)
 - proxy – a more complex plugin implemented as a package with multiple modules
 
-## Guidelines
+______________________________________________________________________
+
+## 3) Guidelines
 
 - Every plugin must be placed under plugins/.
 - Each plugin should have a clear entry point (__init__.py or main class).
