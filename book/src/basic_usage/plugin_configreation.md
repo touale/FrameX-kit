@@ -69,11 +69,13 @@ __plugin_meta__ = PluginMetadata(
 ```
 @on_register()
 class ProxyPlugin(BasePlugin):
-    def __init__(self, config: ProxyPluginConfig, data_dir, **kwargs):
+    def __init__(self, config: ProxyPluginConfig, data_dir: str, **kwargs):
         super().__init__(**kwargs)
         self.config = config # Auto receive per-plugin config
         self.data_dir = data_dir  # Auto receive per-plugin data root (e.g. data/proxy@<hash>/)
 ```
+
+You will receive the config in `def __init__`, as well as the plugin's `data directory`.
 
 Noted, use config for **logical settings** and data_dir for **on-disk artifacts** (prompts, models, caches, custom rules, etc.).
 
@@ -83,7 +85,7 @@ There are two supported locations. Choose one per plugin:
 
 ### Plan A) Inline in the root config.toml
 
-Add a sub-table under [plugins.\<plugin_name>] in config.toml:
+Add a sub-table under [plugins.\<plugin_name>] in `config.toml`:
 
 ```
 load_builtin_plugins = ["proxy"]
@@ -105,14 +107,14 @@ Each plugin can have an isolated config file under:
 ./data/<plugin_name>@<hash>/config.toml
 ```
 
-When you start the plugin, it will automatically create the directory. You can view the directory location in the `def __init__(..,data_dir:str,...)`stage.
-
 For example: add it easily in `data/proxy@6a53/config.toml`:
 
 ```
 proxy_urls = ["http://127.0.0.1:8080"]
 force_stream_apis = ["/api/v1/chat"]
 ```
+
+When you start the plugin, it will automatically create the directory. You can view the directory location in the `def __init__(..,data_dir:str,...)`stage.
 
 ## 4) Supported Formats & Loading Order
 

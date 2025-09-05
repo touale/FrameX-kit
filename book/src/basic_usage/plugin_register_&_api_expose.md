@@ -145,7 +145,7 @@ class EchoPlugin(BasePlugin):
         return a + b
 ```
 
-## 4) Minimal End-to-End Example
+## 4) End-to-End Example
 
 ```
 # src/plugins/echo.py
