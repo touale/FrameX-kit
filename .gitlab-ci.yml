@@ -1,20 +1,22 @@
 stages:
   - test
   - release
+  - deploy
 
 variables:
   # Registry
   CI_TEMPLATE_REGISTRY_HOST: "docker.io"
+  APT_SOURCE: "https://mirrors.aliyun.com"
 
   # Cache
-  APT_CACHE_DIR: "$CI_PROJECT_DIR/apt"
-  KANIKO_CACHE_DIR: "$CI_PROJECT_DIR/kaniko"
   PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.pre-commit"
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
 
   # Pip
   PIP_TIMEOUT: 30
   PIP_RETRIES: 5
   PIP_TRUSTED_HOST: ""
+  PYPI_URL: https://pypi.org/simple
 
   # Python & UV
   PYTHON_VERSION: "3.11"
@@ -40,9 +42,9 @@ variables:
   before_script:
     - |
         rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d && \
-        echo 'deb https://mirrors.aliyun.com/debian/ bookworm main' > /etc/apt/sources.list && \
-        echo 'deb https://mirrors.aliyun.com/debian-security/ bookworm-security main' >> /etc/apt/sources.list && \
-        echo 'deb https://mirrors.aliyun.com/debian/ bookworm-updates main' >> /etc/apt/sources.list && \
+        echo "deb $APT_SOURCE/debian/ bookworm main" > /etc/apt/sources.list && \
+        echo "deb $APT_SOURCE/debian-security/ bookworm-security main" >> /etc/apt/sources.list && \
+        echo "deb $APT_SOURCE/debian/ bookworm-updates main" >> /etc/apt/sources.list && \
         apt-get update -y && apt-get install -y --no-install-recommends git
 
 # 🔒 Secret scan
@@ -52,6 +54,9 @@ include:
 secret_detection:
   <<: *base_test_job_template
   allow_failure: false
+  script:
+    - /analyzer run
+    - cat gl-secret-detection-report.json
 
 # ✅ Pre-commit check
 check-pre-commit:
@@ -63,7 +68,7 @@ check-pre-commit:
     paths:
       - $PRE_COMMIT_HOME
   script:
-    - pip install pre-commit==4.2.0 -i https://pypi.org/simple
+    - pip install pre-commit==4.2.0 -i $PYPI_URL
     - |
         pre-commit run --all-files --show-diff-on-failure
 
@@ -106,3 +111,26 @@ release:
   script:
     - uv sync --extra release
     - uv run poe release
+
+pages:
+  <<: *base_test_job_template
+  stage: deploy
+  image: ${CI_TEMPLATE_REGISTRY_HOST}/library/rust:latest
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
+      changes:
+        - book/**/*
+  cache:
+    key: ${CI_PROJECT_ID}-pages-cache
+    paths:
+      - $CARGO_HOME
+  before_script:
+    - export PATH="$PATH:$CARGO_HOME/bin"
+    - cargo install mdbook
+    - cargo install mdbook-toc
+    - cargo install mdbook-katex
+  script:
+    - cd book && mdbook build -d ../public
+  artifacts:
+    paths:
+      - public   

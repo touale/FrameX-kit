@@ -32,7 +32,7 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        files: \.(py)$
+        files: \.(py|md|toml|yml|yaml|txt|rst)$
 
   - repo: https://ghfast.top/https://github.com/hukkin/mdformat
     rev: 0.7.22
