@@ -6,8 +6,9 @@
 */
 
 :root {
-    --toc-width: 270px;
+    --toc-width: 250px;
     --center-content-toc-shift: calc(-1 * var(--toc-width) / 2);
+     --content-max-width: 900px;
 }
 
 .nav-chapters {
