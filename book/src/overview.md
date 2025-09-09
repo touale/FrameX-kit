@@ -8,7 +8,12 @@ It provides a clean architecture that supports **dynamic plugin registration**, 
 As an infrastructure layer for algorithms, FrameX emphasizes **extensibility**, **isolation**, and **runtime flexibility**, enabling teams to construct complex algorithmic platforms with modular components.\
 Each algorithm can be developed, deployed, and loaded as an independent plugin, achieving infinite scalability.
 
-______________________________________________________________________
+<div align="center">
+  <figure>
+    <img src="./v2andv3.svg" alt="algov2" width="100%">
+    <figcaption>Comparison of v2 and v3 architectures</figcaption>
+  </figure>
+</div>
 
 ## Key Features
 
@@ -26,6 +31,13 @@ ______________________________________________________________________
   Integrated logging, tracing, and performance monitoring to ease debugging and root-cause analysis.
 - **Flexible Configuration & Tooling**\
   Clean configuration management (`.toml`, `.yaml`, `.env`) plus scaffolding, packaging, and CI/CD integration for automation.
+
+<div align="center">
+  <figure>
+    <img src="./hub.svg" alt="algov2" width="50%">
+    <figcaption>FrameX hub</figcaption>
+  </figure>
+</div>
 
 ## Application Scenarios
 
