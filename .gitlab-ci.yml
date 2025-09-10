@@ -129,6 +129,7 @@ pages:
     - cargo install mdbook
     - cargo install mdbook-toc
     - cargo install mdbook-katex
+    - cargo install mdbook-last-changed
   script:
     - cd book && mdbook build -d ../public
   artifacts:
