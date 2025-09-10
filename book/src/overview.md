@@ -10,7 +10,7 @@ Each algorithm can be developed, deployed, and loaded as an independent plugin, 
 
 <div align="center">
   <figure>
-    <img src="./v2andv3.svg" alt="algov2" width="100%">
+    <img src="./img/v2andv3.svg" alt="algov2" width="100%">
     <figcaption>Comparison of v2 and v3 architectures</figcaption>
   </figure>
 </div>
@@ -34,7 +34,7 @@ Each algorithm can be developed, deployed, and loaded as an independent plugin, 
 
 <div align="center">
   <figure>
-    <img src="./hub.svg" alt="algov2" width="50%">
+    <img src="./img/hub.svg" alt="algov2" width="50%">
     <figcaption>FrameX hub</figcaption>
   </figure>
 </div>

@@ -10,6 +10,8 @@ It provides a clean architecture that supports **dynamic plugin registration**, 
 As an infrastructure layer for algorithms, FrameX emphasizes **extensibility**, **isolation**, and **runtime flexibility**, enabling teams to construct complex algorithmic platforms with modular components.\
 Each algorithm can be developed, deployed, and loaded as an independent plugin, achieving infinite scalability.
 
+![](./book/src/img/v2andv3.svg)
+
 ______________________________________________________________________
 
 ## Project Information
