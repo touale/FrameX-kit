@@ -25,4 +25,4 @@
 
 - [Contribution Guide](./contribution.md)
 
-- [FAQ & Troubleshooting](<>)
+- [FAQ & Troubleshooting](./faq.md)
