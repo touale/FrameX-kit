@@ -38,16 +38,16 @@ Each plugin must implement a class decorated with `@on_register()` and inherit f
 For example:
 
 ```
-    @on_register()
-    class EchoPlugin(BasePlugin):
-        def __init__(self, **kwargs: Any) -> None:
-            super().__init__(**kwargs)
-            # Initialize lightweight resources here (e.g., clients, caches)
+@on_register()
+class EchoPlugin(BasePlugin):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Initialize lightweight resources here (e.g., clients, caches)
 
-        async def on_start(self) -> None:
-            # Initialize heavy/async resources here (e.g., DB connections, pools)
-            # Called by the runtime when the plugin is starting.
-            ...
+    async def on_start(self) -> None:
+        # Initialize heavy/async resources here (e.g., DB connections, pools)
+        # Called by the runtime when the plugin is starting.
+        ...
 
 ```
 
