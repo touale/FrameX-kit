@@ -4,7 +4,6 @@
 # Licensed under the MIT License (see full license at the URL above).
 from __future__ import annotations
 
-import hashlib
 import importlib
 import pkgutil
 import sys
@@ -26,12 +25,10 @@ from framex.utils import escape_tag, path_to_module_name
 
 
 @cache
-def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:
-    hash_val: str = hashlib.md5(module_name.encode("utf-8")).hexdigest()[:4]  # noqa
-
+def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:  # noqa
     from framex.config import settings
 
-    data_dir = Path.cwd() / settings.data_dir / f"{plugin_name}@{hash_val}"
+    data_dir = Path.cwd() / settings.data_dir / plugin_name
     data_dir.mkdir(parents=True, exist_ok=True)
     return str(data_dir)
 
