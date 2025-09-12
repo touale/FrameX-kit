@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.12 (2025-09-12)
+
+### Performance Improvements
+
+- Simplify plugin config retrieval
+  ([`63ef0a1`](https://github.com/touale/FrameX-kit/-/commit/63ef0a16a016b7eb482c3e38f298be30eb51ef6a))
+
+
 ## v0.1.11 (2025-09-12)
 
 ### Chores
