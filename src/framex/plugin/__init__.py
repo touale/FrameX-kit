@@ -27,13 +27,10 @@ def get_loaded_plugins() -> set["Plugin"]:
 
 
 @lru_cache
-def get_plugin_config(config_class: type[C]) -> C:
-    for plugin in get_loaded_plugins():
-        if config_class.__module__.startswith(plugin.module_name):
-            if cfg := settings.plugins.get(plugin.name):
-                return config_class(**cfg)
-            return config_class()
-    raise RuntimeError(f"Plugin config class {config_class} not found")
+def get_plugin_config(plugin_name: str, config_class: type[C]) -> C:
+    if cfg := settings.plugins.get(plugin_name):
+        return config_class(**cfg)
+    return config_class()
 
 
 @logger.catch()
