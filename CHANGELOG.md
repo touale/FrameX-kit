@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## v0.1.10 (2025-09-12)
+
+### Continuous Integration
+
+- Extend renovate to run on master and main branches
+  ([`31f430d`](https://github.com/touale/FrameX-kit/-/commit/31f430d23b3885fe510e1bc5f7eea6a8c670aed8))
+
+### Documentation
+
+- Add contribution md
+  ([`ef58fbd`](https://github.com/touale/FrameX-kit/-/commit/ef58fbdf9e756ab65440bf6c05cf59b66aa49028))
+
+- Add end-to-end examples and improve plugin documentation
+  ([`163c164`](https://github.com/touale/FrameX-kit/-/commit/163c1648b78e7df6f6cafe5daadf91a723654193))
+
+- Add last changed info to documentation book
+  ([`c70b13d`](https://github.com/touale/FrameX-kit/-/commit/c70b13db962c1c5f4d64bddcca171c739dd943db))
+
+- Fix code indentation and update contribution guide
+  ([`115ba2a`](https://github.com/touale/FrameX-kit/-/commit/115ba2a706192de00a8cd7543f887753920f2154))
+
+- Format img
+  ([`7e81d60`](https://github.com/touale/FrameX-kit/-/commit/7e81d60f8c8a28286121baa8c7073fb02d0cab84))
+
+- Update development guide and add FAQ section
+  ([`4b9b2bf`](https://github.com/touale/FrameX-kit/-/commit/4b9b2bf6c5cb5d2f9a50c1c75928a31b5808adee))
+
+- Update documentation structure and content
+  ([`ffbe735`](https://github.com/touale/FrameX-kit/-/commit/ffbe735e20bb1b7b7658f660b63103211abef251))
+
+- Update README and add overview documentation
+  ([`5222e34`](https://github.com/touale/FrameX-kit/-/commit/5222e3442bf302f3a4fab66e1b7077239b8c3372))
+
+### Features
+
+- Add renovate config and update plugin documentation
+  ([`f7cd12f`](https://github.com/touale/FrameX-kit/-/commit/f7cd12ff74d7796bbfe013b8fb02214a3bb324d1))
+
+
 ## v0.1.9 (2025-09-05)
 
 ### Features
