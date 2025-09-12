@@ -19,6 +19,7 @@ module.exports = {
   enabledManagers: [
     "pep621"
   ],
+  "ignoreDeps": ["ray"],
   packageRules: [
     {
       matchManagers: ["pep621"]
