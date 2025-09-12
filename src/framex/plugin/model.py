@@ -50,7 +50,12 @@ class Plugin:
     data_dir: str | None = None
     metadata: PluginMetadata | None = None
     deployments: list[PluginDeployment] = field(default_factory=list)
-    config: BaseModel | None = None
+
+    @property
+    def config(self) -> BaseModel | None:
+        from framex.plugin import get_plugin_config
+
+        return get_plugin_config(self.metadata.config_class) if self.metadata and self.metadata.config_class else None
 
     @property
     def required_remote_apis(self) -> list[str]:
