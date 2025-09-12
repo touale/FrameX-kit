@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v0.1.11 (2025-09-12)
+
+### Chores
+
+- Add refactor to patch tags in semantic release config
+  ([`7160105`](https://github.com/touale/FrameX-kit/-/commit/7160105a3fb23955e33a93394f3f11626e1cb1e2))
+
+- **deps**: Update dependency ruff to v0.13.0
+  ([`872deff`](https://github.com/touale/FrameX-kit/-/commit/872deffad1c62225ebb9988cf588ef5a7d14198a))
+
+### Continuous Integration
+
+- Add ray to ignored dependencies in config
+  ([`3e0260e`](https://github.com/touale/FrameX-kit/-/commit/3e0260e86eda1c40437a3fbde57fac2a6a1c4871))
+
+### Refactoring
+
+- Optimize plugin config loading
+  ([`1590bda`](https://github.com/touale/FrameX-kit/-/commit/1590bda81b69165d4b4714e52daf8d6091716f03))
+
+
 ## v0.1.10 (2025-09-12)
 
 ### Continuous Integration
