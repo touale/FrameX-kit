@@ -7,6 +7,7 @@ variables:
   # Registry
   CI_TEMPLATE_REGISTRY_HOST: "docker.io"
   APT_SOURCE: "https://mirrors.aliyun.com"
+  GITLAB_SOURCE: ""
 
   # Cache
   PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.pre-commit"
@@ -46,6 +47,25 @@ variables:
         echo "deb $APT_SOURCE/debian-security/ bookworm-security main" >> /etc/apt/sources.list && \
         echo "deb $APT_SOURCE/debian/ bookworm-updates main" >> /etc/apt/sources.list && \
         apt-get update -y && apt-get install -y --no-install-recommends git
+
+renovate:
+  image: ${CI_TEMPLATE_REGISTRY_HOST}/renovatebot/renovate:full
+  stage: test
+  variables:
+    RENOVATE_PLATFORM: gitlab
+    RENOVATE_ENDPOINT: $GITLAB_SOURCE
+    RENOVATE_TOKEN: $GITLAB_TOKEN
+    LOG_LEVEL: debug
+    RENOVATE_REPOSITORIES: "$CI_PROJECT_PATH"
+    RENOVATE_CACHE_NPM: "false"
+    RENOVATE_CACHE_PIP: "false"
+    RENOVATE_PYPI_PASS: "$PYPI_PASS"
+  script:
+    - renovate
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_REF_NAME == "dev"'
 
 # 🔒 Secret scan
 include:
