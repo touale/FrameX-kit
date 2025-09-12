@@ -1,5 +1,6 @@
 from contextvars import ContextVar
-from typing import Any, Optional
+from functools import lru_cache
+from typing import Any, Optional, TypeVar
 
 from pydantic import BaseModel
 from ray.serve.handle import DeploymentHandle
@@ -11,6 +12,7 @@ from framex.log import logger
 from framex.plugin.manage import PluginManager
 from framex.plugin.model import Plugin, PluginApi
 
+C = TypeVar("C", bound=BaseModel)
 _manager: PluginManager = PluginManager(silent=settings.test.silent)
 
 _current_plugin: ContextVar[Optional["Plugin"]] = ContextVar("_current_plugin", default=None)
@@ -22,6 +24,16 @@ def get_plugin(plugin_id: str) -> Plugin | None:
 
 def get_loaded_plugins() -> set["Plugin"]:
     return set(_manager._plugins.values())
+
+
+@lru_cache
+def get_plugin_config(config_class: type[C]) -> C:
+    for plugin in get_loaded_plugins():
+        if config_class.__module__.startswith(plugin.module_name):
+            if cfg := settings.plugins.get(plugin.name):
+                return config_class(**cfg)
+            return config_class()
+    raise RuntimeError(f"Plugin config class {config_class} not found")
 
 
 @logger.catch()

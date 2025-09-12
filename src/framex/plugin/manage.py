@@ -16,8 +16,6 @@ from itertools import chain
 from pathlib import Path
 from types import ModuleType
 
-from pydantic import BaseModel
-
 from framex.config import settings
 from framex.log import logger
 from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
@@ -26,8 +24,6 @@ from framex.utils import escape_tag, path_to_module_name
 
 @cache
 def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:  # noqa
-    from framex.config import settings
-
     data_dir = Path.cwd() / settings.data_dir / plugin_name
     data_dir.mkdir(parents=True, exist_ok=True)
     return str(data_dir)
@@ -267,17 +263,6 @@ class PluginLoader(SourceFileLoader):
         plugin.metadata = metadata
         # Mkdir data dir for plugin
         plugin.data_dir = _get_plugin_data_dir(str(module), plugin.name)
-        # load config
-        if (
-            plugin.metadata
-            and (config_class := plugin.metadata.config_class)
-            and isinstance(config_class, type)
-            and issubclass(config_class, BaseModel)
-        ):
-            if cfg := settings.plugins.get(plugin.name):
-                plugin.config = plugin.metadata.config_class(**cfg)
-            else:
-                plugin.config = plugin.metadata.config_class()
 
 
 # Insert a custom plugin module finder into the front of the Python import system to intercept and load plugin modules
