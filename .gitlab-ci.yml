@@ -65,7 +65,7 @@ renovate:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: '$CI_COMMIT_REF_NAME == "dev"'
+    - if: '$CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
 
 # 🔒 Secret scan
 include:
