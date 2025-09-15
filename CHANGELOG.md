@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.1.13 (2025-09-15)
+
+### Chores
+
+- Update gitignore, config schedule and plugin config
+  ([`67d735f`](https://github.com/touale/FrameX-kit/-/commit/67d735fbf89eb68e99f91db44e32023bd4e0e4cd))
+
+### Refactoring
+
+- Improve plugin config validation
+  ([`30067b6`](https://github.com/touale/FrameX-kit/-/commit/30067b62988806a5fdea373d59e52507d0a02529))
+
+
 ## v0.1.12 (2025-09-12)
 
 ### Performance Improvements
