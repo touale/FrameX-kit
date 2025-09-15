@@ -1,5 +1,5 @@
 PROJECT_NAME = "FrameX"
-VERSION = "0.1.13"
+VERSION = "0.1.14"
 API_STR = "/api/v1"
 
 BACKEND_NAME = "backend"

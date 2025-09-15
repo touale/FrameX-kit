@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.1.14 (2025-09-15)
+
+### Bug Fixes
+
+- Simplify parameter processing in proxy plugin
+  ([`65f9265`](https://github.com/touale/FrameX-kit/-/commit/65f9265ab7805e53d176b533b06fbb9130aeb701))
+
+### Chores
+
+- **deps**: Lock file maintenance
+  ([`5f34c36`](https://github.com/touale/FrameX-kit/-/commit/5f34c36132e06599739f1c4d1914d83e7a3fa434))
+
+
 ## v0.1.13 (2025-09-15)
 
 ### Chores
