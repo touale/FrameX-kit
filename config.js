@@ -28,7 +28,7 @@ module.exports = {
   lockFileMaintenance: {
   enabled: true,
   schedule: [
-      "before 3am every weekday"
+      "before 6pm every weekday"
     ]
   }
 };

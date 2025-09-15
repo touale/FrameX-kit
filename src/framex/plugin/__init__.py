@@ -30,6 +30,7 @@ def get_loaded_plugins() -> set["Plugin"]:
 def get_plugin_config(plugin_name: str, config_class: type[C]) -> C:
     if cfg := settings.plugins.get(plugin_name):
         return config_class(**cfg)
+    logger.warning(f"Plugin({plugin_name}) config not found, use default config")
     return config_class()
 
 
