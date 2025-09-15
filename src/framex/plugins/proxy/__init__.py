@@ -67,14 +67,11 @@ class ProxyPlugin(BasePlugin):
                 continue
             for method, body in details.items():
                 # Process request parameters
-                if parameters := body.get("parameters"):
-                    params = [
-                        (name, c_type)
-                        for param in parameters
-                        if (name := param.get("name")) and (c_type := type_map.get("type"))
-                    ]
-                else:
-                    params = []
+                params: list[tuple[str, Any]] = [
+                    (name, c_type)
+                    for param in (body.get("parameters") or [])
+                    if (name := param.get("name")) and (c_type := type_map.get("type"))
+                ]
 
                 # Process request body
                 if request_body := body.get("requestBody"):
