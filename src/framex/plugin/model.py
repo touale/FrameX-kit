@@ -53,10 +53,13 @@ class Plugin:
 
     @property
     def config(self) -> BaseModel | None:
-        from framex.plugin import get_plugin_config
+        from framex.plugin import check_plugin_config_exists, get_plugin_config
 
+        if not (self.metadata and self.metadata.config_class):
+            return None
+        name = self.name if check_plugin_config_exists(self.name) else self.metadata.name
         return (
-            get_plugin_config(self.name, self.metadata.config_class)
+            get_plugin_config(name, self.metadata.config_class)
             if self.metadata and self.metadata.config_class
             else None
         )
