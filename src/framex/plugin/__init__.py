@@ -34,6 +34,10 @@ def get_plugin_config(plugin_name: str, config_class: type[C]) -> C:
     return config_class()
 
 
+def check_plugin_config_exists(plugin_name: str) -> bool:
+    return plugin_name in settings.plugins
+
+
 @logger.catch()
 def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
     deployments = []
