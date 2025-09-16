@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.1.15 (2025-09-16)
+
+### Chores
+
+- Add release extras to lock file
+  ([`fbd5db7`](https://github.com/touale/FrameX-kit/-/commit/fbd5db78b780377102955f84f328e82ba6d85770))
+
+### Features
+
+- Add CLI interface with click
+  ([`1cd4bab`](https://github.com/touale/FrameX-kit/-/commit/1cd4babf67239a2c71dbc78ba79329a6591bc300))
+
+### Performance Improvements
+
+- Simplify plugin configuration handling
+  ([`4110dcb`](https://github.com/touale/FrameX-kit/-/commit/4110dcb5268e3db39b1416111c30281ff250e446))
+
+
 ## v0.1.14 (2025-09-15)
 
 ### Bug Fixes
