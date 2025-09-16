@@ -14,7 +14,7 @@ from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
 from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
 from framex.plugins.proxy.builder import create_pydantic_model, type_map
-from framex.plugins.proxy.config import ProxyPluginConfig
+from framex.plugins.proxy.config import ProxyPluginConfig, settings
 
 __plugin_meta__ = PluginMetadata(
     name="proxy",
@@ -30,24 +30,23 @@ __plugin_meta__ = PluginMetadata(
 
 @on_register()
 class ProxyPlugin(BasePlugin):
-    def __init__(self, config: ProxyPluginConfig, **kwargs: Any) -> None:
-        self.config = config
+    def __init__(self, **kwargs: Any) -> None:
         self._client = httpx.AsyncClient(timeout=600)
         self.func_map: dict[str, Any] = {}
         super().__init__(**kwargs)
 
     @override
     async def on_start(self) -> None:
-        if not self.config.proxy_urls:
+        if not settings.proxy_urls:
             logger.warning("No url provided, skipping proxy plugin")
             return
-        for url in self.config.proxy_urls:
+        for url in settings.proxy_urls:
             await self._parse_openai_docs(url)
         logger.success(f"Succeeded to parse openai docs form {url}")
 
     @on_request(call_type=ApiType.FUNC)
     async def check_is_gen_api(self, path: str) -> bool:
-        return path in self.config.force_stream_apis
+        return path in settings.force_stream_apis
 
     async def _get_openai_docs(self, url: str) -> dict[str, Any]:
         response = await self._client.get(f"{url}/api/v1/openapi.json")
@@ -61,9 +60,9 @@ class ProxyPlugin(BasePlugin):
         components = openapi_data.get("components", {}).get("schemas", {})
         for path, details in paths.items():
             # Check if the path is legal!
-            if self.config.white_list and path not in self.config.white_list:
+            if settings.white_list and path not in settings.white_list:
                 continue
-            if self.config.black_list and path in self.config.black_list:
+            if settings.black_list and path in settings.black_list:
                 continue
             for method, body in details.items():
                 # Process request parameters
@@ -89,7 +88,7 @@ class ProxyPlugin(BasePlugin):
                     params.append(("model", Model))
                 logger.opt(colors=True).debug(f"Found proxy api({method}) <y>{url}{path}</y>")
                 func_name = body.get("operationId")
-                is_stream = path in self.config.force_stream_apis
+                is_stream = path in settings.force_stream_apis
                 func = self._create_dynamic_method(func_name, method, params, f"{url}{path}", stream=is_stream)
                 setattr(self, func_name, func)
 

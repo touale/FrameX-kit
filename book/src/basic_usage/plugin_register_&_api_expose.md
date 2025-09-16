@@ -16,7 +16,6 @@ Guidelines for fields:
 - `author` (required): Owner/maintainer identity (team/company).
 - `url` (required): Project/repo/docs link for the plugin.
 - `required_remote_apis`: A list of external API paths your plugin depends on (e.g. endpoints provided by other plugins/services). It enables dependency checks and optional preflight validation.
-- `config_class`: Optional `pydantic.BaseModel` subclass to define plugin-specific configuration that the runtime will parse and inject.
 
 For example:
 
@@ -148,7 +147,7 @@ class EchoPlugin(BasePlugin):
 ## 4) End-to-End Example
 
 ```
-# src/plugins/echo.py
+# src/__init__.py
 
 import asyncio
 from collections.abc import AsyncGenerator

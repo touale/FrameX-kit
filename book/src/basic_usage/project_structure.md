@@ -37,20 +37,36 @@ ______________________________________________________________________
   - __main__.py: **Application entry point.**
   - consts.py: Constants (e.g., version).
   - log.py: Logging setup.
-  - plugins/: **All plugins must be placed here.**
+  - plugins/: **All plugins can be placed here.**
 - tests/ – Unit and integration tests.
 - pyproject.toml – Project configuration and dependency management.
 - ruff.toml / mypy.ini – Linting and type-checking configuration.
 - data/ – Sample or runtime data.
 - poe_tasks.toml – Task automation configuration.
 - releaserc.toml – Release configuration.
+- __init__.py - **Single plugin can be placed here.**
 
-## 2) Plugin Directory
+## 2) Where should the plugin be placed
 
-All FrameX plugins must live inside the plugins/ directory.
+> The difference from **Single plugin management** is that one is placed in `src/demo_project/__init__.py`, and **Multiple plugin management** is in `src/demo_project/plugins/`!
+
+### Single plugin
+
+If there is only one algorithm or only one plugin, you can directly prevent its entry in the package's __init__.py.
+
+Example:
+
+```
+src/demo_project/
+├── __init__.py # defines one plugin
+```
+
+### Multiple plugin
+
+All FrameX plugins can live inside the plugins/ directory.
 You can structure them in two ways:
 
-### Single-file plugin
+### A. Easy-file plugin
 
 Each .py file inside plugins/ is treated as one plugin.
 Example:
@@ -61,7 +77,7 @@ src/demo_project/plugins/
 └── demo.py     # defines one plugin
 ```
 
-### Folder-based plugin
+### B. Folder-based plugin
 
 A plugin can also be organized as a package (folder). This is recommended for more complex plugins with multiple modules.
 Example:
