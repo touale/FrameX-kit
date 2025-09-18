@@ -37,6 +37,12 @@ def before_record_request(request):
     return None
 
 
+def before_record_response(response):
+    if response["status"]["code"] != 200:
+        return None
+    return response
+
+
 @pytest.fixture(scope="session", autouse=True)
 def test_app() -> FastAPI:
     plugins = framex.load_plugins(str(Path(__file__).parent / "plugins"))
