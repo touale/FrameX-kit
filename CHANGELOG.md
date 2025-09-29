@@ -2,6 +2,39 @@
 
 <!-- version list -->
 
+## v0.1.16 (2025-09-29)
+
+### Chores
+
+- **deps**: Lock file maintenance
+  ([`fec070c`](https://github.com/touale/FrameX-kit/-/commit/fec070cad0856e2048a58e02adaf01f3081e23a6))
+
+- **deps**: Lock file maintenance
+  ([`5b39979`](https://github.com/touale/FrameX-kit/-/commit/5b399799b7f847696e00c87d56a56ada87dc6acb))
+
+### Documentation
+
+- Remove task decomposition from contribution table
+  ([`92d05d5`](https://github.com/touale/FrameX-kit/-/commit/92d05d58a2223c08b48de107f5037d2fb8a932dd))
+
+- Update find_policy status in contribution table
+  ([`2a13de2`](https://github.com/touale/FrameX-kit/-/commit/2a13de2d661950a3d3b60acdfa1943d9cca47762))
+
+- Update plugin addresses and status in contribution table
+  ([`e4c1303`](https://github.com/touale/FrameX-kit/-/commit/e4c1303d8996f1a624c4269af80cd74277f366f8))
+
+### Features
+
+- Add callback support for API params
+  ([`2955952`](https://github.com/touale/FrameX-kit/-/commit/29559527720cabb5410f0ce4e7bc20daef7d6fcc))
+
+### Testing
+
+- Enhance VCR recording with response filtering
+  ([#3](https://github.com/touale/FrameX-kit/-/merge_requests/3),
+  [`cbb47f9`](https://github.com/touale/FrameX-kit/-/commit/cbb47f9ecbf803c764dbe10d8c8fa72cde7a82cb))
+
+
 ## v0.1.15 (2025-09-16)
 
 ### Chores
