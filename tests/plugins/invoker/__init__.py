@@ -52,6 +52,8 @@ class InvokerPlugin(BasePlugin):
         def extract_content(chunk: str) -> str:
             return chunk.split('"content": "')[-1].split('"')[0]
 
+        call_back = lambda x: "hello" + x  # noqa
+
         # Call the remote sleep function
         remote_res = (
             await self.remote_sleep.remote()
@@ -63,7 +65,7 @@ class InvokerPlugin(BasePlugin):
         echo = await self._call_remote_api("/api/v1/echo", message=message)
         stream = await self._call_remote_api("/api/v1/echo_stream", message=message)
         stream_text = "".join([extract_content(c) for c in stream if "message_chunk" in c])
-        confess = await self._call_remote_api("echo.EchoPlugin.confess", message=message)
+        confess = await self._call_remote_api("echo.EchoPlugin.confess", message=message, call_back=call_back)
         echo_model = await self._call_remote_api(
             "/api/v1/echo_model", message=message, model={"id": 1, "name": "原神"}
         )
