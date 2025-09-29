@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from typing import Any
 
 from pydantic import BaseModel
@@ -45,5 +45,6 @@ class EchoPlugin(BasePlugin):
         yield make_stream_event(StreamEnventType.FINISH)
 
     @on_request(call_type=ApiType.FUNC)
-    async def confess(self, message: str) -> str:
-        return f"我是原神哟! 收到您的消息{message}"
+    async def confess(self, message: str, call_back: Callable) -> str:
+        call_back_result = call_back(message)
+        return f"我是原神哟! 收到message={message},call_back_result={call_back_result}"

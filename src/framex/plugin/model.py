@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from types import ModuleType
@@ -30,7 +31,7 @@ class PluginApi(BaseModel):
     deployment_name: str
     func_name: str = "__call__"
     methods: list[str] = ["POST"]
-    params: list[tuple[str, type]] = []
+    params: list[tuple[str, type | Callable]] = []
     call_type: ApiType = ApiType.HTTP
     tags: list[str | Enum] | None = None
     stream: bool = False

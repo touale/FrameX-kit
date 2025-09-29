@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
@@ -57,7 +58,7 @@ class APIIngress:
         path: str,
         methods: list[str],
         func_name: str,
-        params: list[tuple[str, type]],
+        params: list[tuple[str, type | Callable]],
         handle: DeploymentHandle,
         stream: bool = False,
         direct_output: bool = False,
