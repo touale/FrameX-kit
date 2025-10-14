@@ -1,4 +1,5 @@
 import inspect
+import types
 from collections.abc import Callable
 from typing import Any, get_type_hints
 
@@ -96,7 +97,63 @@ def on_request(
 
 
 def remote() -> Callable:
-    def wrapper(func: Callable) -> Callable:
-        return get_adapter().to_remote_func(func)
+    def wrapper(func: Callable) -> Any:
+        adapter = get_adapter()
+
+        # If it is a classmethod, unpack it to the original function in advance
+        is_cm = isinstance(func, classmethod)
+        orig_func = func.__func__ if is_cm else func  # type: ignore[attr-defined]
+
+        class RemoteCallable:
+            """A wrapper that supports both direct and .remote() asynchronous calls"""
+
+            def __init__(self, bound_func: Callable, bound_remote: Callable):
+                self._func = bound_func
+                self.remote = bound_remote
+
+            def __call__(self, *args: Any, **kwargs: Any):
+                return self._func(*args, **kwargs)
+
+        class RemoteInstanceDescriptor:
+            """Instance method descriptors: bind self to .remote(self, ...)"""
+
+            __func__ = None  # Avoid being treated as a field by Pydantic
+
+            def __get__(self, instance: Any | None, owner: type[Any]):
+                if instance is None:
+                    return orig_func
+                wrapped = adapter.to_remote_func(orig_func)
+                bound_func = types.MethodType(wrapped, instance)
+                bound_remote = types.MethodType(wrapped.remote, instance)  # type: ignore[attr-defined]
+                return RemoteCallable(bound_func, bound_remote)
+
+        class RemoteClassDescriptor:
+            """Class method descriptor: bind cls to .remote(cls, ...)"""
+
+            __func__ = None  # Avoid being treated as a field by Pydantic
+
+            def __get__(self, instance: Any | None, owner: type[Any]) -> RemoteCallable:
+                # Here we explicitly use owner for binding, ensuring that .remote is also bound to cls
+                wrapped = adapter.to_remote_func(orig_func)
+                bound_func = types.MethodType(wrapped, owner)
+                bound_remote = types.MethodType(wrapped.remote, owner)  # type: ignore[attr-defined]
+                return RemoteCallable(bound_func, bound_remote)
+
+        # —— Determine function type (do not rely on __code__, avoid RemoteFunction and other packaging) ——
+        try:
+            params = list(inspect.signature(orig_func).parameters)
+        except (TypeError, ValueError):
+            params = []
+
+        # Class method: explicit @classmethod or first parameter named cls
+        if is_cm or (params and params[0] == "cls"):
+            return RemoteClassDescriptor()
+
+        # Instance method: the first parameter is named self
+        if params and params[0] == "self":
+            return RemoteInstanceDescriptor()
+
+        # Normal function: directly passed to the adapter and returns a function object with .remote
+        return adapter.to_remote_func(orig_func)
 
     return wrapper
