@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.1.17 (2025-10-14)
+
+### Documentation
+
+- Update personnel matching and peer search status
+  ([`d21a4e0`](https://github.com/touale/FrameX-kit/-/commit/d21a4e023921849aedd6a2df24963846ddf26826))
+
+### Features
+
+- Enhance remote decorator with method support
+  ([`43e2ce3`](https://github.com/touale/FrameX-kit/-/commit/43e2ce33fb7a6529eaabd6d98b1dff8a6e926251))
+
+
 ## v0.1.16 (2025-09-29)
 
 ### Chores
