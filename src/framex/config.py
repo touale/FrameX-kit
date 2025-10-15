@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 import tomli
-import yaml
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
@@ -11,7 +10,6 @@ from pydantic_settings import (
     PyprojectTomlConfigSettingsSource,
     SettingsConfigDict,
     TomlConfigSettingsSource,
-    YamlConfigSettingsSource,
 )
 
 
@@ -37,10 +35,6 @@ class PluginConfigSource(PydanticBaseSettingsSource):
                     if file.suffix == ".toml":
                         with file.open("rb") as f:
                             plugin_configs[name] = tomli.load(f)
-                        break
-                    if file.suffix in (".yaml", ".yml"):
-                        with file.open("r", encoding="utf-8") as f:
-                            plugin_configs[name] = yaml.safe_load(f)
                         break
 
         return {"plugins": plugin_configs}
@@ -71,19 +65,15 @@ class SentryConfig(BaseModel):
     env: str = ""  # local, prod, dev
     debug: bool = False
     ignore_errors: list[str] = []
-
     lifecycle: Literal["manual", "trace"] = "manual"
-
     enable_logs: bool = False
 
 
 class ServerConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8080
-
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = 8260
-
     use_ray: bool = False
     enable_proxy: bool = False
 
@@ -119,7 +109,6 @@ class Settings(BaseSettings):
         case_sensitive=False,
         pyproject_toml_table_header=("tool", "framex"),
         toml_file="config.toml",
-        yaml_file="config.yaml",
     )
 
     @classmethod
@@ -136,7 +125,6 @@ class Settings(BaseSettings):
             dotenv_settings,
             PluginConfigSource(settings_cls),
             TomlConfigSettingsSource(settings_cls),
-            YamlConfigSettingsSource(settings_cls),
             PyprojectTomlConfigSettingsSource(settings_cls),
             init_settings,
             file_secret_settings,
