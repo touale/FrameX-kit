@@ -26,15 +26,6 @@ class BaseAdapter(abc.ABC):
     def to_deployment(self, cls: type, **kwargs: Any) -> type:  # noqa: ARG002
         return cls
 
-    def to_remote_func(self, func: Callable) -> Callable:
-        async def _remote_func(*args: tuple[Any, ...], **kwargs: Any) -> Any:
-            if inspect.iscoroutinefunction(func):
-                return await func(*args, **kwargs)
-            return func(*args, **kwargs)
-
-        func.remote = _remote_func  # type: ignore [attr-defined]
-        return func
-
     async def call_func(self, api: PluginApi, **kwargs: Any) -> Any:
         func = self.get_handle_func(api.deployment_name, api.func_name)
         stream = api.stream
@@ -63,6 +54,9 @@ class BaseAdapter(abc.ABC):
 
     @abc.abstractmethod
     def bind(self, deployment: Callable[..., Any], **kwargs: Any) -> Any: ...
+
+    @abc.abstractmethod
+    def to_remote_func(self, func: Callable) -> Callable: ...
 
     def _stream_call(self, func: Callable[..., Any], **kwargs: Any) -> Any:
         return func(**kwargs)
