@@ -14,8 +14,8 @@ class PluginMetadata(BaseModel):
     author: str = Field(..., description="The author of the plugin")
     url: str = Field(..., description="The url of the plugin")
     required_remote_apis: list[str] = Field([], description="The list of required plugins")
-    priority: int = Field(0, description="The priority of the plugin")
-    tags: list[str] = Field([], description="The tags of the plugin")
+    priority: int = 0
+    tags: list[str] = Field(default_factory=list, description="The tags of the plugin")
     config_class: type[BaseModel] | None = None
 
 
