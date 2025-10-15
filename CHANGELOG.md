@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.19 (2025-10-15)
+
+### Features
+
+- Adjust the remote func of LocalAdapter to execute in thread
+  ([`1b6163e`](https://github.com/touale/FrameX-kit/-/commit/1b6163e14764f0b22e17f1578c7887f50d51b206))
+
+
 ## v0.1.18 (2025-10-15)
 
 ### Bug Fixes
