@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.18 (2025-10-15)
+
+### Bug Fixes
+
+- Update plugin model field definitions
+  ([`15fb2d0`](https://github.com/touale/FrameX-kit/-/commit/15fb2d01f5817dbb17b4eafa40c69a307b6101fc))
+
+
 ## v0.1.17 (2025-10-14)
 
 ### Documentation
