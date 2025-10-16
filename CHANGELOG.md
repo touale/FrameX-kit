@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v0.1.20 (2025-10-16)
+
+### Bug Fixes
+
+- Update API registration and HTTP client timeout handling
+  ([`4efe031`](https://github.com/touale/FrameX-kit/-/commit/4efe031a3a798481c815ae42a931e84094874612))
+
+### Chores
+
+- Add line length ignore to ruff config
+  ([`619323f`](https://github.com/touale/FrameX-kit/-/commit/619323f2acf1ba568fb180b45860db052c15147b))
+
+### Documentation
+
+- Update plugin config and contribution status
+  ([`a2c8efa`](https://github.com/touale/FrameX-kit/-/commit/a2c8efa422d10e12409bde6b3045a7c6ba6adacc))
+
+### Features
+
+- Remove YAML support from configuration handling
+  ([`bf281d3`](https://github.com/touale/FrameX-kit/-/commit/bf281d3c503caf3b388d44f1f464ad65aa4846b6))
+
+
 ## v0.1.19 (2025-10-15)
 
 ### Features
