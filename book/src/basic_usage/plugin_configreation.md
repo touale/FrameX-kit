@@ -1,6 +1,6 @@
 # Plugin Configuration
 
-FrameX supports **TOML**, **YAML**, and **ENV** (including `.env`) configuration formats and allows **nested Pydantic models** for strongly-typed settings.
+FrameX supports **TOML**, and **ENV** (including `.env`) configuration formats and allows **nested Pydantic models** for strongly-typed settings.
 
 We **recommend TOML** for multi-level configuration, as it is cleanly hierarchical and scales well when new plugin options are added.
 
@@ -77,22 +77,21 @@ proxy_urls = ["http://127.0.0.1:8080"]
 force_stream_apis = ["/api/v1/chat"]
 ```
 
-### Plan B) Dedicated file under the data directory
+### Plan B) Make it in .env or env environment
 
-Each plugin can have an isolated config file under:
-
-```
-./data/<plugin_name>/config.toml
-```
-
-For example: add it easily in `data/proxy/config.toml`:
+For example in .env:
 
 ```
-proxy_urls = ["http://127.0.0.1:8080"]
-force_stream_apis = ["/api/v1/chat"]
+server__use_ray=false
+server__enable_proxy=true
+plugins__proxy__proxy_urls=["http://127.0.0.1:8080"]
+plugins__proxy__force_stream_apis=["/api/v1/chat"]
 ```
 
-When you start the plugin, it will automatically create the directory. You can view the directory location in the `def __init__(..,data_dir:str,...)`stage.
+Note:
+
+- Nested keys are flattened using double underscores (\_\_).
+- Configuration keys should be written in lowercase. Uppercase keys (e.g. server\_\_USE_RAY) will not be recognized by Pydantic in this setup.
 
 ## 4) Supported Formats & Loading Order
 
@@ -101,9 +100,7 @@ Supported sources (from highest to lowest precedence):
 1. **ENV settings** (process environment variables)
 1. **dotenv** file (e.g., `.env`)
 1. `data/<plugin>/config.toml` (plugin-level TOML config)
-1. `data/<plugin>/config.yaml` / `config.yml` (plugin-level YAML config)
 1. Project root `config.toml` (global TOML)
-1. Project root `config.yaml` / `config.yml` (global YAML)
 1. `pyproject.toml` (project-level fallback)
 
 > **Recommendation:** Prefer **TOML** for hierarchical configuration. It is expressive, diff-friendly, and scales well as plugins evolve.
