@@ -72,9 +72,7 @@ class APIIngress:
         try:
             routes: list[str] = [route.path for route in app.routes if isinstance(route, Route | APIRoute)]
             if path in routes:
-                logger.warning(
-                    f"API({path}) with tags {tags} is already registered in {routes}, skipping duplicate registration."
-                )
+                logger.warning(f"API({path}) with tags {tags} is already registered, skipping duplicate registration.")
                 return False
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")

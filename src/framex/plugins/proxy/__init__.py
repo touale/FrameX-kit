@@ -31,8 +31,8 @@ __plugin_meta__ = PluginMetadata(
 @on_register()
 class ProxyPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
-        self._client = httpx.AsyncClient(timeout=600)
         self.func_map: dict[str, Any] = {}
+        self.time_out = kwargs.get("timeout", 600)
         super().__init__(**kwargs)
 
     @override
@@ -49,7 +49,8 @@ class ProxyPlugin(BasePlugin):
         return path in settings.force_stream_apis
 
     async def _get_openai_docs(self, url: str) -> dict[str, Any]:
-        response = await self._client.get(f"{url}/api/v1/openapi.json")
+        clent = httpx.AsyncClient(timeout=self.time_out)
+        response = await clent.get(f"{url}/api/v1/openapi.json")
         response.raise_for_status()
         return cast(dict[str, Any], response.json())
 
@@ -123,17 +124,18 @@ class ProxyPlugin(BasePlugin):
         stream: bool = False,
         **kwargs: Any,
     ) -> AsyncGenerator[str, None] | dict | str:
+        clent = httpx.AsyncClient(timeout=self.time_out)
         if stream:
 
             async def stream_generator() -> AsyncGenerator[str, None]:
-                async with self._client.stream(**kwargs) as response:
+                async with clent.stream(**kwargs) as response:
                     response.raise_for_status()
                     async for chunk in response.aiter_text():
                         yield chunk
 
             return stream_generator()
 
-        response = await self._client.request(**kwargs)
+        response = await clent.request(**kwargs)
         response.raise_for_status()
         try:
             return cast(dict, response.json())
