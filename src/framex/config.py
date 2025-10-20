@@ -76,6 +76,7 @@ class ServerConfig(BaseModel):
     dashboard_port: int = 8260
     use_ray: bool = False
     enable_proxy: bool = False
+    num_cpus: int = 8
 
 
 class TestConfig(BaseModel):
