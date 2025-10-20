@@ -66,6 +66,7 @@ Use the `uv lock --upgrade-package <package>` command. For example, to upgrade s
 
 ```
 uv lock --upgrade-package sqlmodel
+uv sync # or `uv sync --dev`
 ```
 
 ## 3) Poe Help
