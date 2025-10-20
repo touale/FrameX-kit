@@ -41,7 +41,7 @@ async def remote_func_async_with_params(a: int, b: str):
 ```
 results = [
     await remote_sleep.remote(),
-    await remote_func_with_params.remote("123"),
+    await remote_func_with_params.remote("123", "456"),
 ]
 ```
 
