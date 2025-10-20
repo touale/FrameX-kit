@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.1.21 (2025-10-20)
+
+### Documentation
+
+- Update project status and links
+  ([`0049415`](https://github.com/touale/FrameX-kit/-/commit/004941590e3060e44959b399717db44925bdfc45))
+
+### Features
+
+- Add configurable server host, port and CPU count
+  ([`bcaacfa`](https://github.com/touale/FrameX-kit/-/commit/bcaacfa784b288a94300e393bf0c1155a9e0370d))
+
+
 ## v0.1.20 (2025-10-16)
 
 ### Bug Fixes
