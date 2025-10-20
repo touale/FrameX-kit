@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.0 (2025-10-20)
+
+### Update
+
+- Stable version release, improve error message in plugin import failure
+  ([`8dc340e`](https://github.com/touale/FrameX-kit/-/commit/8dc340e3e796d648ccba3048df1aa65d629413d0))
+
+
 ## v0.1.21 (2025-10-20)
 
 ### Documentation
