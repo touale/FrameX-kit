@@ -52,7 +52,15 @@ def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
         )
 
 
-def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool = False) -> FastAPI | None:
+def run(
+    *,
+    server_host: str | None = None,
+    server_port: int | None = None,
+    reversion: str | None = None,
+    blocking: bool = True,
+    test_mode: bool = False,
+    num_cpus: int | None = None,
+) -> FastAPI | None:
     reversion = reversion or VERSION
 
     if test_mode and settings.server.use_ray:
@@ -88,7 +96,7 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
         from ray import serve
 
         ray.init(
-            num_cpus=8,
+            num_cpus=num_cpus or settings.server.num_cpus,
             dashboard_host=settings.server.dashboard_host,
             dashboard_port=settings.server.dashboard_port,
             configure_logging=False,
@@ -99,7 +107,10 @@ def run(*, reversion: str | None = None, blocking: bool = True, test_mode: bool 
                 "worker_process_setup_hook": _setup_sentry,
             },
         )
-        serve.start(detached=True, http_options={"host": settings.server.host, "port": settings.server.port})
+        serve.start(
+            detached=True,
+            http_options={"host": server_host or settings.server.host, "port": server_port or settings.server.port},
+        )
         from framex.driver.ingress import APIIngress
 
         api_ingress = APIIngress.bind(deployments=deployments, plugin_apis=http_apis)  # type: ignore
