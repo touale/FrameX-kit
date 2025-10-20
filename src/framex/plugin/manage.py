@@ -165,7 +165,7 @@ class PluginManager:
             return plugin  # type: ignore
         except Exception as e:
             logger.opt(colors=True, exception=e if not self.silent else False).error(
-                f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>'
+                f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>, reason: {e}'
             )
             return None
 
