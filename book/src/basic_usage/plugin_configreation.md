@@ -15,7 +15,6 @@ The runtime loads a top-level `Settings` model that typically includes:
 - `plugins: dict[str, Any]` — plugin-specific raw config
 - `load_builtin_plugins: list[str]` — which **built-in** plugins to load (e.g. `"proxy"`)
 - `load_plugins: list[str]` — which **third-party** plugins to load
-- `data_dir: Path` — per-plugin persistent data/config directory (default: `data/`)
 
 The only configurations you need to focus on are server, load_plugins, load_builtin_plugins, and plugins. FrameX automatically manages everything else.
 
@@ -99,7 +98,6 @@ Supported sources (from highest to lowest precedence):
 
 1. **ENV settings** (process environment variables)
 1. **dotenv** file (e.g., `.env`)
-1. `data/<plugin>/config.toml` (plugin-level TOML config)
 1. Project root `config.toml` (global TOML)
 1. `pyproject.toml` (project-level fallback)
 
