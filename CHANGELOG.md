@@ -2,6 +2,36 @@
 
 <!-- version list -->
 
+## v0.2.1 (2025-10-21)
+
+### Chores
+
+- **deps**: Lock file maintenance
+  ([`95d70ad`](https://github.com/touale/FrameX-kit/-/commit/95d70ad2f483270d4b40d076459e001ebddd725c))
+
+### Documentation
+
+- Update development.md
+  ([`e21019a`](https://github.com/touale/FrameX-kit/-/commit/e21019a12df4e108d934e3c1c1d51c2030db4c57))
+
+- Update precision medicine and international matching status to complete
+  ([`28704d1`](https://github.com/touale/FrameX-kit/-/commit/28704d1946441234adf36de4c358bd1d051281c9))
+
+- Update remote_calls.md
+  ([`b1a4805`](https://github.com/touale/FrameX-kit/-/commit/b1a48051ca8d6e02289a9dd4c126cd0131fd0172))
+
+- Update technology prediction report status to complete
+  ([`4507a66`](https://github.com/touale/FrameX-kit/-/commit/4507a66a75a1abf39e19005def8da32b1d0ccfe2))
+
+- Updateadvanced_test.md
+  ([`b267a9f`](https://github.com/touale/FrameX-kit/-/commit/b267a9fc9a9fa5db078698d45d225eee6d172c7f))
+
+### Features
+
+- Enhance CLI with configurable server options and plugin loading
+  ([`2de69e0`](https://github.com/touale/FrameX-kit/-/commit/2de69e0dd86e7b043c59f9241c2e40b0d664c0ad))
+
+
 ## v0.2.0 (2025-10-20)
 
 ### Update
