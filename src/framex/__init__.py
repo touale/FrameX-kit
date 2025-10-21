@@ -54,12 +54,14 @@ def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
 
 def run(
     *,
-    server_host: str | None = None,
-    server_port: int | None = None,
+    server_host: str = settings.server.host,
+    server_port: int = settings.server.port,
+    dashboard_host: str = settings.server.dashboard_host,
+    dashboard_port: int = settings.server.dashboard_port,
+    num_cpus: int = settings.server.num_cpus,
     reversion: str | None = None,
     blocking: bool = True,
     test_mode: bool = False,
-    num_cpus: int | None = None,
 ) -> FastAPI | None:
     reversion = reversion or VERSION
 
@@ -96,9 +98,9 @@ def run(
         from ray import serve
 
         ray.init(
-            num_cpus=num_cpus or settings.server.num_cpus,
-            dashboard_host=settings.server.dashboard_host,
-            dashboard_port=settings.server.dashboard_port,
+            num_cpus=num_cpus,
+            dashboard_host=dashboard_host,
+            dashboard_port=dashboard_port,
             configure_logging=False,
             runtime_env={
                 "env_vars": {
@@ -109,7 +111,7 @@ def run(
         )
         serve.start(
             detached=True,
-            http_options={"host": server_host or settings.server.host, "port": server_port or settings.server.port},
+            http_options={"host": server_host, "port": server_port},
         )
         from framex.driver.ingress import APIIngress
 
@@ -133,8 +135,8 @@ def run(
 
         uvicorn.run(  # pragma: no cover
             app,
-            host=settings.server.host,
-            port=settings.server.port,
+            host=server_host,
+            port=server_port,
             reload=False,
             loop="asyncio",
         )
