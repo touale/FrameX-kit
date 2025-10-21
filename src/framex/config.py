@@ -1,9 +1,6 @@
-from pathlib import Path
 from typing import Any, Literal
 
-import tomli
 from pydantic import BaseModel
-from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -11,39 +8,6 @@ from pydantic_settings import (
     SettingsConfigDict,
     TomlConfigSettingsSource,
 )
-
-
-class PluginConfigSource(PydanticBaseSettingsSource):
-    def __init__(self, settings_cls: type[BaseSettings], data_dir: Path = Path("data")):
-        super().__init__(settings_cls)
-        self.data_dir = data_dir
-        self._data: dict[str, Any] = self._load_plugins()
-
-    def _load_plugins(self) -> dict[str, Any]:
-        plugin_configs: dict[str, dict] = {}
-
-        if not self.data_dir.is_dir():
-            return {}
-
-        for plugin_dir in self.data_dir.iterdir():
-            if plugin_dir.is_dir() and (name := plugin_dir.name.split("@")[0]):
-                for file in plugin_dir.iterdir():
-                    if not file.is_file():
-                        continue
-                    if file.stem.lower() != "config":
-                        break
-                    if file.suffix == ".toml":
-                        with file.open("rb") as f:
-                            plugin_configs[name] = tomli.load(f)
-                        break
-
-        return {"plugins": plugin_configs}
-
-    def __call__(self) -> dict[str, Any]:
-        return self._data
-
-    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
-        raise NotImplementedError
 
 
 class LogConfig(BaseModel):
@@ -95,9 +59,6 @@ class Settings(BaseSettings):
     load_plugins: list[str] = []
     load_builtin_plugins: list[str] = []
 
-    # dir
-    data_dir: Path = Path("data")
-
     test: TestConfig = TestConfig()
 
     sentry: SentryConfig = SentryConfig()
@@ -124,7 +85,6 @@ class Settings(BaseSettings):
         return (
             env_settings,
             dotenv_settings,
-            PluginConfigSource(settings_cls),
             TomlConfigSettingsSource(settings_cls),
             PyprojectTomlConfigSettingsSource(settings_cls),
             init_settings,
