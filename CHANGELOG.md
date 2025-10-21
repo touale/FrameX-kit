@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.2.2 (2025-10-21)
+
+### Documentation
+
+- Remove plugin data directory config references
+  ([`6466648`](https://github.com/touale/FrameX-kit/-/commit/64666480bba779f9a07b818cbc1b5b83ea7a9066))
+
+### Features
+
+- Remove plugin data directory support
+  ([`bcd5dd1`](https://github.com/touale/FrameX-kit/-/commit/bcd5dd1941a0a38abb8e36b55c9f88599b4f01e8))
+
+
 ## v0.2.1 (2025-10-21)
 
 ### Chores
