@@ -48,7 +48,6 @@ class Plugin:
     name: str
     module: ModuleType
     module_name: str
-    data_dir: str | None = None
     metadata: PluginMetadata | None = None
     deployments: list[PluginDeployment] = field(default_factory=list)
 

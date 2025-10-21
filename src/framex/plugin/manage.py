@@ -9,24 +9,15 @@ import pkgutil
 import sys
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
-from functools import cache
 from importlib.abc import MetaPathFinder
 from importlib.machinery import ModuleSpec, PathFinder, SourceFileLoader
 from itertools import chain
 from pathlib import Path
 from types import ModuleType
 
-from framex.config import settings
 from framex.log import logger
 from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
 from framex.utils import escape_tag, path_to_module_name
-
-
-@cache
-def _get_plugin_data_dir(module_name: str, plugin_name: str) -> str:  # noqa
-    data_dir = Path.cwd() / settings.data_dir / plugin_name
-    data_dir.mkdir(parents=True, exist_ok=True)
-    return str(data_dir)
 
 
 def _module_name_to_plugin_name(module_name: str) -> str:
@@ -262,7 +253,6 @@ class PluginLoader(SourceFileLoader):
         metadata: PluginMetadata | None = getattr(module, "__plugin_meta__", None)
         plugin.metadata = metadata
         # Mkdir data dir for plugin
-        plugin.data_dir = _get_plugin_data_dir(str(module), plugin.name)
 
 
 # Insert a custom plugin module finder into the front of the Python import system to intercept and load plugin modules

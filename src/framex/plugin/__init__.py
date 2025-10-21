@@ -65,7 +65,9 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
                         f"Plugin({dep.deployment}) init failed, Required remote api({api_name}) not found"
                     )
             deployment = get_adapter().bind(
-                dep.deployment, remote_apis=remote_apis, config=plugin.config, data_dir=plugin.data_dir
+                dep.deployment,
+                remote_apis=remote_apis,
+                config=plugin.config,
             )
 
             deployments.append(deployment)
