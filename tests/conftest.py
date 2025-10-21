@@ -2,6 +2,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -54,3 +55,9 @@ def test_app() -> FastAPI:
 def client(test_app: FastAPI) -> Generator:
     with TestClient(test_app) as c:
         yield c
+
+
+@pytest.fixture
+def runner():
+    """Provide a reusable Click CLI runner."""
+    return CliRunner()
