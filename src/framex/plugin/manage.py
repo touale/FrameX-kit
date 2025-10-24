@@ -40,20 +40,32 @@ class PluginManager:
         if not self._plugin_apis:
             for plugin in self._plugins.values():
                 for dep in plugin.deployments:
+                    http_api_names = []
+                    func_api_names = []
                     for api in dep.plugin_apis:
                         api_name = f"{api.deployment_name}.{api.func_name}"
                         is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
                         is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
                         if is_func:
                             self._plugin_apis[ApiType.FUNC][api_name] = api
-                            logger.opt(colors=True).success(
-                                f'Found plugin FUNC API "<y>{api_name}</y>" from plugin({plugin.name})'
-                            )
+                            func_api_names.append(api_name)
+
                         if api.api and is_http:
                             self._plugin_apis[ApiType.HTTP][api.api] = api
-                            logger.opt(colors=True).success(
-                                f'Found plugin HTTP API "<y>{api.api}</y>" from plugin({plugin.name})'
-                            )
+                            http_api_names.append(api.api)
+
+                    if not dep.plugin_apis:
+                        logger.opt(colors=True).warning(f"<r>No relevant API found in plugin({plugin.name})</r>")
+                        continue
+
+                    if http_api_names:
+                        logger.opt(colors=True).success(
+                            f'Found plugin HTTP API "<y>{http_api_names}</y>" from plugin({plugin.name})'
+                        )
+                    if func_api_names:
+                        logger.opt(colors=True).success(
+                            f'Found plugin FUNC API "<y>{func_api_names}</y>" from plugin({plugin.name})'
+                        )
         return self._plugin_apis
 
     @property
