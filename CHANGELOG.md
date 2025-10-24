@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.2.3 (2025-10-24)
+
+### Documentation
+
+- Add teacher project prediction plugin status
+  ([`b81ff66`](https://github.com/touale/FrameX-kit/-/commit/b81ff66374b9cbe725e7a0a992c26c111de409f6))
+
+### Features
+
+- Optimize plugin API logging with batch output
+  ([`7cc3a2d`](https://github.com/touale/FrameX-kit/-/commit/7cc3a2d69bcd9d794a6b5066eae34c023c8f3907))
+
+### Testing
+
+- Add exception handling tests for test mode and plugin calls
+  ([`75d1a3f`](https://github.com/touale/FrameX-kit/-/commit/75d1a3f0b87e41be2a7974cb1a7e96f8f243162d))
+
+
 ## v0.2.2 (2025-10-21)
 
 ### Documentation
