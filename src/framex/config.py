@@ -41,6 +41,7 @@ class ServerConfig(BaseModel):
     use_ray: bool = False
     enable_proxy: bool = False
     num_cpus: int = 8
+    excluded_log_paths: list[str] = []
 
 
 class TestConfig(BaseModel):
