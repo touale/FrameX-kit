@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.4 (2025-10-27)
+
+### Features
+
+- Add configurable excluded log paths support
+  ([`73eb430`](https://github.com/touale/FrameX-kit/-/commit/73eb430385d0bf981d4a77cb45caa44bba25f19e))
+
+
 ## v0.2.3 (2025-10-24)
 
 ### Documentation
