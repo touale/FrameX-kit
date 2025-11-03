@@ -1,5 +1,6 @@
 [semantic_release]
 build_command = """
+    pip install uv==0.5.0
     uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
     uv build
@@ -54,7 +55,7 @@ autoescape = false
 
 [semantic_release.commit_author]
 env = "GIT_COMMIT_AUTHOR"
-default = "gitlab-releaser <gitlab-releaser>"
+default = "github-releaser <github-releaser>"
 
 [semantic_release.commit_parser_options]
 minor_tags = ["update"]
@@ -78,8 +79,8 @@ ignore_merge_commits = true
 
 [semantic_release.remote]
 name = "origin"
-type = "gitlab"
-token = { env = "GITLAB_TOKEN" }
+type = "github"
+token = { env = "GH_TOKEN" }
 ignore_token_for_push = false
 insecure = true
 url = "https://github.com/touale/FrameX-kit"
