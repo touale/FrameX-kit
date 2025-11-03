@@ -52,10 +52,9 @@ remote_version = await self._call_remote_api("/api/v1/base/version")
 
 # Call with body model (dict form)
 match_result = await self._call_remote_api(
-    
+    "/api/v1/base/match"
     model={
-        
-        
+        name: "test",    
     },
 )
 ```

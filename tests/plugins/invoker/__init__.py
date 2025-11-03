@@ -15,8 +15,6 @@ __plugin_meta__ = PluginMetadata(
         "echo.EchoPlugin.confess",
         "/api/v1/echo_stream",
         "/api/v1/echo_model",
-        
-        
     ],
 )
 
@@ -69,13 +67,4 @@ class InvokerPlugin(BasePlugin):
         echo_model = await self._call_remote_api(
             "/api/v1/echo_model", message=message, model={"id": 1, "name": "原神"}
         )
-        remote_version = await self._call_remote_api("/api/v1/base/version")
-        match_result = await self._call_remote_api(
-            
-            model={
-                
-                
-            },
-        )
-
-        return [echo, stream_text, confess, echo_model, remote_res, remote_version, match_result]
+        return [echo, stream_text, confess, echo_model, remote_res]
