@@ -1,0 +1,41 @@
+name: Page
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup rust toolchain
+        run: rustup update && rustup toolchain install
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install mdbook-katex
+      - uses: taiki-e/install-action@mdbook
+      - name: build book
+        run: cd book && mdbook build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: book/book
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-22.04
+    if: github.repository == 'touale/FrameX-kit'
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
