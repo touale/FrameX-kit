@@ -37,6 +37,11 @@ def before_record_request(request):
     if all(ch not in request.path for ch in ["rerank", "minio"]):
         return request
     return None
+
+def before_record_response(response):
+    if response["status"]["code"] != 200:
+        return None
+    return response
 ```
 
 This ensures only test-related network traffic is recorded and sensitive headers are stripped out.

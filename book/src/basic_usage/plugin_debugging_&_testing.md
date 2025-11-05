@@ -44,7 +44,7 @@ def client(test_app: FastAPI) -> Generator[TestClient, None, None]:
 
 ### Example Tests
 
-````
+```
 import json
 from fastapi.testclient import TestClient
 from framex.consts import API_STR
@@ -84,4 +84,3 @@ def test_echo_stream(client: TestClient):
         assert events == {"finish", "message_chunk"}
         assert "".join(chunks) == f"原神真好玩呀, {params['message']}"
 ```
-````

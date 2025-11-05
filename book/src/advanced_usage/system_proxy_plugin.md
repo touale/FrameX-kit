@@ -1,16 +1,17 @@
-# System Proxy Plugin (v2 API Compatibility)
+# System Proxy Plugin: API Compatibility with Regular FastAPI Projects and Other FrameX Instances
 
-The **System Proxy Plugin** enables seamless **backward compatibility** with your existing v2 services.\
-Its goal is to provide **progressive adoption** of v3: any **unmigrated** algorithms can be **automatically forwarded** to v2 during the transition period, ensuring **compatibility** and **service stability**.
+Its goal is to support progressive adoption of FrameX — allowing any unmigrated or legacy algorithms to be automatically forwarded to external services or other FrameX instances during the transition, ensuring compatibility and service stability.
+
+In addition, the proxy can forward cross-plugin requests across different FrameX instances, including remote instances, enabling distributed execution and transparent inter-instance communication within the same unified API interface.
 
 ______________________________________________________________________
 
 ## Why use the Proxy?
 
-- **Gradual migration**: keep v2 running while you onboard to v3.
-- **API parity**: expose v2 endpoints through v3 with minimal effort.
-- **Zero invasive changes**: call v2 via the same `_call_remote_api(...)` interface.
-- **Streaming support**: selective streaming via `force_stream_apis`.
+- **Gradual migration** — Maintain legacy services while progressively adopting FrameX.
+- **API compatibility** — Expose existing endpoints through FrameX with minimal integration effort.
+- **Zero code intrusion** — Invoke remote or legacy APIs using the same `_call_remote_api(...)` interface.
+- **Streaming support** — Enable selective streaming behavior via `force_stream_apis`.
 
 **`config.toml`**
 
@@ -25,41 +26,41 @@ proxy_urls = ["http://127.0.0.1:80"]
 force_stream_apis = ["/api/v1/chat"]
 ```
 
-The proxy will auto-discover v2 APIs (e.g., via its OpenAPI/inspection) and map them to v3 call signatures.
+The proxy automatically **discovers available APIs** (for example, through OpenAPI introspection) and dynamically **maps them to corresponding call signatures** within FrameX.
 
-For streaming endpoints listed in force_stream_apis, v3 will treat responses as server-sent events (SSE) or chunked streams accordingly.
+For any **streaming endpoints** defined in `force_stream_apis`, the proxy automatically handles responses as **Server-Sent Events (SSE)** or **chunked data streams**, depending on the endpoint’s behavior.
 
-## Calling v2 from v3
+## Calling Legacy APIs from FrameX
 
-Declare v2 apis in your plugin metadata, then call them with \_call_remote_api(...).
-Basic types can be passed directly; **Pydantic models** must be passed as dicts.
+You can easily invoke legacy APIs (e.g., from existing FastAPI services or other FrameX instances) through the System Proxy Plugin.
+Simply declare the remote APIs in your plugin metadata, and call them using the \_call_remote_api(...) helper.
+Basic types can be passed directly, while Pydantic models should be converted to dict form.
 
 ```
 __plugin_meta__ = PluginMetadata(
     name="invoker",
     version=VERSION,
-    description="Invoke v2 APIs via the system proxy",
+    description="Invoke external APIs via the system proxy",
     author="touale",
     url="https://github.com/touale/FrameX-kit",
     required_remote_apis=[
-        
-        
+        "/api/v1/base/match", # Define your dependent APIs here
     ],
 )
 
 # Simple call (non-streaming)
 remote_version = await self._call_remote_api("/api/v1/base/version")
 
-# Call with body model (dict form)
+# Call with body payload (Pydantic -> dict)
 match_result = await self._call_remote_api(
-    "/api/v1/base/match"
+    "/api/v1/base/match",
     model={
-        name: "test",    
+        "name": "test",
     },
 )
 ```
 
-That’s it — the proxy will forward your call to v2, adapt request/response shapes where applicable, and return results to v3 callers.
+That’s it — the proxy automatically forwards your call to the corresponding service, adapts the request/response formats when necessary, and returns the result to your plugin seamlessly.
 
 ## Streaming Endpoints
 
@@ -77,22 +78,23 @@ Then, when you call those endpoints via \_call_remote_api(...), you’ll receive
 
 ```
 [server]
-enable_proxy = true      # turn on the proxy bridge
+enable_proxy = true      # Enable the proxy bridge
 
 [plugins.proxy]
-proxy_urls = ["http://<v2-host>:<port>", "..."]  # one or more v2 base URLs (load-balanced/round-robin)
-force_stream_apis = ["/api/v1/chat"]             # endpoints treated as streaming
-# optional:
-# black_list = ["/api/v1/admin/*"]               # deny-list
-# white_list = ["/api/v1/*"]                     # allow-list (if present, only these paths are allowed)
+proxy_urls = ["http://<host>:<port>", "..."]   # One or more upstream API endpoints (supports load balancing)
+force_stream_apis = ["/api/v1/chat"]           # Endpoints treated as streaming
+
+# Optional filters:
+# black_list = ["/api/v1/admin/*"]             # Blocked API paths
+# white_list = ["/api/v1/*"]                   # Whitelisted API paths (restricts to these only)
 ```
 
-## Transparent Migration (No-Code Changes)
+## Transparent Migration (Zero-Code Changes)
 
-One of the biggest advantages of the `proxy plugin` design is transparent migration:
+One of the key advantages of the **Proxy Plugin** design is its support for **transparent migration**:
 
-- As long as you declare the API in required_remote_apis and call it via \_call_remote_api(...), it **does not matter** whether the implementation lives in v2 or v3.
-- When a v2 algorithm is later migrated into v3 (rewritten as a v3 plugin), the framework will **automatically** route calls to the new v3 implementation.
-- Your plugin code **remains unchanged** — you don’t need to touch any call sites.
+- Once an API is declared in `required_remote_apis` and invoked through `_call_remote_api(...)`, it **does not matter** where the actual implementation resides — whether in a legacy service or another FrameX instance.
+- When that implementation is later migrated into the current FrameX environment as a native plugin, the framework will **automatically route** calls to the new local version.
+- Your plugin code **remains completely unchanged** — no modification to call sites or configuration is required.
 
-This ensures a smooth transition where business logic and integrations remain stable while the backend evolves.
+This ensures a smooth transition path where business logic and integrations stay stable while the backend evolves naturally.

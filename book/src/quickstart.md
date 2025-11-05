@@ -14,7 +14,73 @@ pip install cookiecutter
 
 Cookiecutter is a CLI tool (Command Line Interface) to create an application boilerplate from a template. It uses a templating system — Jinja2 — to replace or customize folder and file names, as well as file content. it can help you quickly create a plugin.
 
-## Create project
+## Quick Demo
+
+Create foo.py file
+
+```
+from typing import Any
+from pydantic import BaseModel
+
+from framex.consts import VERSION
+from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
+
+
+__plugin_meta__ = PluginMetadata(
+    name="foo",
+    version=VERSION,
+    description="A simple Foo plugin example",
+    author="touale",
+    url="https://github.com/touale/FrameX-kit",
+)
+
+
+class FooModel(BaseModel):
+    text: str = "Hello Foo"
+
+
+@on_register()
+class FooPlugin(BasePlugin):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+    @on_request("/foo", methods=["GET"])
+    async def foo(self, message: str) -> str:
+        return f"Foo says: {message}"
+
+    @on_request("/foo_model", methods=["POST"])
+    async def foo_model(self, model: FooModel) -> str:
+        return f"Foo received model: {model.text}"#   
+```
+
+Run the following command to start the project creation process:
+
+```
+$ PYTHONPATH=. framex run --load-plugins foo
+🚀 Starting FrameX with configuration:
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "dashboard_host": "127.0.0.1",
+  "dashboard_port": 8260,
+  "use_ray": false,
+  "enable_proxy": false,
+  "num_cpus": 8,
+  "excluded_log_paths": []
+}
+11-05 16:01:13 [SUCCESS] framex.plugin.manage | Succeeded to load plugin "foo" from foo
+11-05 16:01:13 [INFO] framex | Start initializing all DeploymentHandle...
+11-05 16:01:13 [SUCCESS] framex.plugin.manage | Found plugin HTTP API "['/api/v1/foo', '/api/v1/foo_model']" from plugin(foo)
+11-05 16:01:13 [SUCCESS] framex.driver.ingress | Succeeded to register api(['GET']): /api/v1/foo from foo.FooPlugin
+11-05 16:01:13 [SUCCESS] framex.driver.ingress | Succeeded to register api(['POST']): /api/v1/foo_model from foo.FooPlugin
+INFO:     Started server process [59373]
+INFO:     Waiting for application startup.
+11-05 16:01:13 [INFO] framex.driver.application | Starting FastAPI application...
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+```
+
+## Project demo
 
 Run the following command to start the project creation process:
 
@@ -38,7 +104,7 @@ ______________________________________________________________________
 ### Group Name
 
 ```
-[2/17] group_name:
+[2/17] group_name: 
 ```
 
 This will default based on your selected type.\

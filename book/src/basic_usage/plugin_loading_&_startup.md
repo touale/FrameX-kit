@@ -23,30 +23,27 @@ def main() -> None:
     # 2) Load a single plugin (module or package)
     # framex.load_plugins("your_project.plugins.plugin_name")
     # ✅ Example:
-    framex.load_plugins("demo_project.plugins.hello_world")
+    # framex.load_plugins("demo_project.plugins.hello_world")
 
     # 3) Load multiple plugins at once
     # framex.load_plugins("xxx.plugin_a", "xxx.plugin_b")
     # ✅ Example:
-    framex.load_plugins(
-        "demo_project.plugins.hello_world",
-        "demo_project.plugins.play_games",
-    )
+    # framex.load_plugins(
+    #     "demo_project.plugins.hello_world",
+    #     "demo_project.plugins.play_games",
+    # )
 
     # 4) Load an entire plugins package (recommended)
     #    This recursively discovers all valid plugins under the `plugins/` directory.
     #    Every discovered module/package must define `__plugin_meta__`.
-    framex.load_plugins("your_project.plugins")
+    # framex.load_plugins("your_project.plugins")
+    # framex.load_plugins("your_project")
 
     # Finally, start the runtime
     framex.run()
 ```
 
 Notes:
-
-- The plugins root must be a package named plugins under your project’s source package (e.g., your_project/
-
-plugins).
 
 - Each discovered module/package must declare __plugin_meta__ = PluginMetadata(...).
 
@@ -76,8 +73,6 @@ ______________________________________________________________________
 
 ## 3) Discovery Rules & Requirements
 
-- Location: All application plugins must reside under the plugins/ package (e.g., src/your_project- ins/).
 - Metadata: Every plugin module/package must define __plugin_meta__ = PluginMetadata(...).
 - Layout: Both single-file (plugins/foo.py) and folder-based plugins (plugins/bar/) are supported.
-- Idempotency: Loading the same plugin multiple times is ignored or deduplicated by the manager.
 - Errors: If a plugin fails validation, FrameX will log a clear error and skip it.

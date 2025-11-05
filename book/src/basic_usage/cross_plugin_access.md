@@ -19,7 +19,7 @@ __plugin_meta__ = PluginMetadata(
     version="0.1.0",
     description="Demonstrates cross-plugin access",
     author="touale",
-    url="http://example.local/personnel-matching/FrameX",
+    url="http://example.local/FrameX",
     required_remote_apis=[
         "/api/v1/echo",  # HTTP (basic types)
         "/api/v1/echo_model",  # HTTP (BaseModel payload)

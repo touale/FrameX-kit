@@ -1,20 +1,23 @@
 # Monitoring & Tracing
 
-FrameX integrates **Sentry** for monitoring and tracing.\
-This allows you to capture **errors, exceptions, performance bottlenecks, and logs** automatically with minimal setup.
+FrameX integrates both Sentry and Ray Dashboard for comprehensive monitoring and tracing.
+This enables you to capture errors, exceptions, performance metrics, task status, and distributed resource usage across the entire system with minimal setup.
 
 **Benefits**
 
 - ✅ Automatic error capturing (no manual try/except needed).
-- ✅ Performance tracing (slow APIs, blocked tasks).
+- ✅ Performance tracing (slow APIs, blocked tasks, async bottlenecks).
 - ✅ Centralized monitoring across multiple plugins.
+- ✅ Distributed resource and task monitoring via Ray Dashboard.
 - ✅ Flexible configuration per environment.
 
 ______________________________________________________________________
 
 ## 1) Quick Setup
 
-Simply add a `[sentry]` section to your configuration file:
+### Sentry Configuration
+
+Simply add a `[sentry]` section to your configuration file (config.toml):
 
 ```toml
 [sentry]
@@ -36,9 +39,21 @@ enable_logs = true
 - lifecycle: Mode of event tracking (manual or trace).
 - enable_logs: Captures logs in addition to errors.
 
-## 2) Internal Sentry Service
+### Ray Dashboard Configuration
 
-We also maintain an internal **Sentry instance**.
-In our development and production environments, monitoring and tracing are already enabled.
+To enable distributed monitoring, configure the [server] section:
 
-If you need to connect your plugin or project to the internal Sentry, please request the DSN key from your system administrator.
+```
+[server]
+dashboard_host = "127.0.0.1"
+dashboard_port = 8260
+use_ray=true
+```
+
+Once Ray is running, the dashboard is available at:
+
+```
+http://127.0.0.1:8260
+```
+
+Note that you need to switch the engine to Ray.
