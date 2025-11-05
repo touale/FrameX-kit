@@ -56,7 +56,7 @@ jobs:
     outputs:
       released: ${{ steps.release.outputs.released || 'false' }}
 
-  release:
+  deploy:
     # 1. Separate out the deploy step from the publish step to run each step at
     #    the least amount of token privilege
     # 2. Also, deployments can fail, and its better to have a separate job if you need to retry
@@ -84,3 +84,4 @@ jobs:
           packages-dir: dist
           print-hash: true
           verbose: true
+          repository-url: https://test.pypi.org/legacy/

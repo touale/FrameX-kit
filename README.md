@@ -141,7 +141,7 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 ```
 
-### 2) Execute by loading a third-party plugin
+### 3) Execute by loading a third-party plugin
 
 ```
 framex run --load-plugins <plugin_name>,<plugin_name>
