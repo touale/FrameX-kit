@@ -4,16 +4,6 @@
 
 ______________________________________________________________________
 
-## Install cookiecutter
-
-Make sure you have Python 3.11 or above installed, then execute the following command in the command line:
-
-```
-pip install cookiecutter
-```
-
-Cookiecutter is a CLI tool (Command Line Interface) to create an application boilerplate from a template. It uses a templating system — Jinja2 — to replace or customize folder and file names, as well as file content. it can help you quickly create a plugin.
-
 ## Quick Demo
 
 Create foo.py file
@@ -81,6 +71,16 @@ INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 ```
 
 ## Project demo
+
+### Install cookiecutter
+
+Make sure you have Python 3.11 or above installed, then execute the following command in the command line:
+
+```
+pip install cookiecutter
+```
+
+Cookiecutter is a CLI tool (Command Line Interface) to create an application boilerplate from a template. It uses a templating system — Jinja2 — to replace or customize folder and file names, as well as file content. it can help you quickly create a plugin.
 
 Run the following command to start the project creation process:
 
