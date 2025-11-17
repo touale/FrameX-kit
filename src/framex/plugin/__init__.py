@@ -78,6 +78,7 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
 async def call_plugin_api(
     api_name: str,
     interval_apis: dict[str, PluginApi] | None = None,
+    return_model_dump: bool = True,
     **kwargs: Any,
 ) -> Any:
     api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
@@ -107,7 +108,8 @@ async def call_plugin_api(
                 kwargs[key] = expected_type(**val)
             except Exception as e:  # pragma: no cover
                 raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
-    return await get_adapter().call_func(api, **kwargs)
+    res = await get_adapter().call_func(api, **kwargs)
+    return res.model_dump(by_alias=True) if isinstance(res, BaseModel) and return_model_dump else res
 
 
 def get_http_plugin_apis() -> list["PluginApi"]:
