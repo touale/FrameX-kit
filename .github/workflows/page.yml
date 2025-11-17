@@ -21,7 +21,7 @@ jobs:
       - uses: taiki-e/install-action@mdbook
       - name: build book
         run: cd book && mdbook build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: book/book
 
