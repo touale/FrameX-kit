@@ -109,7 +109,7 @@ def create_fastapi_application() -> FastAPI:
                 },
             )
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
+            status_code=response.status_code,
             content={
                 "status": response.status_code,
                 "message": "success",

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any
 
 from fastapi import Depends, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
 from pydantic import create_model
 from ray.serve.handle import DeploymentHandle
@@ -93,7 +93,13 @@ class APIIngress:
                     )
                 return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
 
-            app.add_api_route(path, route_handler, methods=methods, tags=tags)
+            app.add_api_route(
+                path,
+                route_handler,
+                methods=methods,
+                tags=tags,
+                response_class=StreamingResponse if stream else JSONResponse,
+            )
             logger.opt(colors=True).success(
                 f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
             )
