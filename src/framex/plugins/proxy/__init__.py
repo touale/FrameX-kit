@@ -38,7 +38,7 @@ class ProxyPlugin(BasePlugin):
     @override
     async def on_start(self) -> None:
         if not settings.proxy_urls:
-            logger.warning("No url provided, skipping proxy plugin")
+            logger.opt(colors=True).warning("<y>No url provided, skipping proxy plugin</y>")
             return
         for url in settings.proxy_urls:
             await self._parse_openai_docs(url)

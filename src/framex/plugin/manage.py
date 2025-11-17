@@ -60,11 +60,11 @@ class PluginManager:
 
                     if http_api_names:
                         logger.opt(colors=True).success(
-                            f'Found plugin HTTP API "<y>{http_api_names}</y>" from plugin({plugin.name})'
+                            f'Found plugin HTTP API "<g>{http_api_names}</g>" from plugin({plugin.name})'
                         )
                     if func_api_names:
                         logger.opt(colors=True).success(
-                            f'Found plugin FUNC API "<y>{func_api_names}</y>" from plugin({plugin.name})'
+                            f'Found plugin FUNC API "<g>{func_api_names}</g>" from plugin({plugin.name})'
                         )
         return self._plugin_apis
 
@@ -163,7 +163,7 @@ class PluginManager:
                     f"Module {module.__name__} is not loaded as a plugin! Make sure not to import it before loading."
                 )
             logger.opt(colors=True).success(
-                f'Succeeded to load plugin "<y>{escape_tag(plugin.name)}</y>" from {plugin.module_name}'
+                f'Succeeded to load plugin "<g>{escape_tag(plugin.name)}</g>" from {plugin.module_name}'
             )
             return plugin  # type: ignore
         except Exception as e:

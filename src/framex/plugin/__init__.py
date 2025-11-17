@@ -90,7 +90,7 @@ async def call_plugin_api(
                 call_type=ApiType.PROXY,
             )
             logger.opt(colors=True).warning(
-                f"Api(<r>{api_name}</r>) not found, use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
+                f"Api(<y>{api_name}</y>) not found, use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
             )
         else:
             raise RuntimeError(
