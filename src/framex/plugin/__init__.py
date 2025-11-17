@@ -109,7 +109,7 @@ async def call_plugin_api(
             except Exception as e:  # pragma: no cover
                 raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
     res = await get_adapter().call_func(api, **kwargs)
-    return res.model_dump() if isinstance(res, BaseModel) and return_model_dump else res
+    return res.model_dump(by_alias=True) if isinstance(res, BaseModel) and return_model_dump else res
 
 
 def get_http_plugin_apis() -> list["PluginApi"]:

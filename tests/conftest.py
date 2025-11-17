@@ -47,7 +47,7 @@ def before_record_response(response):
 @pytest.fixture(scope="session", autouse=True)
 def test_app() -> FastAPI:
     plugins = framex.load_plugins(str(Path(__file__).parent / "plugins"))
-    assert len(plugins) == len(["invoker", "export"])
+    assert len(plugins) == len(["invoker", "export", "alias_model"])
     return framex.run(test_mode=True)  # type: ignore [return-value]
 
 
