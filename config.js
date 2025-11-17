@@ -27,8 +27,6 @@ module.exports = {
   ],
   lockFileMaintenance: {
   enabled: true,
-  schedule: [
-      "before 6pm every weekday"
-    ]
+  lockfile: "uv.lock"
   }
 };
