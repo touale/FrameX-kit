@@ -18,7 +18,9 @@ jobs:
         run: rustup update && rustup toolchain install
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install mdbook-katex
-      - uses: taiki-e/install-action@mdbook
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: mdbook@0.4.52
       - name: build book
         run: cd book && mdbook build
       - uses: actions/upload-pages-artifact@v4
