@@ -97,6 +97,8 @@ async def call_plugin_api(
             raise RuntimeError(
                 f"API {api_name} is not found, please check if the plugin is loaded or the API name is correct."
             )
+    if api.call_type == ApiType.PROXY:
+        use_proxy = True
     param_type_map = dict(api.params)
     for key, val in kwargs.items():
         if (
