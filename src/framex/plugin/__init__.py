@@ -78,10 +78,10 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
 async def call_plugin_api(
     api_name: str,
     interval_apis: dict[str, PluginApi] | None = None,
-    return_model_dump: bool = True,
     **kwargs: Any,
 ) -> Any:
     api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
+    use_proxy = False
     if not api:
         if api_name.startswith("/") and settings.server.enable_proxy:
             api = PluginApi(
@@ -92,6 +92,7 @@ async def call_plugin_api(
             logger.opt(colors=True).warning(
                 f"Api(<y>{api_name}</y>) not found, use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
             )
+            use_proxy = True
         else:
             raise RuntimeError(
                 f"API {api_name} is not found, please check if the plugin is loaded or the API name is correct."
@@ -108,8 +109,17 @@ async def call_plugin_api(
                 kwargs[key] = expected_type(**val)
             except Exception as e:  # pragma: no cover
                 raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
-    res = await get_adapter().call_func(api, **kwargs)
-    return res.model_dump(by_alias=True) if isinstance(res, BaseModel) and return_model_dump else res
+    result = await get_adapter().call_func(api, **kwargs)
+    if isinstance(result, BaseModel):
+        return result.model_dump(by_alias=True)
+    if use_proxy:
+        res = result.get("data")
+        if res is None:
+            logger.opt(colors=True).warning(f"API {api_name} return empty data")
+        if result.get("status") != 200:
+            logger.opt(colors=True).error(f"Proxy API {api_name} call unnormal: <r>{result}</r>")
+        return res
+    return result
 
 
 def get_http_plugin_apis() -> list["PluginApi"]:

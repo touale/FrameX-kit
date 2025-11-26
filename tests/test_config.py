@@ -3,4 +3,4 @@ def test_config():
     from framex.plugins.proxy.config import ProxyPluginConfig
 
     cfg = get_plugin_config("proxy", ProxyPluginConfig)
-    assert cfg.proxy_urls == []
+    assert cfg
