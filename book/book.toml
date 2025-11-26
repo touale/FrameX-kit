@@ -3,7 +3,7 @@ authors = ["touale"]
 language = "en"
 src = "src"
 title = "FrameX: The Plug-In Paradigm for Algorithmic Development"
-# multilingual = false
+multilingual = false
 
 [preprocessor.toc]
 command = "mdbook-toc"
