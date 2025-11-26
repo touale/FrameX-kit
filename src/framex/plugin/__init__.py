@@ -113,11 +113,17 @@ async def call_plugin_api(
     if isinstance(result, BaseModel):
         return result.model_dump(by_alias=True)
     if use_proxy:
+        if not isinstance(result, dict):
+            raise RuntimeError(f"Proxy API {api_name} returned non-dict result: {type(result)}")
+        if "status" not in result:
+            raise RuntimeError(f"Proxy API {api_name} returned invalid response: missing 'status' field")
         res = result.get("data")
-        if res is None:
-            logger.opt(colors=True).warning(f"API {api_name} return empty data")
-        if result.get("status") != 200:
+        status = result.get("status")
+        if status != 200:
             logger.opt(colors=True).error(f"Proxy API {api_name} call unnormal: <r>{result}</r>")
+            raise RuntimeError(f"Proxy API {api_name} returned status {status}")
+        if res is None:
+            logger.opt(colors=True).warning(f"API {api_name} returned empty data")
         return res
     return result
 

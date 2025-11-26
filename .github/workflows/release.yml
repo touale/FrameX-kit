@@ -84,7 +84,7 @@ jobs:
 
   public-pypi:
     runs-on: ubuntu-latest
-    needs: public-testpypi
+    needs: [public-testpypi, release]
     if: ${{ needs.release.outputs.released == 'true' }}
 
     permissions:

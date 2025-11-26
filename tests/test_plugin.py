@@ -116,29 +116,9 @@ class TestCallPluginApi:
         ):
             proxy_response = {"status": 500, "data": None}
             mock_adapter.return_value.call_func = AsyncMock(return_value=proxy_response)
+            with pytest.raises(RuntimeError, match="Proxy API /external/api returned status 500"):
+                await call_plugin_api("/external/api")
 
-            result = await call_plugin_api("/external/api")
-
-            assert result is None
-            # Verify error was logged
-            mock_logger.opt.return_value.error.assert_called()
-
-    @pytest.mark.asyncio
-    async def test_call_plugin_api_with_proxy_non_200_with_data(self):
-        """Test proxy API call with non-200 status but still returns data."""
-        with (
-            patch("framex.plugin._manager.get_api", return_value=None),
-            patch("framex.plugin.settings.server.enable_proxy", True),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-            patch("framex.plugin.logger") as mock_logger,
-        ):
-            proxy_response = {"status": 400, "data": {"error": "bad request"}}
-            mock_adapter.return_value.call_func = AsyncMock(return_value=proxy_response)
-
-            result = await call_plugin_api("/external/api")
-
-            # Should still return data even with error status
-            assert result == {"error": "bad request"}
             # Verify error was logged
             mock_logger.opt.return_value.error.assert_called()
 
