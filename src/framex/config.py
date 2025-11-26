@@ -40,6 +40,7 @@ class ServerConfig(BaseModel):
     dashboard_port: int = 8260
     use_ray: bool = False
     enable_proxy: bool = False
+    legal_proxy_code: list[int] = [200]
     num_cpus: int = 8
     excluded_log_paths: list[str] = []
 
