@@ -47,9 +47,10 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                             stream=func.__expose_stream,
                         )
                     )
+            from framex.config import settings
 
-            cls = get_adapter().to_deployment(cls, **kwargs)
-
+            merge_kwargs = {**settings.base_ingress_config, **kwargs}
+            cls = get_adapter().to_deployment(cls, **merge_kwargs)
             deployment = PluginDeployment(plugin_apis=plugin_apis, deployment=cls)
             plugin.deployments.append(deployment)
 
