@@ -43,6 +43,7 @@ class ServerConfig(BaseModel):
     legal_proxy_code: list[int] = [200]
     num_cpus: int = 8
     excluded_log_paths: list[str] = []
+    ingress_config: dict[str, Any] = {"max_ongoing_requests": 60}
 
 
 class TestConfig(BaseModel):
@@ -51,6 +52,9 @@ class TestConfig(BaseModel):
 
 
 class Settings(BaseSettings):
+    # Global config
+    base_ingress_config: dict[str, Any] = {"max_ongoing_requests": 10}
+
     server: ServerConfig = ServerConfig()
     log: LogConfig = LogConfig()
 

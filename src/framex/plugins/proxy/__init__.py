@@ -28,11 +28,11 @@ __plugin_meta__ = PluginMetadata(
 )
 
 
-@on_register()
+@on_register(**settings.ingress_config)
 class ProxyPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
         self.func_map: dict[str, Any] = {}
-        self.time_out = kwargs.get("timeout", 600)
+        self.time_out = settings.timeout
         super().__init__(**kwargs)
 
     @override
