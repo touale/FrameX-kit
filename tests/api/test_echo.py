@@ -7,7 +7,8 @@ from framex.consts import API_STR
 
 def test_echo(client: TestClient):
     params = {"message": "hello world"}
-    res = client.get(f"{API_STR}/echo", params=params).json()
+    headers = {"Authorization": "i_am_general_auth_keys"}
+    res = client.get(f"{API_STR}/echo", params=params, headers=headers).json()
     assert res["status"] == 200
     assert res["data"] == params["message"]
 

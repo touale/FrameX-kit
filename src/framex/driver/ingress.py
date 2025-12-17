@@ -101,6 +101,7 @@ class APIIngress:
             # Inject auth dependency if needed
             dependencies = []
             if auth_keys is not None:
+                logger.debug(f"API({path}) with tags {tags} requires auth.")
 
                 def _verify_api_key(api_key: str = Depends(api_key_header)) -> None:
                     if not api_key or api_key not in auth_keys:
