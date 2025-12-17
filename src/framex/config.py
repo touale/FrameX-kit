@@ -1,6 +1,6 @@
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -51,6 +51,31 @@ class TestConfig(BaseModel):
     silent: bool = False
 
 
+class AuthConfig(BaseModel):
+    general_auth_keys: list[str] = Field(default_factory=list)
+    auth_urls: list[str] = Field(default_factory=list)
+    special_auth_keys: dict[str, list[str]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_special_auth_urls(self) -> Self:
+        for special_url in self.special_auth_keys:
+            if not self._is_url_allowed(special_url):
+                raise ValueError(f"special_auth_keys url '{special_url}' is not covered by any auth_urls rule")
+        return self
+
+    def _is_url_allowed(self, url: str) -> bool:
+        for rule in self.auth_urls:
+            if rule == url:
+                return True
+
+            if rule.endswith("/*"):
+                prefix = rule[:-1]
+                if url.startswith(prefix):
+                    return True
+
+        return False
+
+
 class Settings(BaseSettings):
     # Global config
     base_ingress_config: dict[str, Any] = {"max_ongoing_requests": 10}
@@ -66,8 +91,8 @@ class Settings(BaseSettings):
     load_builtin_plugins: list[str] = []
 
     test: TestConfig = TestConfig()
-
     sentry: SentryConfig = SentryConfig()
+    auth: AuthConfig = AuthConfig()
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

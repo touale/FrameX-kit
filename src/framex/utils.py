@@ -53,3 +53,40 @@ def make_stream_event(event_type: StreamEnventType | str, data: str | dict[str, 
     elif isinstance(data, str):
         data = {"content": data}
     return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def get_auth_keys_by_url(url: str) -> list[str] | None:
+    from framex.config import settings
+
+    auth_config = settings.auth
+    is_protected = False
+    for rule in auth_config.auth_urls:
+        if rule == url:
+            is_protected = True
+            break
+        if rule.endswith("/*") and url.startswith(rule[:-1]):
+            is_protected = True
+            break
+
+    if not is_protected:
+        return None
+
+    if url in auth_config.special_auth_keys:
+        return auth_config.special_auth_keys[url]
+
+    matched_keys = None
+    matched_len = -1
+
+    for rule, keys in auth_config.special_auth_keys.items():
+        if not rule.endswith("/*"):
+            continue
+
+        prefix = rule[:-1]
+        if url.startswith(prefix) and len(prefix) > matched_len:
+            matched_keys = keys
+            matched_len = len(prefix)
+
+    if matched_keys is not None:
+        return matched_keys
+
+    return auth_config.general_auth_keys

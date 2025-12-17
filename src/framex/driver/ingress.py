@@ -2,9 +2,10 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
-from fastapi import Depends, Response
+from fastapi import Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
+from fastapi.security import APIKeyHeader
 from pydantic import create_model
 from ray.serve.handle import DeploymentHandle
 from starlette.routing import Route
@@ -15,9 +16,10 @@ from framex.driver.application import create_fastapi_application
 from framex.driver.decorator import api_ingress
 from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi
-from framex.utils import escape_tag
+from framex.utils import escape_tag, get_auth_keys_by_url
 
 app = create_fastapi_application()
+api_key_header = APIKeyHeader(name="Authorization", auto_error=True)
 
 
 @app.get("/health")
@@ -42,6 +44,7 @@ class APIIngress:
                     ApiType.ALL,
                 ]
             ):
+                auth_keys = get_auth_keys_by_url(plugin_api.api)
                 self.register_route(
                     plugin_api.api,
                     plugin_api.methods,
@@ -51,6 +54,7 @@ class APIIngress:
                     stream=plugin_api.stream,
                     direct_output=False,
                     tags=plugin_api.tags,
+                    auth_keys=auth_keys,
                 )
 
     def register_route(
@@ -63,6 +67,7 @@ class APIIngress:
         stream: bool = False,
         direct_output: bool = False,
         tags: list[str | Enum] | None = None,
+        auth_keys: list[str] | None = None,
     ) -> bool:
         if tags is None:
             tags = ["default"]
@@ -93,12 +98,26 @@ class APIIngress:
                     )
                 return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
 
+            # Inject auth dependency if needed
+            dependencies = []
+            if auth_keys is not None:
+
+                def _verify_api_key(api_key: str = Depends(api_key_header)) -> None:
+                    if not api_key or api_key not in auth_keys:
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Invalid API Key",
+                        )
+
+                dependencies.append(Depends(_verify_api_key))
+
             app.add_api_route(
                 path,
                 route_handler,
                 methods=methods,
                 tags=tags,
                 response_class=StreamingResponse if stream else JSONResponse,
+                dependencies=dependencies,
             )
             logger.opt(colors=True).success(
                 f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
