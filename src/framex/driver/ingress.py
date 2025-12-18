@@ -104,7 +104,7 @@ class APIIngress:
                 logger.debug(f"API({path}) with tags {tags} requires auth.")
 
                 def _verify_api_key(api_key: str = Depends(api_key_header)) -> None:
-                    if not api_key or api_key not in auth_keys:
+                    if api_key not in auth_keys:
                         logger.error(f"Unauthorized access attempt with API Key({api_key}) for API({path})")
                         raise HTTPException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
