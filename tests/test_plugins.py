@@ -48,7 +48,6 @@ def test_resolve_annotation():
     builder = importlib.import_module("framex.plugins.proxy.builder")
     resolve_annotation: Callable = getattr(builder, "resolve_annotation")
     reset_created_models: Callable = getattr(builder, "reset_created_models")
-
     reset_created_models()
 
     # Test BaseType gen
@@ -63,7 +62,7 @@ def test_resolve_annotation():
     )
 
     # Test BaseModel gen
-    prop_schema = {"$ref": "#/components/schemas/MatchMataConfig"}
+    prop_schema: dict[str, Any] = {"$ref": "#/components/schemas/MatchMataConfig"}
     components = {
         "MatchMataConfig": {
             "properties": {
@@ -107,6 +106,22 @@ def test_resolve_annotation():
     f2 = MatchMataConfig.model_fields
 
     assert get_alias_type_map(f1) == get_alias_type_map(f2), "Alias sets do not match"
+
+    assert (
+        resolve_annotation(
+            {"anyOf": [{"items": {"type": "string"}, "type": "array"}, {"type": "string"}], "title": "Values"}, {}
+        )
+        == list[str] | str
+    )
+    assert (
+        str(
+            resolve_annotation(
+                {"type": "array", "items": {"$ref": "#/components/schemas/MatchMataConfig"}, "title": "Values"},
+                components,
+            )
+        )
+        == "list[framex.plugins.proxy.builder.MatchMataConfig]"
+    )
 
     # Test Exception
     with pytest.raises(RuntimeError) as exc_info:

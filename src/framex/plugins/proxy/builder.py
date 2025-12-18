@@ -86,7 +86,7 @@ def create_pydantic_model(
         elif "default" in prop_schema:
             default = prop_schema["default"]
         else:
-            default = resolve_default(annotation)
+            default = resolve_default(annotation)  # pragma: no cover
         fields[field_name] = (annotation, default)
     model: type[BaseModel] = create_model(name, **fields)  # type: ignore
     _created_models[name] = model

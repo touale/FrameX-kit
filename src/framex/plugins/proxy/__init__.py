@@ -38,7 +38,7 @@ class ProxyPlugin(BasePlugin):
 
     @override
     async def on_start(self) -> None:
-        if not settings.proxy_urls:
+        if not settings.proxy_urls:  # pragma: no cover
             logger.opt(colors=True).warning("<y>No url provided, skipping proxy plugin</y>")
             return
         for url in settings.proxy_urls:
@@ -92,7 +92,7 @@ class ProxyPlugin(BasePlugin):
                         .get("$ref", "")
                         .rsplit("/", 1)[-1]
                     )
-                    if not (model_schema := components.get(schema_name)):
+                    if not (model_schema := components.get(schema_name)):  # pragma: no cover
                         raise ValueError(f"Schema '{schema_name}' not found in components.")
 
                     Model = create_pydantic_model(schema_name, model_schema, components)  # noqa

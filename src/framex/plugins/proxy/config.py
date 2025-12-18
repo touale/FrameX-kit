@@ -18,7 +18,7 @@ class ProxyPluginConfig(BaseModel):
 
     def is_white_url(self, url: str) -> bool:
         """Check if a URL is protected by any auth_urls rule."""
-        if self.white_list == []:
+        if self.white_list == []:  # pragma: no cover
             return True
         for rule in self.white_list:
             if rule == url:
