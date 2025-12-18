@@ -16,7 +16,7 @@ from framex.driver.application import create_fastapi_application
 from framex.driver.decorator import api_ingress
 from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi
-from framex.utils import escape_tag, get_auth_keys_by_url
+from framex.utils import escape_tag
 
 app = create_fastapi_application()
 api_key_header = APIKeyHeader(name="Authorization", auto_error=True)
@@ -44,7 +44,9 @@ class APIIngress:
                     ApiType.ALL,
                 ]
             ):
-                auth_keys = get_auth_keys_by_url(plugin_api.api)
+                from framex.config import settings
+
+                auth_keys = settings.auth.get_auth_keys(plugin_api.api)
                 self.register_route(
                     plugin_api.api,
                     plugin_api.methods,
@@ -122,7 +124,7 @@ class APIIngress:
                 dependencies=dependencies,
             )
             logger.opt(colors=True).success(
-                f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
+                f"Succeeded to register api({methods}): {path} from {handle.deployment_name}, params: {params}"
             )
             return True
         except Exception as e:

@@ -18,6 +18,7 @@ repos:
       - id: detect-private-key
       - id: name-tests-test
         files: ^tests/(?!plugins/).+\.py$
+        exclude: ^tests/(consts|mock)\.py$
         args:
           - "--pytest-test-first"
 

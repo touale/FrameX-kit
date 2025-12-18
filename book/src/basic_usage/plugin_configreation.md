@@ -45,7 +45,6 @@ Each plugin can define a dedicated typed config model and have it injected autom
 class ProxyPluginConfig(BaseModel):
     proxy_urls: list[str] = []
     force_stream_apis: list[str] = []
-    black_list: list[str] = []
     white_list: list[str] = []
 ```
 

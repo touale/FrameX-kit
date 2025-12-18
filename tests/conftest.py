@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
@@ -8,6 +9,7 @@ from fastapi.testclient import TestClient
 
 import framex
 from framex.config import settings
+from tests.mock import mock_get, mock_request
 
 
 @pytest.fixture(scope="module")
@@ -45,10 +47,15 @@ def before_record_response(response):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def test_app() -> FastAPI:
+def test_app() -> Generator:
     plugins = framex.load_plugins(str(Path(__file__).parent / "plugins"))
     assert len(plugins) == len(["invoker", "export", "alias_model"])
-    return framex.run(test_mode=True)  # type: ignore [return-value]
+
+    with (
+        patch("httpx.AsyncClient.get", new=mock_get),
+        patch("httpx.AsyncClient.request", new=mock_request),
+    ):
+        yield framex.run(test_mode=True)  # type: ignore[return-value]
 
 
 @pytest.fixture(scope="session")
