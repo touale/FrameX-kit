@@ -1,6 +1,6 @@
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -8,6 +8,8 @@ from pydantic_settings import (
     SettingsConfigDict,
     TomlConfigSettingsSource,
 )
+
+from framex.utils import is_url_protected
 
 
 class LogConfig(BaseModel):
@@ -51,6 +53,19 @@ class TestConfig(BaseModel):
     silent: bool = False
 
 
+class AuthConfig(BaseModel):
+    general_auth_keys: list[str] = Field(default_factory=list)
+    auth_urls: list[str] = Field(default_factory=list)
+    special_auth_keys: dict[str, list[str]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_special_auth_urls(self) -> Self:
+        for special_url in self.special_auth_keys:
+            if not is_url_protected(special_url, self.auth_urls):
+                raise ValueError(f"special_auth_keys url '{special_url}' is not covered by any auth_urls rule")
+        return self
+
+
 class Settings(BaseSettings):
     # Global config
     base_ingress_config: dict[str, Any] = {"max_ongoing_requests": 10}
@@ -66,8 +81,8 @@ class Settings(BaseSettings):
     load_builtin_plugins: list[str] = []
 
     test: TestConfig = TestConfig()
-
     sentry: SentryConfig = SentryConfig()
+    auth: AuthConfig = AuthConfig()
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

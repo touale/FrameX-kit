@@ -7,9 +7,25 @@ from framex.consts import API_STR
 
 def test_echo(client: TestClient):
     params = {"message": "hello world"}
-    res = client.get(f"{API_STR}/echo", params=params).json()
+    headers = {"Authorization": "i_am_general_auth_keys"}
+    res = client.get(f"{API_STR}/echo", params=params, headers=headers).json()
     assert res["status"] == 200
     assert res["data"] == params["message"]
+
+
+def test_echo_with_no_api_key(client: TestClient):
+    params = {"message": "hello world"}
+    res = client.get(f"{API_STR}/echo", params=params).json()
+    assert res["status"] == 403
+    assert res["message"] == "Not authenticated"
+
+
+def test_echo_with_error_api_key(client: TestClient):
+    params = {"message": "hello world"}
+    headers = {"Authorization": "error_key"}
+    res = client.get(url=f"{API_STR}/echo", params=params, headers=headers).json()
+    assert res["status"] == 401
+    assert res["message"] == "Invalid API Key(error_key) for API(/api/v1/echo)"
 
 
 def test_echo_model(client: TestClient):

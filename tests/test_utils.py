@@ -1,9 +1,11 @@
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
 
-from framex.utils import StreamEnventType, make_stream_event
+from framex.config import AuthConfig
+from framex.utils import StreamEnventType, get_auth_keys_by_url, make_stream_event
 
 
 class StreamDataModel(BaseModel):
@@ -30,3 +32,26 @@ class StreamDataModel(BaseModel):
 def test_make_stream_event(event_type: StreamEnventType | str, data: str | dict[str, Any] | BaseModel, result: str):
     res = make_stream_event(event_type, data)
     assert res == result
+
+
+def test_get_auth_keys_by_url():
+    auth = AuthConfig(
+        general_auth_keys=["g"],
+        auth_urls=["/api/v1/*", "/api/v2/echo", "/api/v3/*"],
+        special_auth_keys={
+            "/api/v1/echo": ["s"],
+            "/api/v3/echo/*": ["b"],
+            "/api/v3/echo/hi": ["c"],
+        },
+    )
+
+    with patch("framex.config.settings.auth", auth):
+        assert get_auth_keys_by_url("/health") is None
+        assert get_auth_keys_by_url("/api/v1/user") == ["g"]
+        assert get_auth_keys_by_url("/api/v1/echo") == ["s"]
+        assert get_auth_keys_by_url("/api/v1/echo/sub") == ["g"]
+        assert get_auth_keys_by_url("/api/v2/echo") == ["g"]
+        assert get_auth_keys_by_url("/api/v2/echo/sub") is None
+        assert get_auth_keys_by_url("/api/v3/sub") == ["g"]
+        assert get_auth_keys_by_url("/api/v3/echo/1") == ["b"]
+        assert get_auth_keys_by_url("/api/v3/echo/hi") == ["c"]
