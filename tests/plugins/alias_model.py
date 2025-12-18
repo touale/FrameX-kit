@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from framex.consts import VERSION
 from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
@@ -19,8 +19,7 @@ class UserInfo(BaseModel):
     user_name: str = Field(..., alias="uname")
     age: int = Field(0)
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 @on_register()
