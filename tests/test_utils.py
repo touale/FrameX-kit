@@ -45,7 +45,7 @@ def test_get_auth_keys_by_url():
         },
     )
 
-    with patch("framex.utils.settings.auth", auth):
+    with patch("framex.config.settings.auth", auth):
         assert get_auth_keys_by_url("/health") is None
         assert get_auth_keys_by_url("/api/v1/user") == ["g"]
         assert get_auth_keys_by_url("/api/v1/echo") == ["s"]

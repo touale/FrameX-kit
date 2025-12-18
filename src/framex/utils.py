@@ -8,8 +8,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from framex.config import settings
-
 
 def plugin_to_deployment_name(plugin_name: str, obj_name: str) -> str:
     return f"{plugin_name}.{obj_name}"
@@ -57,16 +55,21 @@ def make_stream_event(event_type: StreamEnventType | str, data: str | dict[str, 
     return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-def get_auth_keys_by_url(url: str) -> list[str] | None:
-    auth_config = settings.auth
-    is_protected = False
-    for rule in auth_config.auth_urls:
+def is_url_protected(url: str, auth_urls: list[str]) -> bool:
+    """Check if a URL is protected by any auth_urls rule."""
+    for rule in auth_urls:
         if rule == url:
-            is_protected = True
-            break
+            return True
         if rule.endswith("/*") and url.startswith(rule[:-1]):
-            is_protected = True
-            break
+            return True
+    return False
+
+
+def get_auth_keys_by_url(url: str) -> list[str] | None:
+    from framex.config import settings
+
+    auth_config = settings.auth
+    is_protected = is_url_protected(url, auth_config.auth_urls)
 
     if not is_protected:
         return None
