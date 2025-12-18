@@ -85,7 +85,6 @@ proxy_urls = ["http://<host>:<port>", "..."]   # One or more upstream API endpoi
 force_stream_apis = ["/api/v1/chat"]           # Endpoints treated as streaming
 
 # Optional filters:
-# black_list = ["/api/v1/admin/*"]             # Blocked API paths
 # white_list = ["/api/v1/*"]                   # Whitelisted API paths (restricts to these only)
 ```
 

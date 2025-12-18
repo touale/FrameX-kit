@@ -63,8 +63,7 @@ class ProxyPlugin(BasePlugin):
         for path, details in paths.items():
             # Check if the path is legal!
             if settings.white_list and path not in settings.white_list:
-                continue
-            if settings.black_list and path in settings.black_list:
+                logger.warning(f"Proxy api({path}) not in white_list, skipping...")
                 continue
 
             # Get auth api_keys
@@ -79,7 +78,9 @@ class ProxyPlugin(BasePlugin):
                 params: list[tuple[str, Any]] = [
                     (name, c_type)
                     for param in (body.get("parameters") or [])
-                    if (name := param.get("name")) and (c_type := type_map.get("type"))
+                    if (name := param.get("name"))
+                    and (typ := param.get("schema").get("type"))
+                    and (c_type := type_map.get(typ))
                 ]
 
                 # Process request body
@@ -96,7 +97,7 @@ class ProxyPlugin(BasePlugin):
 
                     Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
                     params.append(("model", Model))
-                logger.opt(colors=True).debug(f"Found proxy api({method}) <y>{url}{path}</y>")
+                logger.opt(colors=True).debug(f"Found proxy api({method}) <g>{url}{path}</g>")
                 func_name = body.get("operationId")
                 is_stream = path in settings.force_stream_apis
                 func = self._create_dynamic_method(
@@ -145,7 +146,6 @@ class ProxyPlugin(BasePlugin):
                         yield chunk
 
             return stream_generator()
-
         response = await clent.request(**kwargs)
         response.raise_for_status()
         try:

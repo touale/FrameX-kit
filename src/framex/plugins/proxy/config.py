@@ -12,7 +12,6 @@ class ProxyPluginConfig(BaseModel):
     timeout: int = 600
     ingress_config: dict[str, Any] = {"max_ongoing_requests": 60}
 
-    black_list: list[str] = []
     white_list: list[str] = []
 
     auth: AuthConfig = AuthConfig()

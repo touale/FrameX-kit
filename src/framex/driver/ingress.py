@@ -124,7 +124,7 @@ class APIIngress:
                 dependencies=dependencies,
             )
             logger.opt(colors=True).success(
-                f"Succeeded to register api({methods}): {path} from {handle.deployment_name}"
+                f"Succeeded to register api({methods}): {path} from {handle.deployment_name}, params: {params}"
             )
             return True
         except Exception as e:
