@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from framex.config import settings
+
 
 def plugin_to_deployment_name(plugin_name: str, obj_name: str) -> str:
     return f"{plugin_name}.{obj_name}"
@@ -56,8 +58,6 @@ def make_stream_event(event_type: StreamEnventType | str, data: str | dict[str, 
 
 
 def get_auth_keys_by_url(url: str) -> list[str] | None:
-    from framex.config import settings
-
     auth_config = settings.auth
     is_protected = False
     for rule in auth_config.auth_urls:
