@@ -62,7 +62,7 @@ class ProxyPlugin(BasePlugin):
         components = openapi_data.get("components", {}).get("schemas", {})
         for path, details in paths.items():
             # Check if the path is legal!
-            if settings.white_list and path not in settings.white_list:
+            if not settings.is_white_url(path):
                 logger.warning(f"Proxy api({path}) not in white_list, skipping...")
                 continue
 

@@ -131,6 +131,54 @@ MOCK_RESPONSE = {
                 },
             }
         },
+        "/proxy/mock/auth/get": {
+            "get": {
+                "tags": ["proxy"],
+                "summary": "Proxy Mock Get",
+                "operationId": "proxy_mock_auth_get",
+                "parameters": [
+                    {
+                        "name": "message",
+                        "in": "query",
+                        "required": True,
+                        "schema": {
+                            "type": "string",
+                            "title": "Message",
+                        },
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {"application/json": {"schema": {"type": "object"}}},
+                    }
+                },
+            }
+        },
+        "/proxy/mock/auth/sget": {
+            "get": {
+                "tags": ["proxy"],
+                "summary": "Proxy Mock Get",
+                "operationId": "proxy_mock_auth_sget",
+                "parameters": [
+                    {
+                        "name": "message",
+                        "in": "query",
+                        "required": True,
+                        "schema": {
+                            "type": "string",
+                            "title": "Message",
+                        },
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {"application/json": {"schema": {"type": "object"}}},
+                    }
+                },
+            }
+        },
     },
     "components": {
         "schemas": {

@@ -29,3 +29,15 @@ def test_get_proxy_post_model(client: TestClient):
 def test_get_proxy_black_get(client: TestClient):
     res = client.get("/proxy/mock/black_get").json()
     assert res["status"] == 404
+
+
+def test_get_proxy_auth_get(client: TestClient):
+    params = {"message": "hello world"}
+    res = client.get("/proxy/mock/auth/get", params=params).json()
+    assert res == {"method": "GET", "params": params}
+
+
+def test_get_proxy_auth_sget(client: TestClient):
+    params = {"message": "hello world"}
+    res = client.get("/proxy/mock/auth/sget", params=params).json()
+    assert res == {"method": "GET", "params": params}
