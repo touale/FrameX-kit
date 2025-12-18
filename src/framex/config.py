@@ -9,8 +9,6 @@ from pydantic_settings import (
     TomlConfigSettingsSource,
 )
 
-from framex.utils import is_url_protected
-
 
 class LogConfig(BaseModel):
     simple_log: bool = True
@@ -61,9 +59,44 @@ class AuthConfig(BaseModel):
     @model_validator(mode="after")
     def validate_special_auth_urls(self) -> Self:
         for special_url in self.special_auth_keys:
-            if not is_url_protected(special_url, self.auth_urls):
+            if not self._is_url_protected(special_url):
                 raise ValueError(f"special_auth_keys url '{special_url}' is not covered by any auth_urls rule")
         return self
+
+    def _is_url_protected(self, url: str) -> bool:
+        """Check if a URL is protected by any auth_urls rule."""
+        for rule in self.auth_urls:
+            if rule == url:
+                return True
+            if rule.endswith("/*") and url.startswith(rule[:-1]):
+                return True
+        return False
+
+    def get_auth_keys(self, url: str) -> list[str] | None:
+        is_protected = self._is_url_protected(url)
+
+        if not is_protected:
+            return None
+
+        if url in self.special_auth_keys:
+            return self.special_auth_keys[url]
+
+        matched_keys = None
+        matched_len = -1
+
+        for rule, keys in self.special_auth_keys.items():
+            if not rule.endswith("/*"):
+                continue
+
+            prefix = rule[:-1]
+            if url.startswith(prefix) and len(prefix) > matched_len:
+                matched_keys = keys
+                matched_len = len(prefix)
+
+        if matched_keys is not None:
+            return matched_keys
+
+        return self.general_auth_keys
 
 
 class Settings(BaseSettings):

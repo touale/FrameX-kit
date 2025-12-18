@@ -8,6 +8,7 @@ from pydantic import BaseModel, create_model
 from typing_extensions import override
 
 from framex.adapter import get_adapter
+from framex.adapter.base import BaseAdapter
 from framex.consts import BACKEND_NAME, PROXY_PLUGIN_NAME, VERSION
 from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
@@ -55,7 +56,7 @@ class ProxyPlugin(BasePlugin):
         return cast(dict[str, Any], response.json())
 
     async def _parse_openai_docs(self, url: str) -> None:
-        adapter = get_adapter()
+        adapter: BaseAdapter = get_adapter()
         openapi_data = await self._get_openai_docs(url)
         paths = openapi_data.get("paths", {})
         components = openapi_data.get("components", {}).get("schemas", {})
@@ -65,6 +66,14 @@ class ProxyPlugin(BasePlugin):
                 continue
             if settings.black_list and path in settings.black_list:
                 continue
+
+            # Get auth api_keys
+            if auth_api_key := settings.auth.get_auth_keys(path):
+                headers = {"Authorization": auth_api_key[0]}  # Use the first auth key set
+                logger.debug(f"Proxy api({path}) requires auth")
+            else:
+                headers = None
+
             for method, body in details.items():
                 # Process request parameters
                 params: list[tuple[str, Any]] = [
@@ -90,7 +99,9 @@ class ProxyPlugin(BasePlugin):
                 logger.opt(colors=True).debug(f"Found proxy api({method}) <y>{url}{path}</y>")
                 func_name = body.get("operationId")
                 is_stream = path in settings.force_stream_apis
-                func = self._create_dynamic_method(func_name, method, params, f"{url}{path}", stream=is_stream)
+                func = self._create_dynamic_method(
+                    func_name, method, params, f"{url}{path}", stream=is_stream, headers=headers
+                )
                 setattr(self, func_name, func)
 
                 # Register router
@@ -149,6 +160,7 @@ class ProxyPlugin(BasePlugin):
         params: list[tuple[str, type]],
         url: str,
         stream: bool = False,
+        headers: dict[str, str] | None = None,
     ) -> Callable[..., Any]:
         # Build a Pydantic request model (for data validation)
         model_name = f"{func_name.title()}_RequestModel"
@@ -172,6 +184,7 @@ class ProxyPlugin(BasePlugin):
                     url=url,
                     params=query,
                     json=json_body if method.upper() != "GET" else None,
+                    headers=headers,
                 )
             except Exception as e:
                 logger.opt(exception=e, colors=True).error(f"Error calling proxy api({method}) <y>{url}</y>: {e}")
