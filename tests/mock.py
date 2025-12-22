@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+from framex.utils import cache_decode
 from tests.consts import MOCK_RESPONSE
 
 
@@ -64,6 +65,16 @@ async def mock_request(_, method: str, url: str, **kwargs: Any):
                 "method": "GET",
                 "params": params,
             }
+    elif url.endswith("/proxy/remote") and method == "POST":
+        json_data = kwargs.get("json", {})
+        func_name = json_data.get("func_name")
+        data = json_data.get("data", {})
+        assert func_name
+        assert data
+        decode_func_name = cache_decode(func_name)
+        decode_data = cache_decode(data)
+        resp.json.return_value = {"result": decode_func_name, "data": decode_data}
+
     else:
         raise AssertionError(f"Unexpected request: {method} {url}")
 

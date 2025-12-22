@@ -16,6 +16,8 @@ from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
 from framex.plugins.proxy.builder import create_pydantic_model, type_map
 from framex.plugins.proxy.config import ProxyPluginConfig, settings
+from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
+from framex.utils import cache_decode, cache_encode
 
 __plugin_meta__ = PluginMetadata(
     name="proxy",
@@ -33,7 +35,10 @@ __plugin_meta__ = PluginMetadata(
 class ProxyPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
         self.func_map: dict[str, Any] = {}
+        self.proxy_func_map: dict[str, ProxyFunc] = {}
         self.time_out = settings.timeout
+        self.init_proxy_func_route = False
+        self.proxy_func_http_path = "/proxy/remote"
         super().__init__(**kwargs)
 
     @override
@@ -41,8 +46,16 @@ class ProxyPlugin(BasePlugin):
         if not settings.proxy_urls:  # pragma: no cover
             logger.opt(colors=True).warning("<y>No url provided, skipping proxy plugin</y>")
             return
+
         for url in settings.proxy_urls:
             await self._parse_openai_docs(url)
+
+        for url, funcs in settings.proxy_functions.items():
+            for func in funcs:
+                await self._parse_proxy_function(func, url)
+        else:
+            logger.debug("No proxy functions to register")
+
         logger.success(f"Succeeded to parse openai docs form {url}")
 
     @on_request(call_type=ApiType.FUNC)
@@ -126,6 +139,45 @@ class ProxyPlugin(BasePlugin):
                 # Proxy api to map
                 self.func_map[path] = func
 
+    async def register_proxy_func_route(
+        self,
+    ) -> None:
+        adapter: BaseAdapter = get_adapter()
+        # Register router
+        plugin_api = PluginApi(
+            deployment_name=BACKEND_NAME,
+            func_name="register_route",
+        )
+
+        handle = adapter.get_handle(PROXY_PLUGIN_NAME)
+        await adapter.call_func(
+            plugin_api,
+            path=self.proxy_func_http_path,
+            methods=["POST"],
+            func_name=self.call_proxy_function,
+            params=[("data", str), ("func_name", str)],
+            handle=handle,
+            stream=False,
+            direct_output=True,
+            tags=[__plugin_meta__.name],
+        )
+
+    async def _parse_proxy_function(self, func_name: str, url: str) -> None:
+        logger.opt(colors=True).debug(f"Found proxy function <g>{url}</g>")
+
+        params: list[tuple[str, type]] = [("model", ProxyFuncHttpBody)]
+
+        if auth_api_key := settings.auth.get_auth_keys(self.proxy_func_http_path):
+            headers = {"Authorization": auth_api_key[0]}  # Use the first auth key set
+            logger.debug(f"Proxy func({self.proxy_func_http_path}) requires auth")
+        else:
+            headers = None
+
+        func = self._create_dynamic_method(
+            func_name, "POST", params, f"{url}{self.proxy_func_http_path}", stream=False, headers=headers
+        )
+        await self.register_proxy_function(func_name, func, is_remote=True)
+
     async def __call__(self, proxy_path: str, **kwargs: Any) -> Any:
         if func := self.func_map.get(proxy_path):
             return await func(**kwargs)
@@ -205,3 +257,27 @@ class ProxyPlugin(BasePlugin):
     @override
     def _post_call_remote_api_hook(self, data: Any) -> Any:
         return data.get("data") or data
+
+    async def register_proxy_function(
+        self, func_name: str, func_callable: Callable[..., Any], is_remote: bool = False
+    ) -> bool:
+        if not self.init_proxy_func_route:
+            await self.register_proxy_func_route()
+            self.init_proxy_func_route = True
+
+        logger.info(f"Registering proxy function: {func_name}")
+        self.proxy_func_map[func_name] = ProxyFunc(func=func_callable, is_remote=is_remote)
+        return True
+
+    async def call_proxy_function(self, func_name: str, data: str) -> str:
+        decode_func_name = cache_decode(func_name)
+        if proxy_func := self.proxy_func_map.get(decode_func_name):
+            if proxy_func.is_remote:
+                kwargs = {"model": ProxyFuncHttpBody(data=data, func_name=func_name)}
+            else:
+                kwargs = cache_decode(data)
+            tag = "remote" if proxy_func.is_remote else "local"
+            logger.info(f"Calling proxy function[{tag}]: {decode_func_name},  kwargs: {kwargs}")
+            res = await proxy_func.func(**kwargs)
+            return cache_encode(res)
+        raise RuntimeError(f"Proxy function({decode_func_name}) not registered")

@@ -1,11 +1,14 @@
 import inspect
 import json
 import re
+import zlib
 from collections.abc import Callable
 from enum import StrEnum
+from itertools import cycle
 from pathlib import Path
 from typing import Any
 
+import cloudpickle  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
 
@@ -53,3 +56,22 @@ def make_stream_event(event_type: StreamEnventType | str, data: str | dict[str, 
     elif isinstance(data, str):
         data = {"content": data}
     return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def xor_crypt(data: bytes, key: str = "01234567890abcdefghijklmnopqrstuvwxyz") -> bytes:
+    return bytes(a ^ b for a, b in zip(data, cycle(key.encode())))
+
+
+def cache_encode(data: Any) -> str:
+    packed = cloudpickle.dumps(data)
+
+    compressed = zlib.compress(packed)
+    obfuscated = xor_crypt(compressed)
+    return obfuscated.hex()
+
+
+def cache_decode(data: str) -> Any:
+    raw = bytes.fromhex(data)
+    de_obfuscated = xor_crypt(raw)
+    decompressed = zlib.decompress(de_obfuscated)
+    return cloudpickle.loads(decompressed)  # nosec S301

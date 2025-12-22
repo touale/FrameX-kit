@@ -239,19 +239,6 @@ class TestCallPluginApi:
             assert call_kwargs["c"] is True
 
     @pytest.mark.asyncio
-    async def test_call_plugin_api_with_proxy_non_dict_result(self):
-        """Test proxy API call raises when result is not a dict."""
-        with (
-            patch("framex.plugin._manager.get_api", return_value=None),
-            patch("framex.plugin.settings.server.enable_proxy", True),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-            patch("framex.plugin.logger"),
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value="not_a_dict")
-            with pytest.raises(RuntimeError, match="returned non-dict result"):
-                await call_plugin_api("/external/api")
-
-    @pytest.mark.asyncio
     async def test_call_plugin_api_with_proxy_missing_status(self):
         """Test proxy API call raises when status field is missing."""
         with (

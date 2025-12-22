@@ -5,6 +5,8 @@ from typing import Any, Literal, Optional, Union, get_args, get_origin
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
+from framex.plugin.on import on_proxy
+
 
 class MatchMataConfig(BaseModel):
     disable_duplicate_school_detect: bool = Field(False, alias="disableDuplicateSchoolDetect")
@@ -148,5 +150,46 @@ def test_resolve_default():
     assert "Cannot instantiate default" in str(exc_info.value)
 
 
-# if __name__ == "__main__":
-#     test_resolve_annotation()
+class SubModel(BaseModel):
+    id: int
+    name: str
+
+
+class ExchangeModel(BaseModel):
+    id: str
+    name: int
+    model: SubModel
+
+
+@on_proxy()
+async def lcoal_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
+    return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
+
+
+@on_proxy(proxy_only=True)
+async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:  # noqa: ARG001
+    raise RuntimeError("This function should be called remotely")
+
+
+async def test_on_proxy_local_call():
+    res = await lcoal_exchange_key_value(
+        a_str="test", b_int=123, c_model=ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name"))
+    )
+    assert res["a_str"] == "test"
+    assert res["b_int"] == 123
+    assert (
+        res["c_model"].model_dump()
+        == ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name")).model_dump()
+    )
+
+
+async def test_on_proxy_remote_call():
+    res = await remote_exchange_key_value(
+        a_str="test", b_int=123, c_model=ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name"))
+    )
+    assert res["result"] == "tests.test_plugins.remote_exchange_key_value"
+    assert res["data"] == {
+        "a_str": "test",
+        "b_int": 123,
+        "c_model": ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name")),
+    }

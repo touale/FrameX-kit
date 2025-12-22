@@ -1,3 +1,4 @@
+import functools
 import inspect
 import types
 from collections.abc import Callable
@@ -6,11 +7,11 @@ from typing import Any, get_type_hints
 from pydantic import BaseModel
 
 from framex.adapter import get_adapter
-from framex.consts import API_STR
+from framex.consts import API_STR, PROXY_PLUGIN_NAME
 from framex.plugin.model import ApiType, PluginApi, PluginDeployment
-from framex.utils import extract_method_params, plugin_to_deployment_name
+from framex.utils import cache_decode, cache_encode, extract_method_params, plugin_to_deployment_name
 
-from . import _current_plugin
+from . import _current_plugin, call_plugin_api
 
 
 def on_register(**kwargs: Any) -> Callable[[type], type]:
@@ -95,6 +96,46 @@ def on_request(
         return func
 
     return wrapper
+
+
+def on_proxy(proxy_only: bool = False) -> Callable:
+    def decorator(func: Callable) -> Callable:
+        from framex.config import settings
+
+        if not settings.server.enable_proxy:
+            return func
+
+        is_registered = proxy_only
+        full_func_name = f"{func.__module__}.{func.__name__}"
+
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            nonlocal is_registered
+
+            if args:
+                raise TypeError(
+                    f"The proxy function '{func.__name__}' only supports keyword arguments. "
+                    f"Please call it using the syntax {func.__name__}(param=value)."
+                )
+
+            if not is_registered:
+                api_reg = PluginApi(
+                    deployment_name=PROXY_PLUGIN_NAME, call_type=ApiType.PROXY, func_name="register_proxy_function"
+                )
+                await call_plugin_api(api_reg, None, func_name=full_func_name, func_callable=func)
+                is_registered = True
+
+            api_call = PluginApi(
+                deployment_name=PROXY_PLUGIN_NAME, call_type=ApiType.PROXY, func_name="call_proxy_function"
+            )
+            encode_kwargs = cache_encode(kwargs)
+            encode_func_name = cache_encode(full_func_name)
+            res = await call_plugin_api(api_call, None, func_name=encode_func_name, data=encode_kwargs)
+            return cache_decode(res)
+
+        return wrapper
+
+    return decorator
 
 
 def remote() -> Callable:

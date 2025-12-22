@@ -76,14 +76,17 @@ def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
 
 
 async def call_plugin_api(
-    api_name: str,
+    api_name: str | PluginApi,
     interval_apis: dict[str, PluginApi] | None = None,
     **kwargs: Any,
 ) -> Any:
-    api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
+    if isinstance(api_name, PluginApi):
+        api: PluginApi | None = api_name
+    elif isinstance(api_name, str):
+        api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
     use_proxy = False
     if not api:
-        if api_name.startswith("/") and settings.server.enable_proxy:
+        if isinstance(api_name, str) and api_name.startswith("/") and settings.server.enable_proxy:
             api = PluginApi(
                 api=api_name,
                 deployment_name=PROXY_PLUGIN_NAME,
@@ -116,7 +119,8 @@ async def call_plugin_api(
         return result.model_dump(by_alias=True)
     if use_proxy:
         if not isinstance(result, dict):
-            raise RuntimeError(f"Proxy API {api_name} returned non-dict result: {type(result)}")
+            # logger.warning(f"Proxy API {api_name} returned non-dict result: {type(result)}")
+            return result
         if "status" not in result:
             raise RuntimeError(f"Proxy API {api_name} returned invalid response: missing 'status' field")
         res = result.get("data")
