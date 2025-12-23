@@ -98,14 +98,14 @@ def on_request(
     return wrapper
 
 
-def on_proxy(proxy_only: bool = False) -> Callable:
+def on_proxy() -> Callable:
     def decorator(func: Callable) -> Callable:
         from framex.config import settings
 
         if not settings.server.enable_proxy:
             return func
 
-        is_registered = proxy_only
+        is_registered = False
         full_func_name = f"{func.__module__}.{func.__name__}"
 
         @functools.wraps(func)

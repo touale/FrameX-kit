@@ -166,7 +166,7 @@ async def local_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeMode
     return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
 
 
-@on_proxy(proxy_only=True)
+@on_proxy()
 async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:  # noqa: ARG001
     raise RuntimeError("This function should be called remotely")
 
