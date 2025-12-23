@@ -162,7 +162,7 @@ class ExchangeModel(BaseModel):
 
 
 @on_proxy()
-async def lcoal_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
+async def local_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
     return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
 
 
@@ -172,7 +172,7 @@ async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeMod
 
 
 async def test_on_proxy_local_call():
-    res = await lcoal_exchange_key_value(
+    res = await local_exchange_key_value(
         a_str="test", b_int=123, c_model=ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name"))
     )
     assert res["a_str"] == "test"

@@ -9,6 +9,8 @@ from pydantic_settings import (
     TomlConfigSettingsSource,
 )
 
+from framex.consts import PROXY_FUNC_HTTP_PATH
+
 
 class LogConfig(BaseModel):
     simple_log: bool = True
@@ -58,6 +60,8 @@ class AuthConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_special_auth_urls(self) -> Self:
+        if PROXY_FUNC_HTTP_PATH not in self.auth_urls:
+            self.auth_urls.append("/proxy/remote")
         for special_url in self.special_auth_keys:
             if not self._is_url_protected(special_url):
                 raise ValueError(f"special_auth_keys url '{special_url}' is not covered by any auth_urls rule")

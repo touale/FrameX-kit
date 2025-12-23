@@ -119,7 +119,6 @@ async def call_plugin_api(
         return result.model_dump(by_alias=True)
     if use_proxy:
         if not isinstance(result, dict):
-            # logger.warning(f"Proxy API {api_name} returned non-dict result: {type(result)}")
             return result
         if "status" not in result:
             raise RuntimeError(f"Proxy API {api_name} returned invalid response: missing 'status' field")
