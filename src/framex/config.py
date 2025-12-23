@@ -48,6 +48,20 @@ class ServerConfig(BaseModel):
     excluded_log_paths: list[str] = []
     ingress_config: dict[str, Any] = {"max_ongoing_requests": 60}
 
+    # docs config
+    docs_user: str = "admin"
+    docs_password: str = ""
+
+    @model_validator(mode="after")
+    def validate_model(self) -> Self:
+        if self.docs_password == "":
+            key = str(uuid4())
+            self.docs_password = key
+            from framex.log import logger
+
+            logger.warning(f"No docs_password set, generate a random key: {key}")
+        return self
+
 
 class TestConfig(BaseModel):
     disable_record_request: bool = False
