@@ -76,11 +76,11 @@ def create_fastapi_application() -> FastAPI:
     def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> str:
         correct_username = secrets.compare_digest(credentials.username, settings.server.docs_user)
         correct_password = secrets.compare_digest(credentials.password, settings.server.docs_password)
-        from framex.log import logger
-
-        logger.warning(f"authenticating {credentials.username} {credentials.password}")
 
         if not (correct_username and correct_password):
+            from framex.log import logger
+
+            logger.warning(f"Failed authentication attempt for user: {credentials.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect user or password",
