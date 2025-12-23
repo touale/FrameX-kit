@@ -1,13 +1,18 @@
 """Module containing FastAPI instance related functions and classes."""
 
 import json
+import secrets
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
 import pytz
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from starlette import status
 from starlette.concurrency import iterate_in_threadpool
 from starlette.exceptions import HTTPException
@@ -17,7 +22,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from framex.config import settings
-from framex.consts import API_STR, PROJECT_NAME, VERSION
+from framex.consts import API_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
 
 
 def create_fastapi_application() -> FastAPI:
@@ -59,12 +64,49 @@ def create_fastapi_application() -> FastAPI:
         title=PROJECT_NAME,
         debug=False,
         version=VERSION,
-        openapi_url="/api/v1/openapi.json",
+        openapi_url=None,
         lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        redirect_slashes=False,
     )
+
+    security = HTTPBasic(realm="Swagger Docs")
+
+    def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> str:
+        correct_username = secrets.compare_digest(credentials.username, settings.server.docs_user)
+        correct_password = secrets.compare_digest(credentials.password, settings.server.docs_password)
+
+        if not (correct_username and correct_password):
+            from framex.log import logger
+
+            logger.warning(f"Failed authentication attempt for user: {credentials.username}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect user or password",
+                headers={"WWW-Authenticate": "Basic"},
+            )
+        return credentials.username
+
+    @application.get(DOCS_URL, include_in_schema=False)
+    async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
+        return get_swagger_ui_html(openapi_url=OPENAPI_URL, title="FrameX Docs")
+
+    @application.get(REDOC_URL, include_in_schema=False)
+    async def get_redoc_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
+        return get_redoc_html(openapi_url=OPENAPI_URL, title="FrameX Redoc")
+
+    @application.get(OPENAPI_URL, include_in_schema=False)
+    async def get_open_api_endpoint(_: Annotated[str, Depends(authenticate)]) -> dict[str, Any]:
+        return get_openapi(
+            title="FrameX API",
+            version=VERSION,
+            routes=application.routes,
+        )
 
     @application.exception_handler(HTTPException)
     async def _http_exception_handler(request, exc):  # noqa
+        headers = getattr(exc, "headers", None)
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -72,12 +114,13 @@ def create_fastapi_application() -> FastAPI:
                 "message": exc.detail,
                 "is_middleware_error": True,
             },
+            headers=headers,
         )
 
     @application.exception_handler(Exception)
     async def _general_exception_handler(request, exc):  # noqa
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "status": 500,
                 "message": str(exc),
@@ -89,7 +132,7 @@ def create_fastapi_application() -> FastAPI:
         response = await call_next(request)
         if (
             not request.url.path.startswith(API_STR)
-            or request.url.path in ["/docs", "/api/v1/openapi.json", *settings.server.excluded_log_paths]
+            or request.url.path in [DOCS_URL, OPENAPI_URL, *settings.server.excluded_log_paths]
             or b"text/event-stream; charset=utf-8" in response.raw_headers[0]
             or response.headers.get("X-Raw-Output", "False") == "True"
         ):

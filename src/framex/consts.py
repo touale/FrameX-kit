@@ -1,6 +1,9 @@
 PROJECT_NAME = "FrameX"
 VERSION = "0.2.4"
 API_STR = "/api/v1"
+OPENAPI_URL = "/api/v1/openapi.json"
+DOCS_URL = "/docs"
+REDOC_URL = "/redoc"
 
 BACKEND_NAME = "backend"
 APP_NAME = "default"
