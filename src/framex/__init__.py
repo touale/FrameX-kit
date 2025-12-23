@@ -98,7 +98,7 @@ def run(
         from ray import serve
 
         ray.init(
-            num_cpus=num_cpus,
+            num_cpus=num_cpus if num_cpus > 0 else None,
             dashboard_host=dashboard_host,
             dashboard_port=dashboard_port,
             configure_logging=False,

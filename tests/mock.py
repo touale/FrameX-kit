@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+from framex.utils import cache_decode
 from tests.consts import MOCK_RESPONSE
 
 
@@ -64,6 +65,21 @@ async def mock_request(_, method: str, url: str, **kwargs: Any):
                 "method": "GET",
                 "params": params,
             }
+    elif url.endswith("/proxy/remote") and method == "POST":
+        if headers.get("Authorization") != "i_am_proxy_func_auth_keys":
+            resp.json.return_value = {
+                "status": 401,
+                "message": f"Invalid API Key({headers.get('Authorization')}) for API(/api/v1/proxy/mock/auth/get)",
+            }
+        else:
+            json_data = kwargs.get("json", {})
+            func_name = json_data.get("func_name")
+            data = json_data.get("data", {})
+            if not func_name or not data:
+                raise ValueError("Missing required fields: func_name and data")
+            decode_func_name = cache_decode(func_name)
+            decode_data = cache_decode(data)
+            resp.json.return_value = {"result": decode_func_name, "data": decode_data}
     else:
         raise AssertionError(f"Unexpected request: {method} {url}")
 

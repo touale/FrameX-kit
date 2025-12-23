@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from framex.config import Settings
 from framex.log import logger
 from framex.plugin.model import Plugin
@@ -36,3 +38,7 @@ def load_from_settings(settings: Settings) -> set[Plugin]:
     builtin_plugin_instances = load_builtin_plugins(*candidate_builtin_plugins) if candidate_builtin_plugins else set()
     plugin_instances = load_plugins(*settings.load_plugins) if settings.load_plugins else set()
     return builtin_plugin_instances | plugin_instances
+
+
+def register_proxy_func(_: Callable) -> None:  # pragma: no cover
+    pass

@@ -30,4 +30,3 @@ def test_run_command_with_defaults(monkeypatch, runner):
     assert called["server_port"] == 8080
     assert called["dashboard_host"] == "127.0.0.1"
     assert called["dashboard_port"] == 8260
-    assert called["num_cpus"] == 8

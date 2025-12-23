@@ -1,6 +1,9 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from framex.consts import API_STR
+from framex.utils import cache_decode, cache_encode
+from tests.test_plugins import ExchangeModel, SubModel
 
 
 def test_get_proxy_version(client: TestClient):
@@ -41,3 +44,26 @@ def test_get_proxy_auth_sget(client: TestClient):
     params = {"message": "hello world"}
     res = client.get("/proxy/mock/auth/sget", params=params).json()
     assert res == {"method": "GET", "params": params}
+
+
+@pytest.mark.order(2)
+def test_call_proxy_func(client: TestClient):
+    func = cache_encode("tests.test_plugins.local_exchange_key_value")
+    data = cache_encode(
+        {
+            "a_str": "test",
+            "b_int": 123,
+            "c_model": ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name")),
+        }
+    )
+    body = {"func_name": func, "data": data}
+    headers = {"Authorization": "i_am_general_auth_keys"}
+    res = client.post("/api/v1/proxy/remote", json=body, headers=headers).json()
+    res = cache_decode(res)
+    assert res["a_str"] == "test"
+    assert res["b_int"] == 123
+    model = res["c_model"]
+    assert model.id == "id_1"
+    assert model.name == 100
+    assert model.model.id == 1
+    assert model.model.name == "sub_name"

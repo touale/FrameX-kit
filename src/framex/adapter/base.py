@@ -29,7 +29,7 @@ class BaseAdapter(abc.ABC):
     async def call_func(self, api: PluginApi, **kwargs: Any) -> Any:
         func = self.get_handle_func(api.deployment_name, api.func_name)
         stream = api.stream
-        if api.call_type == ApiType.PROXY:
+        if api.call_type == ApiType.PROXY and api.api:
             kwargs["proxy_path"] = api.api
             stream = await self._check_is_gen_api(api.api)
         if stream:

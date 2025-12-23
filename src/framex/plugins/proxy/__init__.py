@@ -9,13 +9,15 @@ from typing_extensions import override
 
 from framex.adapter import get_adapter
 from framex.adapter.base import BaseAdapter
-from framex.consts import BACKEND_NAME, PROXY_PLUGIN_NAME, VERSION
+from framex.consts import BACKEND_NAME, PROXY_FUNC_HTTP_PATH, PROXY_PLUGIN_NAME, VERSION
 from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
 from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
 from framex.plugins.proxy.builder import create_pydantic_model, type_map
 from framex.plugins.proxy.config import ProxyPluginConfig, settings
+from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
+from framex.utils import cache_decode, cache_encode
 
 __plugin_meta__ = PluginMetadata(
     name="proxy",
@@ -33,7 +35,9 @@ __plugin_meta__ = PluginMetadata(
 class ProxyPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
         self.func_map: dict[str, Any] = {}
+        self.proxy_func_map: dict[str, ProxyFunc] = {}
         self.time_out = settings.timeout
+        self.init_proxy_func_route = False
         super().__init__(**kwargs)
 
     @override
@@ -41,8 +45,17 @@ class ProxyPlugin(BasePlugin):
         if not settings.proxy_urls:  # pragma: no cover
             logger.opt(colors=True).warning("<y>No url provided, skipping proxy plugin</y>")
             return
+
         for url in settings.proxy_urls:
             await self._parse_openai_docs(url)
+
+        if settings.proxy_functions:
+            for url, funcs in settings.proxy_functions.items():
+                for func in funcs:
+                    await self._parse_proxy_function(func, url)
+        else:  # pragma: no cover
+            logger.debug("No proxy functions to register")
+
         logger.success(f"Succeeded to parse openai docs form {url}")
 
     @on_request(call_type=ApiType.FUNC)
@@ -50,10 +63,10 @@ class ProxyPlugin(BasePlugin):
         return path in settings.force_stream_apis
 
     async def _get_openai_docs(self, url: str) -> dict[str, Any]:
-        clent = httpx.AsyncClient(timeout=self.time_out)
-        response = await clent.get(f"{url}/api/v1/openapi.json")
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        async with httpx.AsyncClient(timeout=self.time_out) as client:
+            response = await client.get(f"{url}/api/v1/openapi.json")
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
 
     async def _parse_openai_docs(self, url: str) -> None:
         adapter: BaseAdapter = get_adapter()
@@ -126,6 +139,48 @@ class ProxyPlugin(BasePlugin):
                 # Proxy api to map
                 self.func_map[path] = func
 
+    async def register_proxy_func_route(
+        self,
+    ) -> None:
+        adapter: BaseAdapter = get_adapter()
+        # Register router
+        plugin_api = PluginApi(
+            deployment_name=BACKEND_NAME,
+            func_name="register_route",
+        )
+
+        handle = adapter.get_handle(PROXY_PLUGIN_NAME)
+        await adapter.call_func(
+            plugin_api,
+            path=PROXY_FUNC_HTTP_PATH,
+            methods=["POST"],
+            func_name=self._proxy_func_route.__name__,
+            params=[("model", ProxyFuncHttpBody)],
+            handle=handle,
+            stream=False,
+            direct_output=True,
+            tags=[__plugin_meta__.name],
+        )
+
+    async def _proxy_func_route(self, model: ProxyFuncHttpBody) -> Any:
+        return await self.call_proxy_function(model.func_name, model.data)
+
+    async def _parse_proxy_function(self, func_name: str, url: str) -> None:
+        logger.opt(colors=True).debug(f"Found proxy function <g>{url}</g>")
+
+        params: list[tuple[str, type]] = [("model", ProxyFuncHttpBody)]
+
+        if auth_api_key := settings.auth.get_auth_keys(PROXY_FUNC_HTTP_PATH):
+            headers = {"Authorization": auth_api_key[0]}  # Use the first auth key set
+            logger.debug(f"Proxy func({PROXY_FUNC_HTTP_PATH}) requires auth")
+        else:  # pragma: no cover
+            headers = None
+
+        func = self._create_dynamic_method(
+            func_name, "POST", params, f"{url}{PROXY_FUNC_HTTP_PATH}", stream=False, headers=headers
+        )
+        await self.register_proxy_function(func_name, func, is_remote=True)
+
     async def __call__(self, proxy_path: str, **kwargs: Any) -> Any:
         if func := self.func_map.get(proxy_path):
             return await func(**kwargs)
@@ -136,22 +191,24 @@ class ProxyPlugin(BasePlugin):
         stream: bool = False,
         **kwargs: Any,
     ) -> AsyncGenerator[str, None] | dict | str:
-        clent = httpx.AsyncClient(timeout=self.time_out)
         if stream:
+            client = httpx.AsyncClient(timeout=self.time_out)
 
             async def stream_generator() -> AsyncGenerator[str, None]:
-                async with clent.stream(**kwargs) as response:
+                async with client.stream(**kwargs) as response:
                     response.raise_for_status()
                     async for chunk in response.aiter_text():
                         yield chunk
+                await client.aclose()
 
             return stream_generator()
-        response = await clent.request(**kwargs)
-        response.raise_for_status()
-        try:
-            return cast(dict, response.json())
-        except json.JSONDecodeError:
-            return response.text
+        async with httpx.AsyncClient(timeout=self.time_out) as client:
+            response = await client.request(**kwargs)
+            response.raise_for_status()
+            try:
+                return cast(dict, response.json())
+            except json.JSONDecodeError:
+                return response.text
 
     def _create_dynamic_method(
         self,
@@ -205,3 +262,31 @@ class ProxyPlugin(BasePlugin):
     @override
     def _post_call_remote_api_hook(self, data: Any) -> Any:
         return data.get("data") or data
+
+    async def register_proxy_function(
+        self, func_name: str, func_callable: Callable[..., Any], is_remote: bool = False
+    ) -> bool:
+        if not self.init_proxy_func_route:
+            await self.register_proxy_func_route()
+            self.init_proxy_func_route = True
+        if func_name in self.proxy_func_map:
+            logger.warning(f"Proxy function {func_name} already registered, skipping...")
+            return False
+
+        logger.info(f"Registering proxy function: {func_name}")
+        self.proxy_func_map[func_name] = ProxyFunc(func=func_callable, is_remote=is_remote)
+        return True
+
+    async def call_proxy_function(self, func_name: str, data: str) -> str:
+        decode_func_name = cache_decode(func_name)
+        decode_kwargs = cache_decode(data)
+        if proxy_func := self.proxy_func_map.get(decode_func_name):
+            if proxy_func.is_remote:
+                kwargs = {"model": ProxyFuncHttpBody(data=data, func_name=func_name)}
+            else:
+                kwargs = decode_kwargs
+            tag = "remote" if proxy_func.is_remote else "local"
+            logger.info(f"Calling proxy function[{tag}]: {decode_func_name},  kwargs: {decode_kwargs}")
+            res = await proxy_func.func(**kwargs)
+            return cache_encode(res)
+        raise RuntimeError(f"Proxy function({decode_func_name}) not registered")
