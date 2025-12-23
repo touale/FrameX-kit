@@ -108,29 +108,54 @@ def on_proxy() -> Callable:
         is_registered = False
         full_func_name = f"{func.__module__}.{func.__name__}"
 
+        async def safe_callable(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return await func(*args, **kwargs)
+            except Exception:
+                raw = func
+
+                if isinstance(raw, (classmethod, staticmethod)):
+                    raw = raw.__func__
+
+                while hasattr(raw, "__wrapped__"):
+                    raw = raw.__wrapped__
+
+                if inspect.iscoroutinefunction(raw):
+                    return await raw(*args, **kwargs)
+                return raw(*args, **kwargs)
+
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             nonlocal is_registered
 
             if args:
-                raise TypeError(
-                    f"The proxy function '{func.__name__}' only supports keyword arguments. "
-                    f"Please call it using the syntax {func.__name__}(param=value)."
-                )
+                raise TypeError(f"The proxy function '{func.__name__}' only supports keyword arguments.")
 
             if not is_registered:
                 api_reg = PluginApi(
-                    deployment_name=PROXY_PLUGIN_NAME, call_type=ApiType.PROXY, func_name="register_proxy_function"
+                    deployment_name=PROXY_PLUGIN_NAME,
+                    call_type=ApiType.PROXY,
+                    func_name="register_proxy_function",
                 )
-                await call_plugin_api(api_reg, None, func_name=full_func_name, func_callable=func)
+                await call_plugin_api(
+                    api_reg,
+                    None,
+                    func_name=full_func_name,
+                    func_callable=safe_callable,
+                )
                 is_registered = True
 
             api_call = PluginApi(
-                deployment_name=PROXY_PLUGIN_NAME, call_type=ApiType.PROXY, func_name="call_proxy_function"
+                deployment_name=PROXY_PLUGIN_NAME,
+                call_type=ApiType.PROXY,
+                func_name="call_proxy_function",
             )
-            encode_kwargs = cache_encode(kwargs)
-            encode_func_name = cache_encode(full_func_name)
-            res = await call_plugin_api(api_call, None, func_name=encode_func_name, data=encode_kwargs)
+            res = await call_plugin_api(
+                api_call,
+                None,
+                func_name=cache_encode(full_func_name),
+                data=cache_encode(data=kwargs),
+            )
             return cache_decode(res)
 
         return wrapper

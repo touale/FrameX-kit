@@ -177,10 +177,11 @@ async def test_on_proxy_local_call():
     )
     assert res["a_str"] == "test"
     assert res["b_int"] == 123
-    assert (
-        res["c_model"].model_dump()
-        == ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name")).model_dump()
-    )
+    model = res["c_model"]
+    assert model.id == "id_1"
+    assert model.name == 100
+    assert model.model.id == 1
+    assert model.model.name == "sub_name"
 
 
 async def test_on_proxy_remote_call():

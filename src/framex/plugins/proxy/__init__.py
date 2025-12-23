@@ -154,13 +154,16 @@ class ProxyPlugin(BasePlugin):
             plugin_api,
             path=PROXY_FUNC_HTTP_PATH,
             methods=["POST"],
-            func_name=self.call_proxy_function,
-            params=[("data", str), ("func_name", str)],
+            func_name=self._proxy_func_route.__name__,
+            params=[("model", ProxyFuncHttpBody)],
             handle=handle,
             stream=False,
             direct_output=True,
             tags=[__plugin_meta__.name],
         )
+
+    async def _proxy_func_route(self, model: ProxyFuncHttpBody) -> Any:
+        return await self.call_proxy_function(model.func_name, model.data)
 
     async def _parse_proxy_function(self, func_name: str, url: str) -> None:
         logger.opt(colors=True).debug(f"Found proxy function <g>{url}</g>")
