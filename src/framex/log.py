@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING, TextIO
 
 import loguru
 
-from framex.config import settings
-
 if TYPE_CHECKING:
     # avoid sphinx autodoc resolve annotation failed
     # because loguru module do not have `Logger` class actually
@@ -17,6 +15,8 @@ logger: "Logger" = loguru.logger
 
 class LoguruHandler(logging.Handler):  # pragma: no cover
     def emit(self, record: logging.LogRecord) -> None:
+        from framex.config import settings
+
         msg = record.getMessage()
         if settings.log.simple_log and (
             (record.name == "ray.serve" and msg.startswith(settings.log.ignored_prefixes)) or record.name == "filelock"

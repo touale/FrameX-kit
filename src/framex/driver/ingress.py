@@ -44,9 +44,6 @@ class APIIngress:
                     ApiType.ALL,
                 ]
             ):
-                from framex.config import settings
-
-                auth_keys = settings.auth.get_auth_keys(plugin_api.api)
                 self.register_route(
                     plugin_api.api,
                     plugin_api.methods,
@@ -56,7 +53,6 @@ class APIIngress:
                     stream=plugin_api.stream,
                     direct_output=False,
                     tags=plugin_api.tags,
-                    auth_keys=auth_keys,
                 )
 
     def register_route(
@@ -71,10 +67,16 @@ class APIIngress:
         tags: list[str | Enum] | None = None,
         auth_keys: list[str] | None = None,
     ) -> bool:
+        from framex.log import logger
+
         if tags is None:
             tags = ["default"]
+        if auth_keys is None:
+            from framex.config import settings
+
+            auth_keys = settings.auth.get_auth_keys(path)
+            logger.debug(f"API({path}) with tags {tags} requires auth_keys {auth_keys}")
         adapter = get_adapter()
-        from framex.log import logger
 
         try:
             routes: list[str] = [route.path for route in app.routes if isinstance(route, Route | APIRoute)]

@@ -53,7 +53,7 @@ class ProxyPlugin(BasePlugin):
             for url, funcs in settings.proxy_functions.items():
                 for func in funcs:
                     await self._parse_proxy_function(func, url)
-        else:
+        else:  # pragma: no cover
             logger.debug("No proxy functions to register")
 
         logger.success(f"Succeeded to parse openai docs form {url}")

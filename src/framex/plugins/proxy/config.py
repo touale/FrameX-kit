@@ -32,7 +32,7 @@ class ProxyPluginConfig(BaseModel):
     @model_validator(mode="after")
     def validate_proxy_functions(self) -> Self:
         for url in self.proxy_functions:
-            if url not in self.proxy_urls:
+            if url not in self.proxy_urls:  # pragma: no cover
                 raise ValueError(f"proxy_functions url '{url}' is not covered by any proxy_urls rule")
         return self
 

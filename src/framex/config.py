@@ -1,4 +1,5 @@
 from typing import Any, Literal, Self
+from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import (
@@ -59,9 +60,15 @@ class AuthConfig(BaseModel):
     special_auth_keys: dict[str, list[str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_special_auth_urls(self) -> Self:
+    def normalize_and_validate(self) -> Self:
         if PROXY_FUNC_HTTP_PATH not in self.auth_urls:
-            self.auth_urls.append("/proxy/remote")
+            self.auth_urls.append(PROXY_FUNC_HTTP_PATH)
+        if not self.general_auth_keys:  # pragma: no cover
+            from framex.log import logger
+
+            key = str(uuid4())
+            logger.warning(f"No general_auth_keys set, generate a random key: {key}")
+            self.general_auth_keys = [key]
         for special_url in self.special_auth_keys:
             if not self._is_url_protected(special_url):
                 raise ValueError(f"special_auth_keys url '{special_url}' is not covered by any auth_urls rule")
