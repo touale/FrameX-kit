@@ -173,7 +173,7 @@ class ProxyPlugin(BasePlugin):
         if auth_api_key := settings.auth.get_auth_keys(PROXY_FUNC_HTTP_PATH):
             headers = {"Authorization": auth_api_key[0]}  # Use the first auth key set
             logger.debug(f"Proxy func({PROXY_FUNC_HTTP_PATH}) requires auth")
-        else:
+        else:  # pragma: no cover
             headers = None
 
         func = self._create_dynamic_method(

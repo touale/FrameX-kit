@@ -102,7 +102,7 @@ def on_proxy() -> Callable:
     def decorator(func: Callable) -> Callable:
         from framex.config import settings
 
-        if not settings.server.enable_proxy:
+        if not settings.server.enable_proxy:  # pragma: no cover
             return func
 
         is_registered = False
