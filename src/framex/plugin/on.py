@@ -128,7 +128,7 @@ def on_proxy() -> Callable:
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             nonlocal is_registered
 
-            if args:
+            if args:  # pragma: no cover
                 raise TypeError(f"The proxy function '{func.__name__}' only supports keyword arguments.")
 
             if not is_registered:

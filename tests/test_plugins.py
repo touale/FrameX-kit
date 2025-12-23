@@ -1,5 +1,6 @@
 import importlib
 from collections.abc import Callable
+from functools import wraps
 from typing import Any, Literal, Optional, Union, get_args, get_origin
 
 import pytest
@@ -161,12 +162,21 @@ class ExchangeModel(BaseModel):
     model: SubModel
 
 
+def supply_execption(func):
+    @wraps(func)
+    async def wrapper(*_: Any, **__: Any) -> None:
+        raise RuntimeError("I am def supply_execption(func): exception")
+
+    return wrapper
+
+
 @on_proxy()
 async def local_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
     return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
 
 
 @on_proxy()
+@supply_execption
 async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:  # noqa: ARG001
     raise RuntimeError("This function should be called remotely")
 
