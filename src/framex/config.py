@@ -44,7 +44,7 @@ class ServerConfig(BaseModel):
     use_ray: bool = False
     enable_proxy: bool = False
     legal_proxy_code: list[int] = [200]
-    num_cpus: int = 8
+    num_cpus: int = -1
     excluded_log_paths: list[str] = []
     ingress_config: dict[str, Any] = {"max_ongoing_requests": 60}
 
