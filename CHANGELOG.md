@@ -2,6 +2,66 @@
 
 <!-- version list -->
 
+## v0.2.5 (2025-12-24)
+
+### Bug Fixes
+
+- Fix proxy function serialization and error handling
+  ([`7288013`](https://github.com/touale/FrameX-kit/commit/7288013342ce81cc39dce4dbb07c668997f59723))
+
+- Handle negative num_cpus value in ray initialization
+  ([`db98eee`](https://github.com/touale/FrameX-kit/commit/db98eee7b0264019821cf993080de72eb2ff385c))
+
+### Chores
+
+- Upgrade ray from 2.47.1 to 2.53.0
+  ([`b4e2bd0`](https://github.com/touale/FrameX-kit/commit/b4e2bd034d8b2b00bb7a0c505ebcf389e84828e6))
+
+- **deps**: Update dependency ruff to v0.14.10
+  ([`359d731`](https://github.com/touale/FrameX-kit/commit/359d7312f2c5593918a274b398270906dbcfaf39))
+
+- **deps**: Update pre-commit hook astral-sh/ruff-pre-commit to v0.14.10
+  ([`537c431`](https://github.com/touale/FrameX-kit/commit/537c4311df69e313bbf40c352608e25c11ca2fa4))
+
+### Documentation
+
+- Add authentication, concurrency and proxy function documentation
+  ([`82ecef1`](https://github.com/touale/FrameX-kit/commit/82ecef173c02f529c48ca4e7fec98f7462648c8c))
+
+### Features
+
+- Add docs authentication with basic auth
+  ([`00530f8`](https://github.com/touale/FrameX-kit/commit/00530f8da9a2e21db89dca1bfe3d9740b25185b9))
+
+- Add proxy function registration placeholder
+  ([`8a1b9db`](https://github.com/touale/FrameX-kit/commit/8a1b9db3f094b662ced812d6792487dd3bbaef41))
+
+- Add proxy function support
+  ([`8b9e474`](https://github.com/touale/FrameX-kit/commit/8b9e47450819ca4fb075afb6b11b0bc04069f67a))
+
+- Enhance proxy function auth with random key generation
+  ([`ffa9438`](https://github.com/touale/FrameX-kit/commit/ffa9438f3ebfb5ee2563a2b9f57e352f24603467))
+
+- Enhance proxy function registration and auth
+  ([`f169727`](https://github.com/touale/FrameX-kit/commit/f16972742989225a94b75eff570ba6d3363a2936))
+
+### Refactoring
+
+- Simplify proxy decorator and remove proxy_only param
+  ([`081026b`](https://github.com/touale/FrameX-kit/commit/081026b89cb0e1cc0b537f6c3b03aa6acb55a4fc))
+
+### Testing
+
+- Add comprehensive application tests and improve auth logging
+  ([`fb2b5d5`](https://github.com/touale/FrameX-kit/commit/fb2b5d5da1456939cc6921cf8d940f0e1cfa9d71))
+
+- Add pytest-order and enhance proxy tests
+  ([`425984c`](https://github.com/touale/FrameX-kit/commit/425984cdf9e53ccae19a962266ec7597752a3abe))
+
+- Enhance cache encode/decode and proxy exception handling
+  ([`9488998`](https://github.com/touale/FrameX-kit/commit/9488998f1b876317f25af62c6a3ee16d2df488db))
+
+
 ## v0.2.4 (2025-10-27)
 
 ### Features
