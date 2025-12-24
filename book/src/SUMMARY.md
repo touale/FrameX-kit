@@ -16,9 +16,19 @@
 - [Advanced Usage](./advanced_usage/overview.md)
 
   - [System Proxy Plugin (Fastapi API Compatibility)](./advanced_usage/system_proxy_plugin.md)
+
   - [Integrating Ray Engine](./advanced_usage/ray_engine.md)
+
   - [Advanced Remote Calls & Non-Blocking Execution](./advanced_usage/remote_calls.md)
+
+  - [Security & Authorization](./advanced_usage/authentication.md)
+
+  - [Concurrency & Ingress Configuration](./advanced_usage/concurrency_and_ingress.md)
+
+  - [Proxy Function & Remote Invocation](./advanced_usage/proxy_function.md)
+
   - [Simulating Network Communication (For Tests)](./advanced_usage/advanced_test.md)
+
   - [Monitoring & Tracing](./advanced_usage/monitor.md)
 
 - [Development Guide](./development.md)
