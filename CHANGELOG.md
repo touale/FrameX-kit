@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v0.2.6 (2025-12-25)
+
+### Chores
+
+- Change default docs password to admin
+  ([`24aca13`](https://github.com/touale/FrameX-kit/commit/24aca13f858f21c3a85268a8e59e6a3e40467b75))
+
+### Documentation
+
+- Improve authentication documentation formatting and structure
+  ([`dda03a7`](https://github.com/touale/FrameX-kit/commit/dda03a7251bd303f70c0d22e9fa79090de837a77))
+
+### Features
+
+- Enhance API docs with runtime status and plugin versions
+  ([`1435d3d`](https://github.com/touale/FrameX-kit/commit/1435d3dec90ae55d6f189f003bc799613c4bee89))
+
+### Refactoring
+
+- Improve CLI config and auth settings management
+  ([`96b0cab`](https://github.com/touale/FrameX-kit/commit/96b0cabe6593dba233cc3d6971b87a3fe05b7f76))
+
+### Testing
+
+- Improve parameter handling and add comprehensive CLI tests
+  ([`f37ff4c`](https://github.com/touale/FrameX-kit/commit/f37ff4cdb042b0a90dedfb7c4e076d7ba3ca2cdd))
+
+- Restructure auth configuration into unified rules format
+  ([`ebaa96f`](https://github.com/touale/FrameX-kit/commit/ebaa96f0f510a276ed1c3eed6f27a9ef27984149))
+
+
 ## v0.2.5 (2025-12-24)
 
 ### Bug Fixes
