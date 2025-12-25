@@ -62,9 +62,13 @@ class ProxyPlugin(BasePlugin):
     async def check_is_gen_api(self, path: str) -> bool:
         return path in settings.force_stream_apis
 
-    async def _get_openai_docs(self, url: str) -> dict[str, Any]:
+    async def _get_openai_docs(self, url: str, docs_path: str = "/api/v1/openapi.json") -> dict[str, Any]:
+        if auth_api_key := settings.auth.get_auth_keys(docs_path):
+            headers = {"Authorization": auth_api_key[0]}  # Use the first auth key set
+        else:  # pragma: no cover
+            headers = None
         async with httpx.AsyncClient(timeout=self.time_out) as client:
-            response = await client.get(f"{url}/api/v1/openapi.json")
+            response = await client.get(f"{url}{docs_path}", headers=headers)
             response.raise_for_status()
             return cast(dict[str, Any], response.json())
 

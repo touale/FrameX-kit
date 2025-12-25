@@ -57,7 +57,7 @@ def test_call_proxy_func(client: TestClient):
         }
     )
     body = {"func_name": func, "data": data}
-    headers = {"Authorization": "i_am_general_auth_keys"}
+    headers = {"Authorization": "i_am_local_proxy_auth_keys"}
     res = client.post("/api/v1/proxy/remote", json=body, headers=headers).json()
     res = cache_decode(res)
     assert res["a_str"] == "test"

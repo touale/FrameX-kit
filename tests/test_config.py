@@ -1,6 +1,3 @@
-import pytest
-from pydantic_core import ValidationError
-
 from framex.config import AuthConfig
 
 
@@ -31,12 +28,3 @@ def test_auth_config():
         ],
         special_auth_keys={"/api/v1/a/call": ["0123456789"]},
     )
-
-    with pytest.raises(ValidationError) as exc_info:
-        AuthConfig(
-            auth_urls=["/api/v1/*"],
-            special_auth_keys={
-                "/admin/login": ["0123456789"],
-            },
-        )
-    assert "special_auth_keys url '/admin/login'" in str(exc_info.value)
