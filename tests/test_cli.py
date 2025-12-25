@@ -85,3 +85,105 @@ def test_run_command_tristate_bool(monkeypatch, runner) -> None:
     result = runner.invoke(framex_cli, ["run", "--use-ray"])
     assert result.exit_code == 0
     assert settings.server.use_ray is True
+
+
+def test_run_command_with_dashboard_options(monkeypatch, runner) -> None:
+    """
+    Test --dashboard-host and --dashboard-port options
+    """
+
+    def fake_run(*args, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(framex, "run", fake_run)
+
+    result = runner.invoke(
+        framex_cli,
+        [
+            "run",
+            "--dashboard-host",
+            "0.0.0.0",  # noqa: S104
+            "--dashboard-port",
+            "8265",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert settings.server.dashboard_host == "0.0.0.0"  # noqa: S104
+    assert settings.server.dashboard_port == 8265
+
+
+def test_run_command_with_num_cpus(monkeypatch, runner) -> None:
+    """
+    Test --num-cpus option
+    """
+
+    def fake_run(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(framex, "run", fake_run)
+
+    result = runner.invoke(framex_cli, ["run", "--num-cpus", "4"])
+
+    assert result.exit_code == 0
+    assert settings.server.num_cpus == 4
+
+
+def test_run_command_with_enable_proxy(monkeypatch, runner) -> None:
+    """
+    Test --enable-proxy / --no-enable-proxy options
+    """
+
+    def fake_run(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(framex, "run", fake_run)
+
+    # Test --enable-proxy
+    result = runner.invoke(framex_cli, ["run", "--enable-proxy"])
+    assert result.exit_code == 0
+    assert settings.server.enable_proxy is True
+
+    # Test --no-enable-proxy
+    result = runner.invoke(framex_cli, ["run", "--no-enable-proxy"])
+    assert result.exit_code == 0
+    assert settings.server.enable_proxy is False
+
+
+def test_run_command_with_load_plugins(monkeypatch, runner) -> None:
+    """
+    Test --load-plugins and --load-builtin-plugins options
+    """
+    loaded_plugins: list[str] = []
+    loaded_builtin_plugins: list[str] = []
+
+    def fake_load_plugins(*plugins) -> None:
+        loaded_plugins.extend(plugins)
+
+    def fake_load_builtin_plugins(*plugins) -> None:
+        loaded_builtin_plugins.extend(plugins)
+
+    def fake_run(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(framex, "load_plugins", fake_load_plugins)
+    monkeypatch.setattr(framex, "load_builtin_plugins", fake_load_builtin_plugins)
+    monkeypatch.setattr(framex, "run", fake_run)
+
+    result = runner.invoke(
+        framex_cli,
+        [
+            "run",
+            "--load-plugins",
+            "plugin1",
+            "--load-plugins",
+            "plugin2",
+            "--load-builtin-plugins",
+            "builtin1",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "plugin1" in loaded_plugins
+    assert "plugin2" in loaded_plugins
+    assert "builtin1" in loaded_builtin_plugins

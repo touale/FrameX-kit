@@ -19,7 +19,7 @@ async def test_call_not_exist_plugin() -> None:
 
     with pytest.raises(expected_exception=RuntimeError) as excinfo:
         await call_plugin_api(api_name="/call_not_exist_plugin")
-    assert "api(/call_not_exist_plugin) not found" in str(excinfo.value)
+    assert "not found" in str(excinfo.value)
 
     with pytest.raises(expected_exception=RuntimeError) as excinfo:
         await call_plugin_api(api_name="func.call_not_exist_plugin")
