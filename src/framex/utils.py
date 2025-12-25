@@ -5,7 +5,7 @@ import json
 import re
 import zlib
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum, StrEnum
 from itertools import cycle
 from pathlib import Path
@@ -130,3 +130,21 @@ def cache_decode(res: Any) -> Any:
         return item
 
     return restore_models(current)
+
+
+def format_uptime(delta: timedelta) -> str:
+    days = delta.days
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if seconds or not parts:
+        parts.append(f"{seconds}s")
+
+    return " ".join(parts)

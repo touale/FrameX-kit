@@ -25,7 +25,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
 
             plugin_apis = []
 
-            for name, func in inspect.getmembers(cls):
+            for name, func in inspect.getmembers(object=cls):
                 if getattr(func, "_on_request", False):
                     call_type = func.__expose__call_type
                     path = func.__expose_path__
@@ -44,7 +44,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                             methods=func.__expose_methods_,
                             params=params,
                             call_type=call_type,
-                            tags=[plugin.name],
+                            tags=[plugin.name + "(v" + plugin.module.__plugin_meta__.version + ")"],
                             stream=func.__expose_stream,
                         )
                     )

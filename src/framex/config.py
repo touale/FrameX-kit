@@ -77,10 +77,8 @@ class AuthConfig(BaseModel):
             from framex.log import logger
 
             logger.warning(
-                "No auth key found for %s. A random key (%s) was generated. "
+                f"No auth key found for {PROXY_FUNC_HTTP_PATH}. A random key {key} was generated. "
                 "Please configure auth.rules explicitly in production.",
-                PROXY_FUNC_HTTP_PATH,
-                key,
             )
         return self
 

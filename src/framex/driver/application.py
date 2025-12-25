@@ -4,8 +4,9 @@ import json
 import secrets
 from collections.abc import Callable
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any
+from zoneinfo import ZoneInfo
 
 import pytz
 from fastapi import Depends, FastAPI
@@ -23,6 +24,29 @@ from starlette.responses import JSONResponse
 
 from framex.config import settings
 from framex.consts import API_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
+from framex.utils import format_uptime
+
+FRAME_START_TIME = datetime.now(tz=UTC)
+SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
+
+
+def build_openapi_description() -> str:
+    now = datetime.now(tz=UTC)
+    uptime = format_uptime(now - FRAME_START_TIME)
+    started_at = FRAME_START_TIME.astimezone(SHANGHAI_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    return f"""
+---
+
+**🟢 Runtime Status**
+
+| Metric | Value |
+|--------|-------|
+| Started At | `{started_at}` |
+| Uptime | `{uptime}` |
+| Version | `v{VERSION}` |
+
+---
+"""
 
 
 def create_fastapi_application() -> FastAPI:
@@ -101,6 +125,7 @@ def create_fastapi_application() -> FastAPI:
         return get_openapi(
             title="FrameX API",
             version=VERSION,
+            description=build_openapi_description(),
             routes=application.routes,
         )
 
