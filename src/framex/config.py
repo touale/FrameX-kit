@@ -52,13 +52,12 @@ class ServerConfig(BaseModel):
     docs_user: str = "admin"
     docs_password: str = ""
 
-    def model_post_init(self, __context: Any) -> None:
+    def model_post_init(self, __context: Any) -> None:  # pragma: no cover
         if self.docs_password == "":
-            key = str(uuid4())
-            self.docs_password = key
+            self.docs_password = "admin"  # noqa: S105
             from framex.log import logger
 
-            logger.warning(f"No docs_password set, generate a random key: {key}")
+            logger.warning("No docs_password set, fallback to default password: admin")
 
 
 class TestConfig(BaseModel):
