@@ -1,11 +1,12 @@
 import json
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
 from pydantic import BaseModel
 
 from framex.config import AuthConfig
-from framex.utils import StreamEnventType, cache_decode, cache_encode, make_stream_event
+from framex.utils import StreamEnventType, cache_decode, cache_encode, format_uptime, make_stream_event
 
 
 class StreamDataModel(BaseModel):
@@ -34,33 +35,32 @@ def test_make_stream_event(event_type: StreamEnventType | str, data: str | dict[
     assert res == result
 
 
-def test_get_auth_keys_by_url():
-    auth = AuthConfig(
-        general_auth_keys=["g"],
-        auth_urls=["/api/v1/*", "/api/v2/echo", "/api/v3/*"],
-        special_auth_keys={
-            "/api/v1/echo": ["s"],
-            "/api/v3/echo/*": ["b"],
-            "/api/v3/echo/hi": ["c"],
-        },
+def test_is_url_protected():
+    cfg = AuthConfig(
+        rules={
+            "/api/user": ["k1"],
+            "/api/*": ["k2"],
+        }
     )
 
-    assert auth.get_auth_keys("/health") is None
-    assert auth.get_auth_keys("/api/v1/user") == ["g"]
-    assert auth.get_auth_keys("/api/v1/echo") == ["s"]
-    assert auth.get_auth_keys("/api/v1/echo/sub") == ["g"]
-    assert auth.get_auth_keys("/api/v2/echo") == ["g"]
-    assert auth.get_auth_keys("/api/v2/echo/sub") is None
-    assert auth.get_auth_keys("/api/v3/sub") == ["g"]
-    assert auth.get_auth_keys("/api/v3/echo/1") == ["b"]
-    assert auth.get_auth_keys("/api/v3/echo/hi") == ["c"]
+    assert cfg._is_url_protected("/api/user")
+    assert cfg._is_url_protected("/api/user/1")
+    assert not cfg._is_url_protected("/admin")
 
 
-from datetime import datetime
-from typing import Any
+def test_get_auth_keys():
+    cfg = AuthConfig(
+        rules={
+            "/api/*": ["k1"],
+            "/api/admin/*": ["k2"],
+            "/api/admin/user": ["k3"],
+        }
+    )
 
-import pytest
-from pydantic import BaseModel
+    assert cfg.get_auth_keys("/public") is None
+    assert cfg.get_auth_keys("/api/user") == ["k1"]
+    assert cfg.get_auth_keys("/api/admin/test") == ["k2"]
+    assert cfg.get_auth_keys("/api/admin/user") == ["k3"]
 
 
 class SubModel(BaseModel):
@@ -125,3 +125,30 @@ def test_recovery_failure_fallback():
 
     assert decoded.id == 999
     assert decoded.info == "test"
+
+
+def test_format_uptime():
+    """Test format_uptime function"""
+    # Test seconds only
+    delta = timedelta(seconds=45)
+    assert format_uptime(delta) == "45s"
+
+    # Test minutes and seconds
+    delta = timedelta(seconds=125)
+    assert format_uptime(delta) == "2m 5s"
+
+    # Test hours, minutes, and seconds
+    delta = timedelta(seconds=3665)
+    assert format_uptime(delta) == "1h 1m 5s"
+
+    # Test days
+    delta = timedelta(days=2, seconds=3661)
+    assert format_uptime(delta) == "2d 1h 1m 1s"
+
+    # Test zero seconds
+    delta = timedelta(seconds=0)
+    assert format_uptime(delta) == "0s"
+
+    # Test only minutes (no seconds)
+    delta = timedelta(minutes=5, seconds=0)
+    assert format_uptime(delta) == "5m"

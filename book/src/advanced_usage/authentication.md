@@ -6,7 +6,7 @@ ______________________________________________________________________
 
 ## 1) Documentation Authentication
 
-The system supports HTTP Basic Authentication for built-in API documentation pages.
+The system supports **HTTP Basic Authentication** for built-in API documentation pages.
 
 ### Protected Endpoints
 
@@ -26,71 +26,67 @@ docs_user = "admin"
 docs_password = "admin"
 ```
 
-**Default Behavior**
+### Default Behavior
 
 - **docs_user**
 
   - Default value: `admin`
-  - If not specified, it defaults to `admin`
 
 - **docs_password**
 
-  - If not set or left empty, the system will automatically generate a UUID as the password
-  - The generated password will be printed in the startup logs
+  - If not set or left empty, the system uses the default password: `admin`
 
-**If authentication fails, the server returns:**
+### Authentication Failure
 
 - **HTTP Status Code**: `401 Unauthorized`
 
 ______________________________________________________________________
 
-## 2) API Authentication
+## 2) API Authentication (Rules-Based)
 
-The system supports API-level authentication using access keys.
+The system supports API-level authentication using **access keys**, configured through a
+**rules-based authorization model**.
 
-### Enabling API Authentication
+### Overview
 
-Configure the `[auth]` section in `config.toml`:
+- Authentication is defined by a single `rules` mapping
+- Each rule maps an **API path** to a list of **allowed access keys**
+- Only URLs explicitly defined in rules are protected
+- URL matching supports:
+  - Exact match
+  - Prefix wildcard match using `/*`
+- For wildcard rules, the longest matching prefix wins
+
+### Configuration
 
 ```toml
 [auth]
-general_auth_keys = ["your key"]
-auth_urls = ["/api/v1/echo_model", "/api/v2/*"]
-special_auth_keys = { "/api/v1/echo_model" = ["other key"] }
+rules = {
+  "/api/v1/echo_model" = ["key-1", "key-2"],
+  "/api/v2/*" = ["key-3"]
+}
 ```
 
-### Configuration Fields
+### Runtime Behavior
 
-**auth_urls**
-
-- A list of API paths that require authentication
-- Supports wildcard matching (e.g. `/api/v2/*`)
-- Only URLs listed here are protected
-
-**general_auth_keys**
-
-- Common authentication keys for all URLs listed in `auth_urls`
-- Can access any URL in `auth_urls`
-- **Cannot** be used for URLs protected by `special_auth_keys`
-
-**special_auth_keys**
-
-- Per-URL authentication keys for sensitive APIs
-- Have higher priority than `general_auth_keys`
-- `general_auth_keys` are **not valid** for these URLs
-- URLs defined here **must also exist** in `auth_urls`
+- If a request URL does not match any rule, authentication is not required
+- If a request URL matches a rule, a valid access key must be provided
+- Missing or invalid keys result in:
+  - **HTTP Status Code**: `401 Unauthorized`
 
 ______________________________________________________________________
 
 ## 3) Proxy Plugin Authentication
 
-The proxy plugin allows forwarding APIs from third-party FastAPI or other FrameX services into the current instance.
+The proxy plugin uses the same rules-based authentication mechanism
+as standard API authentication.
 
 ### Configuration
 
 ```toml
 [plugins.proxy.auth]
-general_auth_keys = ["your key"]
-auth_urls = ["/api/v1/proxy/remote", "/api/v1/echo_model"]
-special_auth_keys = { "/api/v1/echo_model" = ["other key"] }
+rules = {
+  "/api/v1/proxy/remote" = ["proxy-key"],
+  "/api/v1/echo_model" = ["echo-key"]
+}
 ```

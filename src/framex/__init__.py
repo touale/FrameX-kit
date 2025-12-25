@@ -54,18 +54,32 @@ def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
 
 def run(
     *,
-    server_host: str = settings.server.host,
-    server_port: int = settings.server.port,
-    dashboard_host: str = settings.server.dashboard_host,
-    dashboard_port: int = settings.server.dashboard_port,
-    num_cpus: int = settings.server.num_cpus,
+    server_host: str | None = None,
+    server_port: int | None = None,
+    dashboard_host: str | None = None,
+    dashboard_port: int | None = None,
+    num_cpus: int | None = None,
+    use_ray: bool | None = None,
+    enable_proxy: bool | None = None,
+    load_builtin_plugins: list[str] | None = None,
+    load_plugins: list[str] | None = None,
     reversion: str | None = None,
     blocking: bool = True,
     test_mode: bool = False,
 ) -> FastAPI | None:
+    server_host = server_host if server_host is not None else settings.server.host
+    server_port = server_port if server_port is not None else settings.server.port
+    dashboard_host = dashboard_host if dashboard_host is not None else settings.server.dashboard_host
+    dashboard_port = dashboard_port if dashboard_port is not None else settings.server.dashboard_port
+    num_cpus = num_cpus if num_cpus is not None else settings.server.num_cpus
+    use_ray = use_ray if use_ray is not None else settings.server.use_ray
+    enable_proxy = enable_proxy if enable_proxy is not None else settings.server.enable_proxy
+    builtin_plugins = settings.load_builtin_plugins if load_builtin_plugins is None else load_builtin_plugins
+    external_plugins = settings.load_plugins if load_plugins is None else load_plugins
+
     reversion = reversion or VERSION
 
-    if test_mode and settings.server.use_ray:
+    if test_mode and use_ray:
         raise RuntimeError("FlameX can not run when `test_mode` == True, and `use_ray` == True")
 
     # step1: setup log
@@ -80,18 +94,20 @@ def run(
     _setup_env()
 
     # step 4: setup settings plugins
-    from framex.plugin.load import load_from_settings
+    # Get all builtin_plugins
 
-    load_from_settings(settings=settings)
+    from framex.plugin.load import auto_load_plugins
+
+    auto_load_plugins(builtin_plugins, external_plugins, enable_proxy)
 
     # step5: init all DeploymentHandle
     logger.info("Start initializing all DeploymentHandle...")
     from framex.plugin import get_http_plugin_apis, init_all_deployments
 
-    deployments = init_all_deployments(enable_proxy=settings.server.enable_proxy)
+    deployments = init_all_deployments(enable_proxy=enable_proxy)
     http_apis = get_http_plugin_apis()
 
-    if settings.server.use_ray:
+    if use_ray:
         # step4: init ray
 
         import ray

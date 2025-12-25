@@ -5,11 +5,17 @@ from framex.utils import cache_decode
 from tests.consts import MOCK_RESPONSE
 
 
-async def mock_get(_, url: str, *__, **___: Any):
+async def mock_get(_, url: str, *__, **kwargs: Any):
     resp = MagicMock()
     resp.raise_for_status.return_value = None
 
-    if url.endswith("/api/v1/openapi.json"):
+    headers = kwargs.get("headers", {})
+    if headers.get("Authorization") != "i_am_proxy_docs_auth_keys":
+        resp.json.return_value = {
+            "status": 401,
+            "message": f"Invalid API Key({headers.get('Authorization')}) for API(/api/v1/proxy/mock/auth/get)",
+        }
+    elif url.endswith("/api/v1/openapi.json"):
         resp.json.return_value = MOCK_RESPONSE
     else:
         raise AssertionError(f"Unexpected request: {url}")

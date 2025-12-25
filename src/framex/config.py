@@ -31,7 +31,7 @@ class SentryConfig(BaseModel):
     dsn: str = ""
     env: str = ""  # local, prod, dev
     debug: bool = False
-    ignore_errors: list[str] = []
+    ignore_errors: list[str] = Field(default_factory=list)
     lifecycle: Literal["manual", "trace"] = "manual"
     enable_logs: bool = False
 
@@ -43,24 +43,21 @@ class ServerConfig(BaseModel):
     dashboard_port: int = 8260
     use_ray: bool = False
     enable_proxy: bool = False
-    legal_proxy_code: list[int] = [200]
+    legal_proxy_code: list[int] = Field(default_factory=lambda: [200])
     num_cpus: int = -1
-    excluded_log_paths: list[str] = []
-    ingress_config: dict[str, Any] = {"max_ongoing_requests": 60}
+    excluded_log_paths: list[str] = Field(default_factory=list)
+    ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 60})
 
     # docs config
     docs_user: str = "admin"
     docs_password: str = ""
 
-    @model_validator(mode="after")
-    def validate_model(self) -> Self:
+    def model_post_init(self, __context: Any) -> None:  # pragma: no cover
         if self.docs_password == "":
-            key = str(uuid4())
-            self.docs_password = key
+            self.docs_password = "admin"  # noqa: S105
             from framex.log import logger
 
-            logger.warning(f"No docs_password set, generate a random key: {key}")
-        return self
+            logger.warning("No docs_password set, fallback to default password: admin")
 
 
 class TestConfig(BaseModel):
@@ -69,28 +66,23 @@ class TestConfig(BaseModel):
 
 
 class AuthConfig(BaseModel):
-    general_auth_keys: list[str] = Field(default_factory=list)
-    auth_urls: list[str] = Field(default_factory=list)
-    special_auth_keys: dict[str, list[str]] = Field(default_factory=dict)
+    rules: dict[str, list[str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def normalize_and_validate(self) -> Self:
-        if PROXY_FUNC_HTTP_PATH not in self.auth_urls:
-            self.auth_urls.append(PROXY_FUNC_HTTP_PATH)
-        if not self.general_auth_keys:  # pragma: no cover
+        if PROXY_FUNC_HTTP_PATH not in self.rules:
+            key = str(uuid4())
+            self.rules[PROXY_FUNC_HTTP_PATH] = [key]
             from framex.log import logger
 
-            key = str(uuid4())
-            logger.warning(f"No general_auth_keys set, generate a random key: {key}")
-            self.general_auth_keys = [key]
-        for special_url in self.special_auth_keys:
-            if not self._is_url_protected(special_url):
-                raise ValueError(f"special_auth_keys url '{special_url}' is not covered by any auth_urls rule")
+            logger.warning(
+                f"No auth key found for {PROXY_FUNC_HTTP_PATH}. A random key {key} was generated. "
+                "Please configure auth.rules explicitly in production.",
+            )
         return self
 
     def _is_url_protected(self, url: str) -> bool:
-        """Check if a URL is protected by any auth_urls rule."""
-        for rule in self.auth_urls:
+        for rule in self.rules:
             if rule == url:
                 return True
             if rule.endswith("/*") and url.startswith(rule[:-1]):
@@ -98,18 +90,16 @@ class AuthConfig(BaseModel):
         return False
 
     def get_auth_keys(self, url: str) -> list[str] | None:
-        is_protected = self._is_url_protected(url)
-
-        if not is_protected:
+        if not self._is_url_protected(url):
             return None
 
-        if url in self.special_auth_keys:
-            return self.special_auth_keys[url]
+        if url in self.rules:
+            return self.rules[url]
 
         matched_keys = None
         matched_len = -1
 
-        for rule, keys in self.special_auth_keys.items():
+        for rule, keys in self.rules.items():
             if not rule.endswith("/*"):
                 continue
 
@@ -118,29 +108,24 @@ class AuthConfig(BaseModel):
                 matched_keys = keys
                 matched_len = len(prefix)
 
-        if matched_keys is not None:
-            return matched_keys
-
-        return self.general_auth_keys
+        return matched_keys
 
 
 class Settings(BaseSettings):
     # Global config
     base_ingress_config: dict[str, Any] = {"max_ongoing_requests": 10}
 
-    server: ServerConfig = ServerConfig()
-    log: LogConfig = LogConfig()
+    server: ServerConfig = Field(default_factory=ServerConfig)
+    log: LogConfig = Field(default_factory=LogConfig)
 
     # plugins config
-    plugins: dict[str, Any] = {}
+    plugins: dict[str, Any] = Field(default_factory=dict)
+    load_plugins: list[str] = Field(default_factory=list)
+    load_builtin_plugins: list[str] = Field(default_factory=list)
 
-    # allow load plugins
-    load_plugins: list[str] = []
-    load_builtin_plugins: list[str] = []
-
-    test: TestConfig = TestConfig()
-    sentry: SentryConfig = SentryConfig()
-    auth: AuthConfig = AuthConfig()
+    test: TestConfig = Field(default_factory=TestConfig)
+    sentry: SentryConfig = Field(default_factory=SentryConfig)
+    auth: AuthConfig = Field(default_factory=AuthConfig)
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`
