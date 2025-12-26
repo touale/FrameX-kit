@@ -278,7 +278,7 @@ class ProxyPlugin(BasePlugin):
         if not self.init_proxy_func_route:
             await self.register_proxy_func_route()
             self.init_proxy_func_route = True
-        if func_name in self.proxy_func_map:
+        if func_name in self.proxy_func_map and not is_remote:
             logger.warning(f"Proxy function {func_name} already registered, skipping...")
             return False
 
