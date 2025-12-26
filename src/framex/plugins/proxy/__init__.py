@@ -166,7 +166,7 @@ class ProxyPlugin(BasePlugin):
             params=[("model", ProxyFuncHttpBody)],
             handle=handle,
             stream=False,
-            direct_output=True,
+            direct_output=False,
             tags=[__plugin_meta__.name],
         )
 

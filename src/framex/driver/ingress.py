@@ -16,7 +16,7 @@ from framex.driver.application import create_fastapi_application
 from framex.driver.decorator import api_ingress
 from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi
-from framex.utils import escape_tag
+from framex.utils import escape_tag, safe_error_message
 
 app = create_fastapi_application()
 api_key_header = APIKeyHeader(name="Authorization", auto_error=True)
@@ -100,7 +100,14 @@ class APIIngress:
                         gen,
                         media_type="text/event-stream",
                     )
-                return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
+
+                try:
+                    return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=safe_error_message(e),
+                    ) from None
 
             # Inject auth dependency if needed
             dependencies = []
