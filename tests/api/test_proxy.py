@@ -59,11 +59,44 @@ def test_call_proxy_func(client: TestClient):
     body = {"func_name": func, "data": data}
     headers = {"Authorization": "i_am_local_proxy_auth_keys"}
     res = client.post("/api/v1/proxy/remote", json=body, headers=headers).json()
-    res = cache_decode(res)
-    assert res["a_str"] == "test"
-    assert res["b_int"] == 123
-    model = res["c_model"]
+    assert res["status"] == 200
+    data = cache_decode(res["data"])
+    assert data["a_str"] == "test"
+    assert data["b_int"] == 123
+    model = data["c_model"]
     assert model.id == "id_1"
     assert model.name == 100
     assert model.model.id == 1
     assert model.model.name == "sub_name"
+
+
+@pytest.mark.order(2)
+def test_call_proxy_func_with_error_func_name(client: TestClient):
+    func = cache_encode("tests.test_plugins.error_func")
+    data = cache_encode(
+        {
+            "a_str": "test",
+            "b_int": 123,
+            "c_model": ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name")),
+        }
+    )
+    body = {"func_name": func, "data": data}
+    headers = {"Authorization": "i_am_local_proxy_auth_keys"}
+    res = client.post("/api/v1/proxy/remote", json=body, headers=headers).json()
+    assert res["status"] == 500
+
+
+@pytest.mark.order(2)
+def test_call_proxy_func_with_error_api_key(client: TestClient):
+    func = cache_encode("tests.test_plugins.local_exchange_key_value")
+    data = cache_encode(
+        {
+            "a_str": "test",
+            "b_int": 123,
+            "c_model": ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name")),
+        }
+    )
+    body = {"func_name": func, "data": data}
+    headers = {"Authorization": "i_am_error_keys"}
+    res = client.post("/api/v1/proxy/remote", json=body, headers=headers).json()
+    assert res["status"] == 401

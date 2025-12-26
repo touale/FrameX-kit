@@ -6,6 +6,7 @@ from typing import Any, Literal, Optional, Union, get_args, get_origin
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
+from framex.plugin.load import register_proxy_func
 from framex.plugin.on import on_proxy
 
 
@@ -183,6 +184,7 @@ async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeMod
 
 @pytest.mark.order(1)
 async def test_on_proxy_local_call():
+    await register_proxy_func(local_exchange_key_value)
     res = await local_exchange_key_value(
         a_str="test", b_int=123, c_model=ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name"))
     )

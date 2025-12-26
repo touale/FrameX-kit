@@ -148,3 +148,11 @@ def format_uptime(delta: timedelta) -> str:
         parts.append(f"{seconds}s")
 
     return " ".join(parts)
+
+
+def safe_error_message(e: Exception) -> str:
+    if hasattr(e, "cause") and e.cause:
+        return str(e.cause)
+    if e.args:
+        return str(e.args[0])
+    return "Internal Server Error"
