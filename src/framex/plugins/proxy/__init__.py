@@ -69,6 +69,10 @@ class ProxyPlugin(BasePlugin):
             headers = None
         async with httpx.AsyncClient(timeout=self.time_out) as client:
             response = await client.get(f"{url}{docs_path}", headers=headers)
+            if response.status_code != 200:
+                logger.error(
+                    f"Failed to get openai docs from {url}, status code: {response.status_code}, response: {response.text}"
+                )
             response.raise_for_status()
             return cast(dict[str, Any], response.json())
 

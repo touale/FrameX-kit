@@ -1,9 +1,11 @@
 from collections.abc import Callable
 
+from framex.consts import PROXY_PLUGIN_NAME
 from framex.log import logger
-from framex.plugin.model import Plugin
+from framex.plugin.model import ApiType, Plugin, PluginApi
+from framex.plugin.on import _PROXY_REGISTRY
 
-from . import _manager, get_loaded_plugins
+from . import _manager, call_plugin_api, get_loaded_plugins
 
 
 def load_plugins(*plugin_dir: str) -> set[Plugin]:
@@ -37,5 +39,19 @@ def auto_load_plugins(builtin_plugins: list[str], plugins: list[str], enable_pro
     return builtin_plugin_instances | plugin_instances
 
 
-def register_proxy_func(_: Callable) -> None:  # pragma: no cover
-    pass
+async def register_proxy_func(func: Callable) -> None:
+    full_func_name = f"{func.__module__}.{func.__name__}"
+    if full_func_name not in _PROXY_REGISTRY:  # pragma: no cover
+        raise RuntimeError(f"Function {full_func_name} is not registered as a proxy function.")
+
+    api_reg = PluginApi(
+        deployment_name=PROXY_PLUGIN_NAME,
+        call_type=ApiType.PROXY,
+        func_name="register_proxy_function",
+    )
+    await call_plugin_api(
+        api_reg,
+        None,
+        func_name=full_func_name,
+        func_callable=_PROXY_REGISTRY[full_func_name],
+    )

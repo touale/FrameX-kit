@@ -1,7 +1,6 @@
-from typing import Any, Literal, Self
-from uuid import uuid4
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -9,8 +8,6 @@ from pydantic_settings import (
     SettingsConfigDict,
     TomlConfigSettingsSource,
 )
-
-from framex.consts import PROXY_FUNC_HTTP_PATH
 
 
 class LogConfig(BaseModel):
@@ -68,19 +65,6 @@ class TestConfig(BaseModel):
 class AuthConfig(BaseModel):
     rules: dict[str, list[str]] = Field(default_factory=dict)
 
-    @model_validator(mode="after")
-    def normalize_and_validate(self) -> Self:
-        if PROXY_FUNC_HTTP_PATH not in self.rules:
-            key = str(uuid4())
-            self.rules[PROXY_FUNC_HTTP_PATH] = [key]
-            from framex.log import logger
-
-            logger.warning(
-                f"No auth key found for {PROXY_FUNC_HTTP_PATH}. A random key {key} was generated. "
-                "Please configure auth.rules explicitly in production.",
-            )
-        return self
-
     def _is_url_protected(self, url: str) -> bool:
         for rule in self.rules:
             if rule == url:
@@ -113,7 +97,7 @@ class AuthConfig(BaseModel):
 
 class Settings(BaseSettings):
     # Global config
-    base_ingress_config: dict[str, Any] = {"max_ongoing_requests": 10}
+    base_ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 10})
 
     server: ServerConfig = Field(default_factory=ServerConfig)
     log: LogConfig = Field(default_factory=LogConfig)

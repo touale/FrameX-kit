@@ -1,22 +1,22 @@
 from typing import Any, Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from framex.config import AuthConfig
 from framex.plugin import get_plugin_config
 
 
 class ProxyPluginConfig(BaseModel):
-    proxy_urls: list[str] = []
-    force_stream_apis: list[str] = []
+    proxy_urls: list[str] = Field(default_factory=list)
+    force_stream_apis: list[str] = Field(default_factory=list)
     timeout: int = 600
-    ingress_config: dict[str, Any] = {"max_ongoing_requests": 60}
+    ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 60})
 
-    white_list: list[str] = []
+    white_list: list[str] = Field(default_factory=list)
 
-    auth: AuthConfig = AuthConfig()
+    auth: AuthConfig = Field(default_factory=AuthConfig)
 
-    proxy_functions: dict[str, list[str]] = {}
+    proxy_functions: dict[str, list[str]] = Field(default_factory=dict)
 
     def is_white_url(self, url: str) -> bool:
         """Check if a URL is protected by any auth_urls rule."""

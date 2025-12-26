@@ -61,10 +61,7 @@ The system supports API-level authentication using **access keys**, configured t
 
 ```toml
 [auth]
-rules = {
-  "/api/v1/echo_model" = ["key-1", "key-2"],
-  "/api/v2/*" = ["key-3"]
-}
+rules = {"/api/v1/echo_model" = ["key-1", "key-2"],"/api/v2/*" = ["key-3"]}
 ```
 
 ### Runtime Behavior
@@ -85,8 +82,5 @@ as standard API authentication.
 
 ```toml
 [plugins.proxy.auth]
-rules = {
-  "/api/v1/proxy/remote" = ["proxy-key"],
-  "/api/v1/echo_model" = ["echo-key"]
-}
+rules = {"/api/v1/proxy/remote" = ["proxy-key"],"/api/v1/echo_model" = ["echo-key"]}
 ```

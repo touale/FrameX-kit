@@ -46,7 +46,7 @@ class ExamplePlugin(BasePlugin):
     async def on_start(self) -> None:
         from demo.some import example_func  # Important: Lazy import
 
-        register_proxy_func(example_func)
+        await register_proxy_func(example_func)
 ```
 
 ______________________________________________________________________
@@ -73,19 +73,14 @@ To enable remote execution, add the following configuration to `config.toml`.
 [plugins.proxy]
 proxy_urls = ["http://remotehost:8080"]
 white_list = ["/api/v1/proxy/remote"]
-proxy_functions = {
-  "http://localhost:8083" = [
-    "demo.some.example_func"
-  ]
-}
+proxy_functions = {"http://remotehost:8080" = ["demo.some.example_func"]}
 ```
 
 ### Authentication Configuration
 
 ```toml
 [plugins.proxy.auth]
-general_auth_keys = ["7a23713f-c85f-48c0-a349-7a3363f2d30c"]
-auth_urls = ["/api/v1/proxy/remote"]
+rules = {"/api/v1/proxy/remote" = ["proxy-key"],"/api/v1/openapi.json" = ["openapi-key"]}
 ```
 
 Once configured, FrameX automatically routes function calls to remote instances when required.

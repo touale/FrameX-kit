@@ -98,6 +98,9 @@ def on_request(
     return wrapper
 
 
+_PROXY_REGISTRY: dict[str, Callable] = {}
+
+
 def on_proxy() -> Callable:
     def decorator(func: Callable) -> Callable:
         from framex.config import settings
@@ -124,26 +127,14 @@ def on_proxy() -> Callable:
                     return await raw(*args, **kwargs)
                 return raw(*args, **kwargs)
 
+        _PROXY_REGISTRY[full_func_name] = safe_callable
+
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             nonlocal is_registered
 
             if args:  # pragma: no cover
                 raise TypeError(f"The proxy function '{func.__name__}' only supports keyword arguments.")
-
-            if not is_registered:
-                api_reg = PluginApi(
-                    deployment_name=PROXY_PLUGIN_NAME,
-                    call_type=ApiType.PROXY,
-                    func_name="register_proxy_function",
-                )
-                await call_plugin_api(
-                    api_reg,
-                    None,
-                    func_name=full_func_name,
-                    func_callable=safe_callable,
-                )
-                is_registered = True
 
             api_call = PluginApi(
                 deployment_name=PROXY_PLUGIN_NAME,
