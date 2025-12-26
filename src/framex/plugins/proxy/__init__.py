@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import httpx
 from pydantic import BaseModel, create_model
+from starlette import status
 from typing_extensions import override
 
 from framex.adapter import get_adapter
@@ -69,7 +70,7 @@ class ProxyPlugin(BasePlugin):
             headers = None
         async with httpx.AsyncClient(timeout=self.time_out) as client:
             response = await client.get(f"{url}{docs_path}", headers=headers)
-            if response.status_code != 200:
+            if response.status_code != status.HTTP_200_OK:  # pragma: no cover
                 logger.error(
                     f"Failed to get openai docs from {url}, status code: {response.status_code}, response: {response.text}"
                 )

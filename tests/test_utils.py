@@ -6,7 +6,14 @@ import pytest
 from pydantic import BaseModel
 
 from framex.config import AuthConfig
-from framex.utils import StreamEnventType, cache_decode, cache_encode, format_uptime, make_stream_event
+from framex.utils import (
+    StreamEnventType,
+    cache_decode,
+    cache_encode,
+    format_uptime,
+    make_stream_event,
+    safe_error_message,
+)
 
 
 class StreamDataModel(BaseModel):
@@ -152,3 +159,25 @@ def test_format_uptime():
     # Test only minutes (no seconds)
     delta = timedelta(minutes=5, seconds=0)
     assert format_uptime(delta) == "5m"
+
+
+class CauseError(Exception):
+    def __init__(self, cause: Exception):
+        self.cause = cause
+        super().__init__("outer")
+
+
+def test_safe_error_message_with_cause():
+    e = CauseError(RuntimeError("inner"))
+    assert safe_error_message(e) == "inner"
+
+
+def test_safe_error_message_with_args():
+    e = RuntimeError("simple error")
+    assert safe_error_message(e) == "simple error"
+
+
+def test_safe_error_message_fallback():
+    e = Exception()
+    e.args = ()
+    assert safe_error_message(e) == "Internal Server Error"
