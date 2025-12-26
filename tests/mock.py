@@ -85,7 +85,8 @@ async def mock_request(_, method: str, url: str, **kwargs: Any):
                 raise ValueError("Missing required fields: func_name and data")
             decode_func_name = cache_decode(func_name)
             decode_data = cache_decode(data)
-            resp.json.return_value = {"result": decode_func_name, "data": decode_data}
+            res = {"result": decode_func_name, "data": decode_data}
+            resp.json.return_value = {"status": 200, "data": res}
     else:
         raise AssertionError(f"Unexpected request: {method} {url}")
 
