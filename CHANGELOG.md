@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.8-beta.1 (2025-12-26)
+
+### Bug Fixes
+
+- Optimize proxy response handling and cache encoding
+  ([`fada3ed`](https://github.com/touale/FrameX-kit/commit/fada3ed1f188d2ca839b0a5f51352d4bf2667bfa))
+
+
 ## v0.2.7 (2025-12-26)
 
 ### Bug Fixes
