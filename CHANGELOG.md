@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.8-beta.2 (2025-12-26)
+
+### Bug Fixes
+
+- Prevent duplicate remote proxy function registration
+  ([`1de00ae`](https://github.com/touale/FrameX-kit/commit/1de00ae74d23b48545ed519830b6c739262998bc))
+
+
 ## v0.2.8-beta.1 (2025-12-26)
 
 ### Bug Fixes
