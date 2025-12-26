@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.2.7 (2025-12-26)
+
+### Bug Fixes
+
+- Improve proxy function registration and auth configuration
+  ([`9d66e07`](https://github.com/touale/FrameX-kit/commit/9d66e07da0826476076bc58e4d43ca5fa93eb396))
+
+### Features
+
+- Enhance error handling and proxy response format
+  ([`160d16a`](https://github.com/touale/FrameX-kit/commit/160d16a50d0913f16b8747dbaa4c4a57bb553c12))
+
+### Testing
+
+- Enhance error handling and add status code constants
+  ([`ccfee69`](https://github.com/touale/FrameX-kit/commit/ccfee690c105d2455a1ea94dc824ae6baf0dde6e))
+
+
 ## v0.2.6 (2025-12-25)
 
 ### Chores
