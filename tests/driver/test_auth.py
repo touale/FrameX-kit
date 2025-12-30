@@ -140,7 +140,7 @@ class TestAuthenticate:
             req.url.path = "/docs"
             with pytest.raises(HTTPException) as exc:
                 authenticate(req, api_key=None)
-            assert exc.value.status_code == status.HTTP_301_MOVED_PERMANENTLY
+            assert exc.value.status_code == status.HTTP_302_FOUND
 
     def test_valid_api_key(self):
         with (
@@ -195,7 +195,7 @@ class TestAuthenticationIntegration:
 
             resp = client.get("/docs", follow_redirects=False)
 
-            assert resp.status_code == status.HTTP_301_MOVED_PERMANENTLY
+            assert resp.status_code == status.HTTP_302_FOUND
             assert "oauth.example.com" in resp.headers["location"]
 
     def test_docs_accessible_with_valid_jwt(self):

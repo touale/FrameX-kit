@@ -67,7 +67,7 @@ def authenticate(request: Request, api_key: str | None = Depends(api_key_header)
             return
 
         raise HTTPException(
-            status_code=status.HTTP_301_MOVED_PERMANENTLY,
+            status_code=status.HTTP_302_FOUND,
             headers={
                 "Location": (
                     f"{settings.auth.oauth.authorization_url}"
