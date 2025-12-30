@@ -1,3 +1,4 @@
+import secrets
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -45,24 +46,44 @@ class ServerConfig(BaseModel):
     excluded_log_paths: list[str] = Field(default_factory=list)
     ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 60})
 
-    # docs config
-    docs_user: str = "admin"
-    docs_password: str = ""
-
-    def model_post_init(self, __context: Any) -> None:  # pragma: no cover
-        if self.docs_password == "":
-            self.docs_password = "admin"  # noqa: S105
-            from framex.log import logger
-
-            logger.warning("No docs_password set, fallback to default password: admin")
-
 
 class TestConfig(BaseModel):
     disable_record_request: bool = False
     silent: bool = False
 
 
+class OauthConfig(BaseModel):
+    client_id: str = ""
+    client_secret: str = ""
+    authorization_url: str = ""
+    redirect_uri: str = ""
+    base_url: str = ""
+
+    token_url: str = ""
+    user_info_url: str = ""
+    app_url: str = ""
+
+    jwt_secret: str = ""
+    jwt_algorithm: str = "HS256"
+
+    @property
+    def call_back_url(self) -> str:
+        return f"{self.app_url}{self.redirect_uri}"
+
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
+        if not self.authorization_url:
+            self.authorization_url = f"{self.base_url}/oauth/authorize"
+        if not self.token_url:
+            self.token_url = f"{self.base_url}/oauth/token"
+        if not self.user_info_url:
+            self.user_info_url = f"{self.base_url}/api/v4/user"
+        if not self.jwt_secret:
+            self.jwt_secret = secrets.token_urlsafe(32)
+
+
 class AuthConfig(BaseModel):
+    oauth: OauthConfig | None = Field(default=None)
     rules: dict[str, list[str]] = Field(default_factory=dict)
 
     def _is_url_protected(self, url: str) -> bool:
