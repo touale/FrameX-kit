@@ -98,10 +98,9 @@ async def oauth_callback(code: str) -> Response:
         resp.raise_for_status()
         token_resp = resp.json()
 
-    if not (auth_token := token_resp.get("access_token")):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="GitLab token exchange failed")
+        if not (auth_token := token_resp.get("access_token")):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="GitLab token exchange failed")
 
-    async with httpx.AsyncClient() as client:
         resp = await client.get(
             settings.auth.oauth.user_info_url,
             headers={"Authorization": f"Bearer {auth_token}"},
@@ -110,15 +109,12 @@ async def oauth_callback(code: str) -> Response:
         resp.raise_for_status()
         user_resp = resp.json()
 
-    if not (auth_token := user_resp.get("username")):
+    if not (username := user_resp.get("username")):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to get GitLab user")
 
-    user = user_resp.get("user")
-
     user_info = {
-        "message": f"Welcome {user}",
-        "username": user,
-        "name": user_resp.get("name"),
+        "message": f"Welcome {username}",
+        "username": username,
         "email": user_resp.get("email"),
     }
 
