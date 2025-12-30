@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v0.2.8-beta.3 (2025-12-30)
+
+### Bug Fixes
+
+- Remove verbose kwargs from proxy function logging
+  ([`a32e0cf`](https://github.com/touale/FrameX-kit/commit/a32e0cfb8a29dbb296b5a05e3023506f2e83bc94))
+
+- Update OAuth redirect status code from 301 to 302
+  ([`1d975e9`](https://github.com/touale/FrameX-kit/commit/1d975e966cfe572ee2641292f19641abf51a6507))
+
+### Features
+
+- Implement OAuth authentication with JWT support
+  ([`98b648c`](https://github.com/touale/FrameX-kit/commit/98b648c38a7ba87035e83670258658670f52dc78))
+
+### Testing
+
+- Add pragma comments and enhance OAuth authentication tests
+  ([`b4ed409`](https://github.com/touale/FrameX-kit/commit/b4ed40959fe04850ff6ca1d87afdb0e3bf4588ab))
+
+- Refactor OAuth callback and add authentication tests
+  ([`2544602`](https://github.com/touale/FrameX-kit/commit/254460280bf3d4c80b0b4fced45a9d851fcf5e11))
+
+- Replace AuthConfig tests with OAuthConfig test cases
+  ([`b43539c`](https://github.com/touale/FrameX-kit/commit/b43539c24258e7a42fe689787fe37ab6b02df78c))
+
+
 ## v0.2.8-beta.2 (2025-12-26)
 
 ### Bug Fixes
