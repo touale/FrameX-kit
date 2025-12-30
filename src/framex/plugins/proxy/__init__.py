@@ -295,7 +295,7 @@ class ProxyPlugin(BasePlugin):
             else:
                 kwargs = decode_kwargs
             tag = "remote" if proxy_func.is_remote else "local"
-            logger.info(f"Calling proxy function[{tag}]: {decode_func_name},  kwargs: {decode_kwargs}")
+            logger.info(f"Calling proxy function[{tag}]: {decode_func_name}")
             res = await proxy_func.func(**kwargs)
             return res if proxy_func.is_remote else cache_encode(res)
         raise RuntimeError(f"Proxy function({decode_func_name}) not registered")

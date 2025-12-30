@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from starlette import status
 from starlette.exceptions import HTTPException
 
-from framex.consts import API_STR, DOCS_URL, OPENAPI_URL
+from framex.consts import API_STR
 from framex.driver.application import create_fastapi_application
 
 
@@ -31,45 +31,6 @@ class TestCreateFastAPIApplication:
         app = create_fastapi_application()
         middleware_classes = [m.cls.__name__ for m in app.user_middleware]  # type: ignore
         assert "CORSMiddleware" in middleware_classes
-
-
-class TestAuthenticationEndpoints:
-    @pytest.fixture
-    def app(self):
-        return create_fastapi_application()
-
-    @pytest.fixture
-    def client(self, app):
-        return TestClient(app)
-
-    def test_docs_requires_auth(self, client):
-        response = client.get(DOCS_URL)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    def test_docs_wrong_credentials(self, client):
-        response = client.get(DOCS_URL, auth=("bad", "bad"))
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    def test_docs_correct_credentials(self, client):
-        from framex.config import settings
-
-        response = client.get(
-            DOCS_URL,
-            auth=(settings.server.docs_user, settings.server.docs_password),
-        )
-        assert response.status_code == status.HTTP_200_OK
-        assert "text/html" in response.headers["content-type"]
-
-    def test_openapi_correct_credentials(self, client):
-        from framex.config import settings
-
-        response = client.get(
-            OPENAPI_URL,
-            auth=(settings.server.docs_user, settings.server.docs_password),
-        )
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["info"]["title"] == "FrameX API"
 
 
 class TestExceptionHandlers:
@@ -145,15 +106,6 @@ class TestLogResponseMiddleware:
         assert data["message"] == "success"
         assert data["data"] == {"result": "ok"}
         assert "timestamp" in data
-
-    def test_docs_not_wrapped(self, client):
-        from framex.config import settings
-
-        response = client.get(
-            DOCS_URL,
-            auth=(settings.server.docs_user, settings.server.docs_password),
-        )
-        assert "text/html" in response.headers["content-type"]
 
 
 class TestLifespanBehavior:

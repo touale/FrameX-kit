@@ -16,8 +16,8 @@ def test_echo(client: TestClient):
 def test_echo_with_no_api_key(client: TestClient):
     params = {"message": "hello world"}
     res = client.get(f"{API_STR}/echo", params=params).json()
-    assert res["status"] == 403
-    assert res["message"] == "Not authenticated"
+    assert res["status"] == 401
+    assert res["message"] == "Invalid API Key(None) for API(/api/v1/echo)"
 
 
 def test_echo_with_error_api_key(client: TestClient):

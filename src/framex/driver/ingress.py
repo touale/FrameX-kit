@@ -2,10 +2,9 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
-from fastapi import Depends, HTTPException, Response, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
-from fastapi.security import APIKeyHeader
 from pydantic import create_model
 from ray.serve.handle import DeploymentHandle
 from starlette.routing import Route
@@ -13,13 +12,13 @@ from starlette.routing import Route
 from framex.adapter import get_adapter
 from framex.consts import BACKEND_NAME
 from framex.driver.application import create_fastapi_application
+from framex.driver.auth import api_key_header, auth_jwt
 from framex.driver.decorator import api_ingress
 from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi
 from framex.utils import escape_tag, safe_error_message
 
 app = create_fastapi_application()
-api_key_header = APIKeyHeader(name="Authorization", auto_error=True)
 
 
 @app.get("/health")
@@ -114,8 +113,8 @@ class APIIngress:
             if auth_keys is not None:
                 logger.debug(f"API({path}) with tags {tags} requires auth.")
 
-                def _verify_api_key(api_key: str = Depends(api_key_header)) -> None:
-                    if api_key not in auth_keys:
+                def _verify_api_key(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
+                    if (api_key is None or api_key not in auth_keys) and (not auth_jwt(request)):
                         logger.error(f"Unauthorized access attempt with API Key({api_key}) for API({path})")
                         raise HTTPException(
                             status_code=status.HTTP_401_UNAUTHORIZED,

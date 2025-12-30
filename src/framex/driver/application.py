@@ -1,7 +1,6 @@
 """Module containing FastAPI instance related functions and classes."""
 
 import json
-import secrets
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -13,7 +12,6 @@ from fastapi import Depends, FastAPI
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from starlette import status
 from starlette.concurrency import iterate_in_threadpool
 from starlette.exceptions import HTTPException
@@ -24,6 +22,7 @@ from starlette.responses import JSONResponse
 
 from framex.config import settings
 from framex.consts import API_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
+from framex.driver.auth import authenticate, oauth_callback
 from framex.utils import format_uptime
 
 FRAME_START_TIME = datetime.now(tz=UTC)
@@ -95,22 +94,12 @@ def create_fastapi_application() -> FastAPI:
         redirect_slashes=False,
     )
 
-    security = HTTPBasic(realm="Swagger Docs")
-
-    def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> str:
-        correct_username = secrets.compare_digest(credentials.username, settings.server.docs_user)
-        correct_password = secrets.compare_digest(credentials.password, settings.server.docs_password)
-
-        if not (correct_username and correct_password):
-            from framex.log import logger
-
-            logger.warning(f"Failed authentication attempt for user: {credentials.username}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect user or password",
-                headers={"WWW-Authenticate": "Basic"},
-            )
-        return credentials.username
+    if settings.auth.oauth:
+        application.add_api_route(
+            settings.auth.oauth.redirect_uri,
+            oauth_callback,
+            methods=["GET"],
+        )
 
     @application.get(DOCS_URL, include_in_schema=False)
     async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
