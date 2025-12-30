@@ -59,8 +59,26 @@ class TestCreateJWT:
 
 
 class TestAuthJWT:
-    def test_valid_jwt(self):
-        with patch("framex.config.settings.auth.oauth", fake_oauth()):
+    def test_returns_false_when_oauth_not_configured(self):
+        with patch("framex.config.settings.auth.oauth", None):
+            req = Mock(spec=Request)
+            assert auth_jwt(req) is False
+
+    def test_returns_false_when_no_token_cookie(self):
+        with patch("framex.config.settings.auth.oauth") as mock_oauth:
+            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_algorithm = "HS256"
+
+            req = Mock(spec=Request)
+            req.cookies.get.return_value = None
+
+            assert auth_jwt(req) is False
+
+    def test_returns_true_when_token_is_valid(self):
+        with patch("framex.config.settings.auth.oauth") as mock_oauth:
+            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_algorithm = "HS256"
+
             now = datetime.now(UTC)
             token = jwt.encode(
                 {
@@ -71,13 +89,41 @@ class TestAuthJWT:
                 "secret",
                 algorithm="HS256",
             )
+
             req = Mock(spec=Request)
             req.cookies.get.return_value = token
+
             assert auth_jwt(req) is True
 
-    def test_no_oauth(self):
-        with patch("framex.config.settings.auth.oauth", None):
+    def test_returns_false_when_token_is_invalid(self):
+        with patch("framex.config.settings.auth.oauth") as mock_oauth:
+            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_algorithm = "HS256"
+
             req = Mock(spec=Request)
+            req.cookies.get.return_value = "this.is.not.a.jwt"
+
+            assert auth_jwt(req) is False
+
+    def test_returns_false_when_token_is_expired(self):
+        with patch("framex.config.settings.auth.oauth") as mock_oauth:
+            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_algorithm = "HS256"
+
+            now = datetime.now(UTC)
+            expired_token = jwt.encode(
+                {
+                    "username": "test",
+                    "iat": int((now - timedelta(days=2)).timestamp()),
+                    "exp": int((now - timedelta(days=1)).timestamp()),
+                },
+                "secret",
+                algorithm="HS256",
+            )
+
+            req = Mock(spec=Request)
+            req.cookies.get.return_value = expired_token
+
             assert auth_jwt(req) is False
 
 
