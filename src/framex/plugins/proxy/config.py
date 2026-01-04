@@ -37,4 +37,4 @@ class ProxyPluginConfig(BaseModel):
         return self
 
 
-settings = get_plugin_config("proxy", ProxyPluginConfig)
+settings: ProxyPluginConfig = get_plugin_config("proxy", ProxyPluginConfig)
