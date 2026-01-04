@@ -138,9 +138,9 @@ def get_http_plugin_apis() -> list["PluginApi"]:
 
 
 from .base import BasePlugin
-from .load import load_builtin_plugins, load_plugins
+from .load import load_builtin_plugins, load_plugins, register_proxy_func
 from .model import ApiType, PluginMetadata
-from .on import on_register, on_request, remote
+from .on import on_proxy, on_register, on_request, remote
 
 __all__ = [
     "ApiType",
@@ -148,7 +148,9 @@ __all__ = [
     "PluginMetadata",
     "load_builtin_plugins",
     "load_plugins",
+    "on_proxy",
     "on_register",
     "on_request",
+    "register_proxy_func",
     "remote",
 ]

@@ -168,8 +168,10 @@ from framex.plugin import (
     get_plugin_config,
     load_builtin_plugins,
     load_plugins,
+    on_proxy,
     on_register,
     on_request,
+    register_proxy_func,
     remote,
 )
 
@@ -182,7 +184,9 @@ __all__ = [
     "load_builtin_plugins",
     "load_plugins",
     "logger",
+    "on_proxy",
     "on_register",
     "on_request",
+    "register_proxy_func",
     "remote",
 ]
