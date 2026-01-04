@@ -36,6 +36,8 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                         path = f"{API_STR}{path}" if path.startswith("/") else f"{API_STR}/{path}"
 
                     params = extract_method_params(func)
+                    version: str = plugin.module.__plugin_meta__.version
+                    version = f"v{version}" if version.startswith("v") else version
                     plugin_apis.append(
                         PluginApi(
                             api=path,
@@ -44,7 +46,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                             methods=func.__expose_methods_,
                             params=params,
                             call_type=call_type,
-                            tags=[plugin.name + "(v" + plugin.module.__plugin_meta__.version + ")"],
+                            tags=[plugin.name + f"({version})"],
                             stream=func.__expose_stream,
                         )
                     )
