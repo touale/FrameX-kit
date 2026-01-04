@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.8-beta.4 (2026-01-04)
+
+### Features
+
+- Add retry mechanism with tenacity for proxy requests
+  ([`4bc05e8`](https://github.com/touale/FrameX-kit/commit/4bc05e8f2bb574bc31d9df09e068fa702cea4aab))
+
+
 ## v0.2.8-beta.3 (2025-12-30)
 
 ### Bug Fixes
