@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.2.8-beta.5 (2026-01-04)
+
+### Bug Fixes
+
+- Add proxy function registration and on_proxy hook
+  ([`0ba17da`](https://github.com/touale/FrameX-kit/commit/0ba17da004fe56af8468116e055a9f4e5723d2c0))
+
+- Enhance plugin version formatting in API registration
+  ([`e4d2887`](https://github.com/touale/FrameX-kit/commit/e4d28871e9bee3888de7af2e22f943ba378a0816))
+
+### Features
+
+- Tenacity dependency and retry mechanism
+  ([`2921208`](https://github.com/touale/FrameX-kit/commit/292120840bb78c8fe624bd6553a462a1cf88fd53))
+
+
 ## v0.2.8-beta.4 (2026-01-04)
 
 ### Features
