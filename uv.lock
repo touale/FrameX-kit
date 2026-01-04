@@ -502,6 +502,7 @@ dependencies = [
     { name = "pytz" },
     { name = "ray", extra = ["serve"] },
     { name = "sentry-sdk", extra = ["fastapi"] },
+    { name = "tenacity" },
     { name = "tomli" },
 ]
 
@@ -532,7 +533,7 @@ dev = [
 requires-dist = [
     { name = "aiocache", specifier = ">=0.12.3" },
     { name = "click", specifier = ">=8.1.8" },
-    { name = "fastapi", specifier = ">=0.115.13" },
+    { name = "fastapi", specifier = ">=0.115.13,<1.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "poethepoet", marker = "extra == 'release'", specifier = ">=0.36.0" },
@@ -543,6 +544,7 @@ requires-dist = [
     { name = "pytz", specifier = ">=2025.2" },
     { name = "ray", extras = ["serve"], specifier = "==2.53.0" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.33.0" },
+    { name = "tenacity", specifier = ">=9.1.2" },
     { name = "tomli", specifier = ">=2.2.1" },
 ]
 
@@ -2271,6 +2273,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/de/1a/608df0b10b53b0beb96a37854ee05864d182ddd4b1156a22f1ad3860425a/starlette-0.49.3.tar.gz", hash = "sha256:1c14546f299b5901a1ea0e34410575bc33bbd741377a10484a54445588d00284", size = 2655031 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a3/e0/021c772d6a662f43b63044ab481dc6ac7592447605b5b35a957785363122/starlette-0.49.3-py3-none-any.whl", hash = "sha256:b579b99715fdc2980cf88c8ec96d3bf1ce16f5a8051a7c2b84ef9b1cdecaea2f", size = 74340 },
+]
+
+[[package]]
+name = "tenacity"
+version = "9.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/d4/2b0cd0fe285e14b36db076e78c93766ff1d529d70408bd1d2a5a84f1d929/tenacity-9.1.2.tar.gz", hash = "sha256:1169d376c297e7de388d18b4481760d478b0e99a777cad3a9c86e556f4b697cb", size = 48036 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/30/643397144bfbfec6f6ef821f36f33e57d35946c44a2352d3c9f0ae847619/tenacity-9.1.2-py3-none-any.whl", hash = "sha256:f77bf36710d8b73a50b2dd155c97b870017ad21afe6ab300326b0371b3b05138", size = 28248 },
 ]
 
 [[package]]

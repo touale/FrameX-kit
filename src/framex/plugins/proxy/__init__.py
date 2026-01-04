@@ -6,6 +6,7 @@ from typing import Any, cast
 import httpx
 from pydantic import BaseModel, create_model
 from starlette import status
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from typing_extensions import override
 
 from framex.adapter import get_adapter
@@ -63,6 +64,21 @@ class ProxyPlugin(BasePlugin):
     async def check_is_gen_api(self, path: str) -> bool:
         return path in settings.force_stream_apis
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=0.5, min=0.5, max=5),
+        retry=retry_if_exception_type(
+            (
+                httpx.ConnectError,
+                httpx.ConnectTimeout,
+                httpx.ReadTimeout,
+                httpx.WriteTimeout,
+                httpx.PoolTimeout,
+                httpx.TransportError,
+            )
+        ),
+        reraise=True,
+    )
     async def _get_openai_docs(self, url: str, docs_path: str = "/api/v1/openapi.json") -> dict[str, Any]:
         if auth_api_key := settings.auth.get_auth_keys(docs_path):
             headers = {"Authorization": auth_api_key[0]}  # Use the first auth key set
