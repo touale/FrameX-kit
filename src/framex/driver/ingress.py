@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable
 from enum import Enum
 from typing import Any
@@ -123,7 +124,7 @@ class APIIngress:
 
                 dependencies.append(Depends(_verify_api_key))
 
-            app.add_api_route(
+            self.add_api_route(
                 path,
                 route_handler,
                 methods=methods,
@@ -146,3 +147,24 @@ class APIIngress:
 
     def __repr__(self):
         return BACKEND_NAME
+
+    def add_api_route(
+        self,
+        path: str,
+        endpoint: Callable[..., Any],
+        *,
+        methods: list[str] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        method_set: set[str] = {m.upper() for m in methods} if methods else {"GET"}
+        norm_path = re.sub(r"\{[^}]+\}", "{}", path)
+
+        for route in app.routes:
+            if (
+                isinstance(route, APIRoute)
+                and re.sub(r"\{[^}]+\}", "{}", route.path) == norm_path
+                and route.methods & method_set
+            ):
+                raise RuntimeError(f"Duplicate API route: {sorted(method_set)} {norm_path}")
+
+        app.add_api_route(path, endpoint, methods=list(method_set), **kwargs)
