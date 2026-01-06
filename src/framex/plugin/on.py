@@ -37,7 +37,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
 
                     params = extract_method_params(func)
                     version: str = plugin.module.__plugin_meta__.version
-                    version = f"v{version}" if version.startswith("v") else version
+                    version = f"v{version}" if not version.startswith("v") else version
                     plugin_apis.append(
                         PluginApi(
                             api=path,

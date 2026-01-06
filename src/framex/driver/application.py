@@ -1,6 +1,7 @@
 """Module containing FastAPI instance related functions and classes."""
 
 import json
+import os
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -27,6 +28,7 @@ from framex.utils import format_uptime
 
 FRAME_START_TIME = datetime.now(tz=UTC)
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
+REVERSION = settings.server.reversion or os.getenv("REVERSION")
 
 
 def build_openapi_description() -> str:
@@ -42,7 +44,7 @@ def build_openapi_description() -> str:
 |--------|-------|
 | Started At | `{started_at}` |
 | Uptime | `{uptime}` |
-| Service-Version | `v{settings.server.reversion}` |
+| Service-Version | `v{REVERSION}` |
 | FrameX-Version | `v{VERSION}` |
 
 ---
