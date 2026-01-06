@@ -156,7 +156,7 @@ class APIIngress:
         methods: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
-        method_set: set[str] = {m.upper() for m in (methods or [])}
+        method_set: set[str] = {m.upper() for m in methods} if methods else {"GET"}
         norm_path = re.sub(r"\{[^}]+\}", "{}", path)
 
         for route in app.routes:

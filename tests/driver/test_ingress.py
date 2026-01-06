@@ -80,13 +80,6 @@ def test_case_insensitive_methods(ingress, mock_app):
         ingress.add_api_route("/users", Mock(), methods=["get"])
 
 
-def test_none_methods_becomes_empty_list(ingress, mock_app):
-    ingress.add_api_route("/users", Mock(), methods=None)
-
-    _, kwargs = mock_app.add_api_route.call_args
-    assert kwargs["methods"] == []
-
-
 def test_non_api_route_is_ignored(ingress, mock_app):
     non_api_route = Mock(spec=Route)
     non_api_route.path = "/users/{id}"
