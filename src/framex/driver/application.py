@@ -42,7 +42,8 @@ def build_openapi_description() -> str:
 |--------|-------|
 | Started At | `{started_at}` |
 | Uptime | `{uptime}` |
-| Version | `v{VERSION}` |
+| Service-Version | `v{settings.server.reversion}` |
+| FrameX-Version | `v{VERSION}` |
 
 ---
 """

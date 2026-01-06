@@ -156,3 +156,7 @@ def safe_error_message(e: Exception) -> str:
     if e.args:
         return str(e.args[0])
     return "Internal Server Error"
+
+
+def shorten_str(data: str, max_len: int = 45) -> str:
+    return data if len(data) <= max_len else data[: max_len - 3] + "..."

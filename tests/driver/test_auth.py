@@ -213,6 +213,6 @@ class TestAuthenticationIntegration:
                 "secret",
                 algorithm="HS256",
             )
-
-            resp = client.get("/docs", cookies={"token": token}, follow_redirects=False)
+            client.cookies.set("token", token)
+            resp = client.get("/docs", follow_redirects=False)
             assert resp.status_code == status.HTTP_200_OK

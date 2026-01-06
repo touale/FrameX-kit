@@ -77,7 +77,13 @@ def run(
     builtin_plugins = settings.load_builtin_plugins if load_builtin_plugins is None else load_builtin_plugins
     external_plugins = settings.load_plugins if load_plugins is None else load_plugins
 
-    reversion = reversion or VERSION
+    if reversion:
+        settings.server.reversion = reversion
+    elif settings.server.reversion:
+        reversion = settings.server.reversion
+    else:
+        reversion = VERSION
+        settings.server.reversion = VERSION
 
     if test_mode and use_ray:
         raise RuntimeError("FlameX can not run when `test_mode` == True, and `use_ray` == True")
