@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v0.2.8-beta.6 (2026-01-06)
+
+### Bug Fixes
+
+- Correct plugin name display in warning log
+  ([`1b54e64`](https://github.com/touale/FrameX-kit/commit/1b54e648e976fd5e8eb33b74b1b024a0eb0eb25f))
+
+- Default methods to GET when methods is None
+  ([`4875ab2`](https://github.com/touale/FrameX-kit/commit/4875ab2cf02b767a315943c340cf7aeb26fd9df5))
+
+### Features
+
+- Add duplicate route detection in APIIngress
+  ([`548e042`](https://github.com/touale/FrameX-kit/commit/548e042a05c5e1359abe1a5c6642e6fa0c249ccc))
+
+- Add reversion config and enhance logging with colored output
+  ([`72268af`](https://github.com/touale/FrameX-kit/commit/72268af391b8f2e042b8fb3e59879a846793b338))
+
+### Testing
+
+- Add comprehensive APIIngress route validation tests
+  ([`73ee04d`](https://github.com/touale/FrameX-kit/commit/73ee04de5ca71f77770944275b9a1f27dce0d059))
+
+
 ## v0.2.8-beta.5 (2026-01-04)
 
 ### Bug Fixes
