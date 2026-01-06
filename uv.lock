@@ -488,7 +488,7 @@ wheels = [
 
 [[package]]
 name = "framex-kit"
-version = "0.2.8b6"
+version = "0.2.8b7"
 source = { editable = "." }
 dependencies = [
     { name = "aiocache" },

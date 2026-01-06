@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.8-beta.7 (2026-01-06)
+
+### Bug Fixes
+
+- Update version handling and environment variable support
+  ([`23d2142`](https://github.com/touale/FrameX-kit/commit/23d2142ded0905e3d85d7c4cdf765d3446ffe119))
+
+
 ## v0.2.8-beta.6 (2026-01-06)
 
 ### Bug Fixes
