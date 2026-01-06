@@ -45,6 +45,7 @@ class ServerConfig(BaseModel):
     num_cpus: int = -1
     excluded_log_paths: list[str] = Field(default_factory=list)
     ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 60})
+    reversion: str = ""
 
 
 class TestConfig(BaseModel):

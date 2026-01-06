@@ -18,7 +18,7 @@ from framex.plugin.on import on_request
 from framex.plugins.proxy.builder import create_pydantic_model, type_map
 from framex.plugins.proxy.config import ProxyPluginConfig, settings
 from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
-from framex.utils import cache_decode, cache_encode
+from framex.utils import cache_decode, cache_encode, shorten_str
 
 __plugin_meta__ = PluginMetadata(
     name="proxy",
@@ -85,13 +85,13 @@ class ProxyPlugin(BasePlugin):
         for path, details in paths.items():
             # Check if the path is legal!
             if not settings.is_white_url(path):
-                logger.warning(f"Proxy api({path}) not in white_list, skipping...")
+                logger.opt(colors=True).warning(f"Proxy api(<y>{path}</y>) not in white_list, skipping...")
                 continue
 
             # Get auth api_keys
             if auth_api_key := settings.auth.get_auth_keys(path):
                 headers = {"Authorization": auth_api_key[0]}  # Use the first auth key set
-                logger.debug(f"Proxy api({path}) requires auth")
+                logger.trace(f"Proxy api({path}) requires auth")
             else:
                 headers = None
 
@@ -119,7 +119,7 @@ class ProxyPlugin(BasePlugin):
 
                     Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
                     params.append(("model", Model))
-                logger.opt(colors=True).debug(f"Found proxy api({method}) <g>{url}{path}</g>")
+                logger.opt(colors=True).trace(f"Found proxy api({method}) <g>{url}{path}</g>")
                 func_name = body.get("operationId")
                 is_stream = path in settings.force_stream_apis
                 func = self._create_dynamic_method(
@@ -234,7 +234,8 @@ class ProxyPlugin(BasePlugin):
 
         # Construct dynamic methods
         async def dynamic_method(**kwargs: Any) -> AsyncGenerator[str, None] | dict[str, Any] | str:
-            logger.info(f"Calling proxy url: {url} with kwargs: {kwargs}")
+            log_info = shorten_str(str(kwargs), 512)
+            logger.info(f"Calling proxy url: {url} with kwargs: {log_info}")
             validated = RequestModel(**kwargs)  # Type Validation
             query = {}
             json_body = None

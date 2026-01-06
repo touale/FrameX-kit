@@ -125,7 +125,7 @@ async def call_plugin_api(
         res = result.get("data")
         status = result.get("status")
         if status not in settings.server.legal_proxy_code:
-            logger.opt(colors=True).error(f"Proxy API {api_name} call illegal: <r>{result}</r>")
+            logger.opt(colors=True).error(f"<>Proxy API {api_name} call illegal: <r>{result}</r>")
             raise RuntimeError(f"Proxy API {api_name} returned status {status}")
         if res is None:
             logger.opt(colors=True).warning(f"API {api_name} returned empty data")
