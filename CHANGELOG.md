@@ -2,6 +2,69 @@
 
 <!-- version list -->
 
+## v0.2.8 (2026-01-12)
+
+### Bug Fixes
+
+- Add proxy function registration and on_proxy hook
+  ([`0ba17da`](https://github.com/touale/FrameX-kit/commit/0ba17da004fe56af8468116e055a9f4e5723d2c0))
+
+- Correct plugin name display in warning log
+  ([`1b54e64`](https://github.com/touale/FrameX-kit/commit/1b54e648e976fd5e8eb33b74b1b024a0eb0eb25f))
+
+- Default methods to GET when methods is None
+  ([`4875ab2`](https://github.com/touale/FrameX-kit/commit/4875ab2cf02b767a315943c340cf7aeb26fd9df5))
+
+- Enhance plugin version formatting in API registration
+  ([`e4d2887`](https://github.com/touale/FrameX-kit/commit/e4d28871e9bee3888de7af2e22f943ba378a0816))
+
+- Optimize proxy response handling and cache encoding
+  ([`fada3ed`](https://github.com/touale/FrameX-kit/commit/fada3ed1f188d2ca839b0a5f51352d4bf2667bfa))
+
+- Prevent duplicate remote proxy function registration
+  ([`1de00ae`](https://github.com/touale/FrameX-kit/commit/1de00ae74d23b48545ed519830b6c739262998bc))
+
+- Remove verbose kwargs from proxy function logging
+  ([`a32e0cf`](https://github.com/touale/FrameX-kit/commit/a32e0cfb8a29dbb296b5a05e3023506f2e83bc94))
+
+- Update OAuth redirect status code from 301 to 302
+  ([`1d975e9`](https://github.com/touale/FrameX-kit/commit/1d975e966cfe572ee2641292f19641abf51a6507))
+
+- Update version handling and environment variable support
+  ([`23d2142`](https://github.com/touale/FrameX-kit/commit/23d2142ded0905e3d85d7c4cdf765d3446ffe119))
+
+### Features
+
+- Add duplicate route detection in APIIngress
+  ([`548e042`](https://github.com/touale/FrameX-kit/commit/548e042a05c5e1359abe1a5c6642e6fa0c249ccc))
+
+- Add retry mechanism with tenacity for proxy requests
+  ([`4bc05e8`](https://github.com/touale/FrameX-kit/commit/4bc05e8f2bb574bc31d9df09e068fa702cea4aab))
+
+- Add reversion config and enhance logging with colored output
+  ([`72268af`](https://github.com/touale/FrameX-kit/commit/72268af391b8f2e042b8fb3e59879a846793b338))
+
+- Implement OAuth authentication with JWT support
+  ([`98b648c`](https://github.com/touale/FrameX-kit/commit/98b648c38a7ba87035e83670258658670f52dc78))
+
+- Tenacity dependency and retry mechanism
+  ([`2921208`](https://github.com/touale/FrameX-kit/commit/292120840bb78c8fe624bd6553a462a1cf88fd53))
+
+### Testing
+
+- Add comprehensive APIIngress route validation tests
+  ([`73ee04d`](https://github.com/touale/FrameX-kit/commit/73ee04de5ca71f77770944275b9a1f27dce0d059))
+
+- Add pragma comments and enhance OAuth authentication tests
+  ([`b4ed409`](https://github.com/touale/FrameX-kit/commit/b4ed40959fe04850ff6ca1d87afdb0e3bf4588ab))
+
+- Refactor OAuth callback and add authentication tests
+  ([`2544602`](https://github.com/touale/FrameX-kit/commit/254460280bf3d4c80b0b4fced45a9d851fcf5e11))
+
+- Replace AuthConfig tests with OAuthConfig test cases
+  ([`b43539c`](https://github.com/touale/FrameX-kit/commit/b43539c24258e7a42fe689787fe37ab6b02df78c))
+
+
 ## v0.2.7 (2025-12-26)
 
 ### Bug Fixes
