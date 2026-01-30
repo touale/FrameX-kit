@@ -24,7 +24,7 @@ from starlette.responses import JSONResponse
 from framex.config import settings
 from framex.consts import API_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
 from framex.driver.auth import authenticate, oauth_callback
-from framex.utils import format_uptime
+from framex.utils import format_uptime, safe_error_message
 
 FRAME_START_TIME = datetime.now(tz=UTC)
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
@@ -140,7 +140,7 @@ def create_fastapi_application() -> FastAPI:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "status": 500,
-                "message": str(exc),
+                "message": safe_error_message(exc),
                 "timestamp": pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
             },
         )

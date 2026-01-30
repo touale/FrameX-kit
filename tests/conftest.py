@@ -60,7 +60,7 @@ def test_app() -> Generator:
 
 @pytest.fixture(scope="session")
 def client(test_app: FastAPI) -> Generator:
-    with TestClient(test_app) as c:
+    with TestClient(test_app, raise_server_exceptions=False) as c:
         yield c
 
 
