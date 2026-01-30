@@ -40,6 +40,11 @@ def auto_load_plugins(builtin_plugins: list[str], plugins: list[str], enable_pro
 
 
 async def register_proxy_func(func: Callable) -> None:
+    from framex.config import settings
+
+    if not settings.server.enable_proxy:  # pragma: no cover
+        logger.warning(f"Proxy is not enabled, skip registering proxy function({func.__name__}).")
+        return
     full_func_name = f"{func.__module__}.{func.__name__}"
     if full_func_name not in _PROXY_REGISTRY:  # pragma: no cover
         raise RuntimeError(f"Function {full_func_name} is not registered as a proxy function.")
