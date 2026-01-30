@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v0.2.9 (2026-01-30)
+
+### Bug Fixes
+
+- Add proxy check in register function
+  ([`1e21cc4`](https://github.com/touale/FrameX-kit/commit/1e21cc421a44b86e6c6c00b749703a272ec796eb))
+
+- Improve error handling and test client configuration
+  ([`564f33e`](https://github.com/touale/FrameX-kit/commit/564f33ebc32dd68813965a05a32e1125a775156d))
+
+### Chores
+
+- Remove secret detection workflow
+  ([`31956bc`](https://github.com/touale/FrameX-kit/commit/31956bc0a39c8fc9b69f55c10effa05358b28bf7))
+
+- Update dependencies and lock file
+  ([`cb25cbe`](https://github.com/touale/FrameX-kit/commit/cb25cbe05530afeb9cdf45357aaf06864ac42a93))
+
+- **deps**: Bump aiohttp from 3.13.2 to 3.13.3
+  ([`9e6e74d`](https://github.com/touale/FrameX-kit/commit/9e6e74d9c97d37546db038d219e57e1bdefbc04a))
+
+- **deps**: Bump urllib3 from 2.5.0 to 2.6.3
+  ([`eebdd53`](https://github.com/touale/FrameX-kit/commit/eebdd5344447e56b088639fb3867a4a02e7527ec))
+
+- **deps**: Update dependency ruff to v0.14.14
+  ([`cf1db8a`](https://github.com/touale/FrameX-kit/commit/cf1db8a7a35624b53ca418e7b713520807819ca0))
+
+- **deps**: Update pre-commit hook astral-sh/ruff-pre-commit to v0.14.14
+  ([`8c70926`](https://github.com/touale/FrameX-kit/commit/8c7092659c78983fef3e47aa687ed4d5ea7512b1))
+
+
 ## v0.2.8 (2026-01-12)
 
 ### Bug Fixes
