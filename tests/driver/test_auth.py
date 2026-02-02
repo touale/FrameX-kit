@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 from starlette.requests import Request
+from urllib.parse import urlparse
 
 from framex.config import AuthConfig
 from framex.consts import DOCS_URL
@@ -196,7 +197,9 @@ class TestAuthenticationIntegration:
             resp = client.get("/docs", follow_redirects=False)
 
             assert resp.status_code == status.HTTP_302_FOUND
-            assert "oauth.example.com" in resp.headers["location"]
+            location = resp.headers["location"]
+            parsed = urlparse(location)
+            assert parsed.hostname == "oauth.example.com"
 
     def test_docs_accessible_with_valid_jwt(self):
         with patch("framex.config.settings.auth.oauth", fake_oauth()):
