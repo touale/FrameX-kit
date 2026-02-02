@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
+from urllib.parse import urlparse
 
 import jwt
 import pytest
@@ -196,7 +197,9 @@ class TestAuthenticationIntegration:
             resp = client.get("/docs", follow_redirects=False)
 
             assert resp.status_code == status.HTTP_302_FOUND
-            assert "oauth.example.com" in resp.headers["location"]
+            location = resp.headers["location"]
+            parsed = urlparse(location)
+            assert parsed.hostname == "oauth.example.com"
 
     def test_docs_accessible_with_valid_jwt(self):
         with patch("framex.config.settings.auth.oauth", fake_oauth()):
