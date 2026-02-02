@@ -82,6 +82,6 @@ name = "origin"
 type = "github"
 token = { env = "GH_TOKEN" }
 ignore_token_for_push = false
-insecure = true
+insecure = false
 url = "https://github.com/touale/FrameX-kit"
 domain = "https://github.com"
