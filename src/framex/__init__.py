@@ -18,6 +18,19 @@ def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
     if settings.sentry.enable and settings.sentry.dsn and settings.sentry.env:
         import sentry_sdk
 
+        from framex.consts import SEBTRY_BLOCK_URLS
+
+        def before_send(event, hint):  # noqa
+            request = event.get("request")
+            if not request:
+                return event
+
+            url = request.get("url", "")
+
+            if any(path in url for path in SEBTRY_BLOCK_URLS):
+                return None
+            return event
+
         sentry_sdk.set_level("info")
         sentry_sdk.utils.logger.handlers = [LoguruHandler()]
 
@@ -46,6 +59,7 @@ def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
             _experiments={
                 "enable_logs": settings.sentry.enable_logs,
             },
+            before_send=before_send,
         )
         logger.success(
             f"Successfully setup sentry with env: {settings.sentry.env}_{adapter_mode}, release: {reversion}"

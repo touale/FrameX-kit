@@ -12,3 +12,9 @@ PROXY_PLUGIN_NAME = "proxy.ProxyPlugin"
 PROXY_FUNC_HTTP_PATH = f"{API_STR}/proxy/remote"
 
 DEFAULT_ENV = {"RAY_COLOR_PREFIX": "1", "RAY_DEDUP_LOGS": "1", "RAY_SERVE_RUN_SYNC_IN_THREADPOOL": "1"}
+
+
+SEBTRY_BLOCK_URLS = [
+    "/health",
+    "/ping",
+]
