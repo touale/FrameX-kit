@@ -1,13 +1,13 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
+from urllib.parse import urlparse
 
 import jwt
 import pytest
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 from starlette.requests import Request
-from urllib.parse import urlparse
 
 from framex.config import AuthConfig
 from framex.consts import DOCS_URL
