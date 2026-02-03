@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v0.2.10 (2026-02-03)
+
+### Bug Fixes
+
+- Sort imports in test_auth.py
+  ([`981b68e`](https://github.com/touale/FrameX-kit/commit/981b68e2b1980e6635c376bb3f4478959be21292))
+
+### Chores
+
+- Remove gitlab ci and update releaserc
+  ([`367a68e`](https://github.com/touale/FrameX-kit/commit/367a68e3b90118ff1c9c5e47d791c48819e12832))
+
+### Features
+
+- Add loguru logging config for uvicorn
+  ([`3583b6e`](https://github.com/touale/FrameX-kit/commit/3583b6e0dd570cb121ac3bba477bc4f0b50e617a))
+
+- Add url filtering for sentry health checks
+  ([`71ec193`](https://github.com/touale/FrameX-kit/commit/71ec19360467c89365d08e122bf3c7bef5a7d793))
+
+
 ## v0.2.9 (2026-01-30)
 
 ### Bug Fixes
