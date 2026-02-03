@@ -18,6 +18,8 @@ class LoguruHandler(logging.Handler):  # pragma: no cover
         from framex.config import settings
 
         msg = record.getMessage()
+        if any(s in msg for s in settings.log.ignored_contains):
+            return
         if settings.log.simple_log and (
             (record.name == "ray.serve" and msg.startswith(settings.log.ignored_prefixes)) or record.name == "filelock"
         ):
@@ -103,3 +105,31 @@ def setup_logger() -> None:  # pragma: no cover
     for name in logging.root.manager.loggerDict:
         if name.startswith("ray"):
             logging.getLogger(name).handlers = [LoguruHandler()]
+
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "loguru": {
+            "()": LoguruHandler,
+        },
+    },
+    "loggers": {
+        "uvicorn": {
+            "handlers": ["loguru"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.error": {
+            "handlers": ["loguru"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "uvicorn.access": {
+            "handlers": ["loguru"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

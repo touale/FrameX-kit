@@ -22,6 +22,7 @@ class LogConfig(BaseModel):
         "Got updated replicas for",
         "Started <ray.serve._private.router.SharedRouterLongPollClient object",
     )
+    ignored_contains: tuple[str, ...] = ("GET /ping", "GET /health")
 
 
 class SentryConfig(BaseModel):

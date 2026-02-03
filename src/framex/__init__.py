@@ -169,12 +169,15 @@ def run(
         if test_mode:
             return app
 
+        from framex.log import LOGGING_CONFIG
+
         uvicorn.run(  # pragma: no cover
             app,
             host=server_host,
             port=server_port,
             reload=False,
             loop="asyncio",
+            log_config=LOGGING_CONFIG,
         )
 
     return None  # pragma: no cover
