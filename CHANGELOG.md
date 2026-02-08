@@ -2,6 +2,40 @@
 
 <!-- version list -->
 
+## v0.2.12-beta.1 (2026-02-08)
+
+### Bug Fixes
+
+- Correct typos and test assertions
+  ([`baa243a`](https://github.com/touale/FrameX-kit/commit/baa243abe1f2d367f469194ea1d961dad53017ad))
+
+### Chores
+
+- Make ray optional dependency
+  ([`5c4e72c`](https://github.com/touale/FrameX-kit/commit/5c4e72cd109a1eba105dca83238c75e47bfcd2e5))
+
+- Modify Dependabot config for daily updates and new ecosystem
+  ([`632bf69`](https://github.com/touale/FrameX-kit/commit/632bf697cc2f6eb8cde2f7d58ca29120521823aa))
+
+- Remove pre-commit workflow
+  ([`69ba702`](https://github.com/touale/FrameX-kit/commit/69ba7029d909f28ab5d773a8c7973bd1db989ea7))
+
+- Update Dependabot and pre-commit to weekly schedule
+  ([`c43d948`](https://github.com/touale/FrameX-kit/commit/c43d9487c101fedd9531bf4097c8c91bae448c8e))
+
+- Update Dependabot commit message prefix
+  ([`472043d`](https://github.com/touale/FrameX-kit/commit/472043d4dd380d0290def4881369fc9a0479f267))
+
+- **deps)(deps-dev**: Bump mypy from 1.18.2 to 1.19.1
+  ([`179052f`](https://github.com/touale/FrameX-kit/commit/179052f5cf717361c558cbc1d256993239b61779))
+
+- **deps)(deps-dev**: Bump poethepoet from 0.37.0 to 0.40.0
+  ([`f03cd28`](https://github.com/touale/FrameX-kit/commit/f03cd2864d6c144cbb01fffda4854a123b06440d))
+
+- **deps)(deps-dev**: Bump ruff from 0.14.14 to 0.15.0
+  ([`3ce55bf`](https://github.com/touale/FrameX-kit/commit/3ce55bf686f123cd60012f62cc294fdd225d872d))
+
+
 ## v0.2.11 (2026-02-08)
 
 ### Bug Fixes
