@@ -72,12 +72,10 @@ def create_fastapi_application() -> FastAPI:
 
             import asyncio
 
-            from ray.serve.handle import DeploymentHandle
-
-            deployments: list[DeploymentHandle] = list(app.state.deployments_dict.values())
+            deployments: list[Any] = list(app.state.deployments_dict.values())
 
             @logger.catch
-            async def _on_start(deployment: DeploymentHandle) -> None:
+            async def _on_start(deployment: Any) -> None:
                 func = getattr(deployment, "on_start")
                 await func()
 

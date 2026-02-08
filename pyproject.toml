@@ -15,9 +15,9 @@ dependencies = [
   "pydantic-settings>=2.10.1",
   "pyjwt>=2.10.1",
   "pytz>=2025.2",
-  "ray[serve]==2.53.0",
   "sentry-sdk[fastapi]>=2.33.0",
   "tomli>=2.2.1",
+  "uvicorn>=0.38.0",
 ]
 
 [dependency-groups]
@@ -42,6 +42,7 @@ dev = [
 framex = "framex.cli:framex"
 
 [project.optional-dependencies]
+ray = ["ray[serve]==2.53.0"]
 release = ["poethepoet>=0.36.0", "python-semantic-release>=10.2.0"]
 
 

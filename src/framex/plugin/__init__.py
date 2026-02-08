@@ -3,7 +3,6 @@ from functools import lru_cache
 from typing import Any, Optional, TypeVar
 
 from pydantic import BaseModel
-from ray.serve.handle import DeploymentHandle
 
 from framex.adapter import get_adapter
 from framex.config import settings
@@ -39,7 +38,7 @@ def check_plugin_config_exists(plugin_name: str) -> bool:
 
 
 @logger.catch()
-def init_all_deployments(enable_proxy: bool) -> list[DeploymentHandle]:
+def init_all_deployments(enable_proxy: bool) -> list[Any]:
     deployments = []
     for plugin in get_loaded_plugins():
         for dep in plugin.deployments:

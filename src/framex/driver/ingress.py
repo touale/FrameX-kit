@@ -7,7 +7,6 @@ from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
 from pydantic import create_model
-from ray.serve.handle import DeploymentHandle
 from starlette.routing import Route
 
 from framex.adapter import get_adapter
@@ -29,7 +28,7 @@ async def health() -> str:
 
 @api_ingress(app=app, name=BACKEND_NAME)
 class APIIngress:
-    def __init__(self, deployments: list[DeploymentHandle], plugin_apis: list["PluginApi"]) -> None:
+    def __init__(self, deployments: list[Any], plugin_apis: list["PluginApi"]) -> None:
         setup_logger()
         app.state.ingress = self
         self.deployments_dict = {dep.deployment_name: dep for dep in deployments}
@@ -61,7 +60,7 @@ class APIIngress:
         methods: list[str],
         func_name: str,
         params: list[tuple[str, type | Callable]],
-        handle: DeploymentHandle,
+        handle: Any,
         stream: bool = False,
         direct_output: bool = False,
         tags: list[str | Enum] | None = None,

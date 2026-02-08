@@ -3,9 +3,12 @@ import inspect
 from collections.abc import Callable
 from typing import Any, cast
 
-import ray
+try:
+    import ray  # type: ignore[import-not-found]
+    from ray import serve  # type: ignore[import-not-found]
+except ImportError as e:
+    raise RuntimeError('Ray engine requires extra dependency.\nInstall with: uv pip install "framex-kit[ray]"') from e
 from fastapi import FastAPI
-from ray import serve
 from typing_extensions import override
 
 from framex.adapter.base import AdapterMode, BaseAdapter

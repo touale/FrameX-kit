@@ -6,7 +6,6 @@ from typing import Any, cast
 
 from aiocache import Cache, cached
 from fastapi import FastAPI
-from ray.serve.handle import DeploymentHandle
 
 from framex.consts import PROXY_PLUGIN_NAME
 from framex.plugin.model import ApiType, PluginApi
@@ -34,7 +33,7 @@ class BaseAdapter(abc.ABC):
             stream = await self._check_is_gen_api(api.api)
         if stream:
             return [chunk async for chunk in self._stream_call(func, **kwargs)]
-        if inspect.iscoroutinefunction(func) or isinstance(func, DeploymentHandle):
+        if inspect.iscoroutinefunction(func):
             return await self._acall(func, **kwargs)  # type: ignore
         return self._call(func, **kwargs)
 

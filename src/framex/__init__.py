@@ -129,9 +129,13 @@ def run(
 
     if use_ray:
         # step4: init ray
-
-        import ray
-        from ray import serve
+        try:
+            import ray  # type: ignore[import-not-found]
+            from ray import serve  # type: ignore[import-not-found]
+        except ImportError as e:
+            raise RuntimeError(
+                'Ray engine requires extra dependency.\nInstall with: uv pip install "framex-kit[ray]"'
+            ) from e
 
         ray.init(
             num_cpus=num_cpus if num_cpus > 0 else None,
