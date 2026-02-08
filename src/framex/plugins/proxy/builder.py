@@ -27,12 +27,21 @@ def resolve_annotation(
         if nested_schema := components.get(ref_name):
             return create_pydantic_model(ref_name, nested_schema, components)
     if "anyOf" in prop_schema:
-        options = []
+        options: list[Any] = []
         for option_schema in prop_schema["anyOf"]:
             typ = option_schema.get("type")
             if typ == "array":
                 item_type = type_map.get(option_schema.get("items", {}).get("type", "string"), str)
                 options.append(list[item_type])  # type: ignore [valid-type]
+            elif typ == "null":
+                options.append(type(None))
+            elif (
+                (ref := option_schema.get("$ref"))
+                and (ref_name := ref.split("/")[-1])
+                and (nested_schema := components.get(ref_name))
+            ):
+                model = create_pydantic_model(ref_name, nested_schema, components)
+                options.append(model)
             else:
                 options.append(type_map.get(typ, str))  # type: ignore [arg-type]
         return Union[*options]
@@ -53,6 +62,9 @@ def resolve_default(annotation: Any) -> Any:
     origin = get_origin(annotation)
     # Union type support: try the first type that can construct a default value first
     if origin is Union and (args := get_args(annotation)) and len(args) > 1:
+        # If Union includes NoneType, return None
+        if type(None) in args:
+            return None
         return resolve_default(args[0])
     if origin in (list, dict, set):
         return origin()
