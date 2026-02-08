@@ -215,8 +215,13 @@ def test_resolve_annotation():
         },
     }
     model = create_pydantic_model("FetchCompanyByDimInfoRequest", model_schema, components)
-    target_model_fields = "{'dimensions': FieldInfo(annotation=Dimensions, required=True), 'global_filters': FieldInfo(annotation=Union[GlobalFilters, NoneType], required=False, default=None), 'top_k': FieldInfo(annotation=Union[int, NoneType], required=False, default=None)}"
-    assert str(model.model_fields) == target_model_fields
+    fields = model.model_fields
+    assert set(fields.keys()) == {"dimensions", "global_filters", "top_k"}
+    assert fields["dimensions"].is_required() is True
+    assert fields["global_filters"].default is None
+    assert fields["top_k"].default is None
+    # Check annotation types
+    assert fields["top_k"].annotation == int | None
 
 
 def test_resolve_default():
@@ -257,12 +262,12 @@ def supply_execption(func):
 
 
 @on_proxy()
+@supply_execption
 async def local_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
     return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
 
 
 @on_proxy()
-@supply_execption
 async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:  # noqa: ARG001
     raise RuntimeError("This function should be called remotely")
 

@@ -147,8 +147,8 @@ def on_proxy() -> Callable:
 
             from framex.plugins.proxy.config import settings as proxy_settings
 
-            proxy_func = list(chain.from_iterable(proxy_settings.proxy_functions.values()))
-            if full_func_name not in proxy_func:
+            proxy_func_set = set(chain.from_iterable(proxy_settings.proxy_functions.values()))
+            if full_func_name not in proxy_func_set:
                 return await safe_callable(**kwargs)
 
             api_call = PluginApi(
