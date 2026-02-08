@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.2.11 (2026-02-08)
+
+### Bug Fixes
+
+- Enhance proxy error handling and async validation
+  ([`c122808`](https://github.com/touale/FrameX-kit/commit/c12280838f2121ae19145a26f09860cda26fe6b9))
+
+- Handle null and refs in anyOf union types
+  ([`315ed88`](https://github.com/touale/FrameX-kit/commit/315ed88b7b53015377f4269780bcf766c033aecb))
+
+- Optimize proxy function lookup and test assertions
+  ([`1222780`](https://github.com/touale/FrameX-kit/commit/12227800ae1dc508ff240a40d99fee109103f96d))
+
+
 ## v0.2.10 (2026-02-03)
 
 ### Bug Fixes
