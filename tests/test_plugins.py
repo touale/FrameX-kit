@@ -51,6 +51,7 @@ def get_alias_type_map(fields: dict[str, Any]) -> dict[str, type]:
 def test_resolve_annotation():
     builder = importlib.import_module("framex.plugins.proxy.builder")
     resolve_annotation: Callable = getattr(builder, "resolve_annotation")
+    create_pydantic_model: Callable = getattr(builder, "create_pydantic_model")
     reset_created_models: Callable = getattr(builder, "reset_created_models")
     reset_created_models()
 
@@ -133,6 +134,95 @@ def test_resolve_annotation():
 
     assert "Unsupported prop_schema" in str(exc_info.value)
 
+    # Test BaseModel gen
+    model_schema = {
+        "properties": {
+            "dimensions": {"$ref": "#/components/schemas/Dimensions"},
+            "global_filters": {"anyOf": [{"$ref": "#/components/schemas/GlobalFilters"}, {"type": "null"}]},
+            "top_k": {"anyOf": [{"type": "integer"}, {"type": "null"}], "title": "Top K"},
+        },
+        "type": "object",
+        "required": ["dimensions"],
+        "title": "FetchCompanyByDimInfoRequest",
+    }
+    components = {
+        "DimensionItem": {
+            "properties": {
+                "query_vector_text": {"type": "string", "title": "Query Vector Text"},
+                "weight": {"type": "number", "title": "Weight"},
+            },
+            "type": "object",
+            "required": ["query_vector_text", "weight"],
+            "title": "DimensionItem",
+        },
+        "Dimensions": {
+            "properties": {
+                "dim_products": {"anyOf": [{"$ref": "#/components/schemas/DimensionItem"}, {"type": "null"}]},
+                "dim_partners": {"anyOf": [{"$ref": "#/components/schemas/DimensionItem"}, {"type": "null"}]},
+            },
+            "type": "object",
+            "title": "Dimensions",
+        },
+        "FetchCompanyByDimInfoRequest": {
+            "properties": {
+                "dimensions": {"$ref": "#/components/schemas/Dimensions"},
+                "global_filters": {"anyOf": [{"$ref": "#/components/schemas/GlobalFilters"}, {"type": "null"}]},
+                "top_k": {"anyOf": [{"type": "integer"}, {"type": "null"}], "title": "Top K"},
+            },
+            "type": "object",
+            "required": ["dimensions"],
+            "title": "FetchCompanyByDimInfoRequest",
+        },
+        "GlobalFilters": {
+            "properties": {
+                "provinces": {
+                    "anyOf": [{"items": {"type": "string"}, "type": "array"}, {"type": "string"}, {"type": "null"}],
+                    "title": "Provinces",
+                },
+                "cities": {
+                    "anyOf": [{"items": {"type": "string"}, "type": "array"}, {"type": "string"}, {"type": "null"}],
+                    "title": "Cities",
+                },
+                "is_listed": {"anyOf": [{"type": "integer"}, {"type": "null"}], "title": "Is Listed"},
+            },
+            "type": "object",
+            "title": "GlobalFilters",
+        },
+        "HTTPValidationError": {
+            "properties": {
+                "detail": {
+                    "items": {"$ref": "#/components/schemas/ValidationError"},
+                    "type": "array",
+                    "title": "Detail",
+                }
+            },
+            "type": "object",
+            "title": "HTTPValidationError",
+        },
+        "ValidationError": {
+            "properties": {
+                "loc": {
+                    "items": {"anyOf": [{"type": "string"}, {"type": "integer"}]},
+                    "type": "array",
+                    "title": "Location",
+                },
+                "msg": {"type": "string", "title": "Message"},
+                "type": {"type": "string", "title": "Error Type"},
+            },
+            "type": "object",
+            "required": ["loc", "msg", "type"],
+            "title": "ValidationError",
+        },
+    }
+    model = create_pydantic_model("FetchCompanyByDimInfoRequest", model_schema, components)
+    fields = model.model_fields
+    assert set(fields.keys()) == {"dimensions", "global_filters", "top_k"}
+    assert fields["dimensions"].is_required() is True
+    assert fields["global_filters"].default is None
+    assert fields["top_k"].default is None
+    # Check annotation types
+    assert fields["top_k"].annotation == int | None
+
 
 def test_resolve_default():
     builder = importlib.import_module("framex.plugins.proxy.builder")
@@ -144,7 +234,7 @@ def test_resolve_default():
     assert resolve_default(dict[str, int]) == {}
     assert resolve_default(set[int]) == set()
     assert resolve_default(Union[int, str]) == 0  # noqa
-    assert resolve_default(Optional[int]) == 0  # noqa
+    assert resolve_default(Optional[int]) == None  # noqa
     assert resolve_default(MatchMataConfig) == MatchMataConfig()
 
     with pytest.raises(RuntimeError) as exc_info:
@@ -172,12 +262,12 @@ def supply_execption(func):
 
 
 @on_proxy()
+@supply_execption
 async def local_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
     return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
 
 
 @on_proxy()
-@supply_execption
 async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:  # noqa: ARG001
     raise RuntimeError("This function should be called remotely")
 

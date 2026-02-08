@@ -2,6 +2,7 @@ import functools
 import inspect
 import types
 from collections.abc import Callable
+from itertools import chain
 from typing import Any, get_type_hints
 
 from pydantic import BaseModel
@@ -110,13 +111,21 @@ def on_proxy() -> Callable:
         if not settings.server.enable_proxy:  # pragma: no cover
             return func
 
-        is_registered = False
+        if not inspect.iscoroutinefunction(func):
+            raise TypeError(f"@on_proxy can only be applied to async functions, but got: {func}")
+
         full_func_name = f"{func.__module__}.{func.__name__}"
 
         async def safe_callable(*args: Any, **kwargs: Any) -> Any:
             try:
                 return await func(*args, **kwargs)
-            except Exception:
+            except Exception as e:
+                from framex import logger
+
+                logger.warning(
+                    f"[Proxy Fallback] Async wrapper for '{full_func_name}' failed with {type(e).__name__}: {e}. "
+                    f"Falling back to the original implementation."
+                )
                 raw = func
 
                 if isinstance(raw, (classmethod, staticmethod)):
@@ -133,10 +142,14 @@ def on_proxy() -> Callable:
 
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            nonlocal is_registered
-
             if args:  # pragma: no cover
                 raise TypeError(f"The proxy function '{func.__name__}' only supports keyword arguments.")
+
+            from framex.plugins.proxy.config import settings as proxy_settings
+
+            proxy_func_set = set(chain.from_iterable(proxy_settings.proxy_functions.values()))
+            if full_func_name not in proxy_func_set:
+                return await safe_callable(**kwargs)
 
             api_call = PluginApi(
                 deployment_name=PROXY_PLUGIN_NAME,
