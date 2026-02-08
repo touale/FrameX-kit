@@ -1,4 +1,7 @@
 default_stages: [pre-commit]
+ci:
+  autoupdate_schedule: weekly
+  autoupdate_branch: master
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks.git
