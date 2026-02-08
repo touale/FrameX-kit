@@ -234,7 +234,7 @@ def test_resolve_default():
     assert resolve_default(dict[str, int]) == {}
     assert resolve_default(set[int]) == set()
     assert resolve_default(Union[int, str]) == 0  # noqa
-    assert resolve_default(Optional[int]) == None  # noqa
+    assert resolve_default(Optional[int]) is None  # noqa
     assert resolve_default(MatchMataConfig) == MatchMataConfig()
 
     with pytest.raises(RuntimeError) as exc_info:
@@ -253,16 +253,16 @@ class ExchangeModel(BaseModel):
     model: SubModel
 
 
-def supply_execption(func):
+def supply_exception(func):
     @wraps(func)
     async def wrapper(*_: Any, **__: Any) -> None:
-        raise RuntimeError("I am def supply_execption(func): exception")
+        raise RuntimeError("I am def supply_exception(func): exception")
 
     return wrapper
 
 
 @on_proxy()
-@supply_execption
+@supply_exception
 async def local_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
     return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
 
