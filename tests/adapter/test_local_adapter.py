@@ -188,7 +188,7 @@ class TestLocalAdapter:
 
         with patch.object(adapter, "_safe_plot_wrapper", return_value=11) as mock_wrapper:
             wrapped_func = adapter.to_remote_func(sync_func)
-            result = await wrapped_func.remote(10)
+            result = await wrapped_func.remote(10)  # type: ignore
 
             # Verify safe wrapper was used
             mock_wrapper.assert_called_once_with(sync_func, 10)
