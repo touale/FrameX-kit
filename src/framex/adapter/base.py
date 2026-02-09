@@ -1,5 +1,4 @@
 import abc
-import inspect
 from collections.abc import Callable
 from enum import StrEnum
 from typing import Any, cast
@@ -25,17 +24,21 @@ class BaseAdapter(abc.ABC):
     def to_deployment(self, cls: type, **kwargs: Any) -> type:  # noqa: ARG002
         return cls
 
-    async def call_func(self, api: PluginApi, **kwargs: Any) -> Any:
-        func = self.get_handle_func(api.deployment_name, api.func_name)
-        stream = api.stream
+    async def _resolve_stream(self, api: PluginApi, kwargs: dict[str, Any]) -> bool:
         if api.call_type == ApiType.PROXY and api.api:
             kwargs["proxy_path"] = api.api
-            stream = await self._check_is_gen_api(api.api)
+            return bool(await self._check_is_gen_api(api.api))
+        return api.stream
+
+    @abc.abstractmethod
+    async def _invoke(self, func: Callable[..., Any], **kwargs: Any) -> Any: ...
+
+    async def call_func(self, api: PluginApi, **kwargs: Any) -> Any:
+        func = self.get_handle_func(api.deployment_name, api.func_name)
+        stream = await self._resolve_stream(api, kwargs)
         if stream:
             return [chunk async for chunk in self._stream_call(func, **kwargs)]
-        if inspect.iscoroutinefunction(func):
-            return await self._acall(func, **kwargs)  # type: ignore
-        return self._call(func, **kwargs)
+        return await self._invoke(func, **kwargs)
 
     def get_handle_func(self, deployment_name: str, func_name: str) -> Any:
         handle = self.get_handle(deployment_name)
@@ -57,11 +60,10 @@ class BaseAdapter(abc.ABC):
     @abc.abstractmethod
     def to_remote_func(self, func: Callable) -> Callable: ...
 
-    def _stream_call(self, func: Callable[..., Any], **kwargs: Any) -> Any:
-        return func(**kwargs)
+    @abc.abstractmethod
+    def _stream_call(self, func: Callable[..., Any], **kwargs: Any) -> Any: ...
 
-    async def _acall(self, func: Callable[..., Any], **kwargs: Any) -> Any:
-        return await func(**kwargs)
-
-    def _call(self, func: Callable[..., Any], **kwargs: Any) -> Any:
-        return func(**kwargs)
+    @abc.abstractmethod
+    async def _acall(self, func: Callable[..., Any], **kwargs: Any) -> Any: ...
+    @abc.abstractmethod
+    def _call(self, func: Callable[..., Any], **kwargs: Any) -> Any: ...

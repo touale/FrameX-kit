@@ -24,7 +24,7 @@ def vcr_config():
 
 
 @pytest.fixture(scope="module")
-def disable_recording(request):  # noqa
+def disable_recording(request):
     return settings.test.disable_record_request
 
 
