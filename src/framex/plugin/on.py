@@ -149,7 +149,7 @@ def on_proxy() -> Callable:
 
             proxy_func_set = set(chain.from_iterable(proxy_settings.proxy_functions.values()))
             if full_func_name not in proxy_func_set:
-                return await safe_callable(**kwargs)
+                return await func(**kwargs)
 
             api_call = PluginApi(
                 deployment_name=PROXY_PLUGIN_NAME,
