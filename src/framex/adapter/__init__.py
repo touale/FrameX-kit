@@ -1,5 +1,5 @@
 from framex.adapter.base import BaseAdapter
-from framex.adapter.local_adapyer import LocalAdapter
+from framex.adapter.local_adapter import LocalAdapter
 from framex.config import settings
 
 _adapter: BaseAdapter | None = None

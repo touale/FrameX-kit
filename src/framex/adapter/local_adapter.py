@@ -55,3 +55,21 @@ class LocalAdapter(BaseAdapter):
 
         func.remote = _remote_func  # type: ignore[attr-defined]
         return func
+
+    @override
+    async def _invoke(self, func: Callable[..., Any], **kwargs: Any) -> Any:
+        if inspect.iscoroutinefunction(func):
+            return await self._acall(func, **kwargs)
+        return self._call(func, **kwargs)
+
+    @override
+    async def _acall(self, func: Callable[..., Any], **kwargs: Any) -> Any:
+        return await func(**kwargs)
+
+    @override
+    def _call(self, func: Callable[..., Any], **kwargs: Any) -> Any:
+        return func(**kwargs)
+
+    @override
+    def _stream_call(self, func: Callable[..., Any], **kwargs: Any) -> Any:
+        return func(**kwargs)
