@@ -2,6 +2,73 @@
 
 <!-- version list -->
 
+## v0.2.12 (2026-02-09)
+
+### Bug Fixes
+
+- Correct typos and test assertions
+  ([`baa243a`](https://github.com/touale/FrameX-kit/commit/baa243abe1f2d367f469194ea1d961dad53017ad))
+
+### Chores
+
+- Add type ignore for ray imports
+  ([`2903d02`](https://github.com/touale/FrameX-kit/commit/2903d02a7b167b19dd751da92dd11721140d3024))
+
+- Make ray optional dependency
+  ([`5c4e72c`](https://github.com/touale/FrameX-kit/commit/5c4e72cd109a1eba105dca83238c75e47bfcd2e5))
+
+- Modify Dependabot config for daily updates and new ecosystem
+  ([`632bf69`](https://github.com/touale/FrameX-kit/commit/632bf697cc2f6eb8cde2f7d58ca29120521823aa))
+
+- Remove pre-commit workflow
+  ([`69ba702`](https://github.com/touale/FrameX-kit/commit/69ba7029d909f28ab5d773a8c7973bd1db989ea7))
+
+- Update Dependabot and pre-commit to weekly schedule
+  ([`c43d948`](https://github.com/touale/FrameX-kit/commit/c43d9487c101fedd9531bf4097c8c91bae448c8e))
+
+- Update Dependabot commit message prefix
+  ([`472043d`](https://github.com/touale/FrameX-kit/commit/472043d4dd380d0290def4881369fc9a0479f267))
+
+- Update uv sync to include ray extra
+  ([`4226667`](https://github.com/touale/FrameX-kit/commit/42266673ce57d9836387646a38034ff7d3bacd1b))
+
+- **deps**: Bump python-semantic-release from 10.4.1 to 10.5.3
+  ([`471b1ea`](https://github.com/touale/FrameX-kit/commit/471b1eaf8c51730bbdfd57d877f807d783105a03))
+
+- **deps)(deps-dev**: Bump mypy from 1.18.2 to 1.19.1
+  ([`179052f`](https://github.com/touale/FrameX-kit/commit/179052f5cf717361c558cbc1d256993239b61779))
+
+- **deps)(deps-dev**: Bump poethepoet from 0.37.0 to 0.40.0
+  ([`f03cd28`](https://github.com/touale/FrameX-kit/commit/f03cd2864d6c144cbb01fffda4854a123b06440d))
+
+- **deps)(deps-dev**: Bump ruff from 0.14.14 to 0.15.0
+  ([`3ce55bf`](https://github.com/touale/FrameX-kit/commit/3ce55bf686f123cd60012f62cc294fdd225d872d))
+
+- **deps-dev**: Bump coverage from 7.11.0 to 7.13.3
+  ([`efdd99e`](https://github.com/touale/FrameX-kit/commit/efdd99e353b88c8eb47cecd1a5f4508821cec171))
+
+- **deps-dev**: Bump pytest from 8.4.2 to 9.0.2
+  ([`39478d3`](https://github.com/touale/FrameX-kit/commit/39478d3addd8f5cfb5ffd0ed97cc88bef26d5948))
+
+### Performance Improvements
+
+- Correct proxy function invocation logic
+  ([`c261b26`](https://github.com/touale/FrameX-kit/commit/c261b26e69c1a913cfed778d45c9ff87d79ad57a))
+
+### Refactoring
+
+- Restructure adapter invocation logic
+  ([`e547ef1`](https://github.com/touale/FrameX-kit/commit/e547ef1ecb85e71a6a56b34e902319edc7ef4b5f))
+
+### Testing
+
+- Add comprehensive adapter tests
+  ([`7d1c888`](https://github.com/touale/FrameX-kit/commit/7d1c888ce64441c8ed1a81ac5a8ad814849de58f))
+
+- Add type ignore for remote function
+  ([`29bb840`](https://github.com/touale/FrameX-kit/commit/29bb840f59a34701205df472c650f7ebb97b033c))
+
+
 ## v0.2.11 (2026-02-08)
 
 ### Bug Fixes
