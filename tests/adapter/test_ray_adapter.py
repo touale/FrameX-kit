@@ -41,7 +41,6 @@ def mock_ray():
     """Mock ray and ray.serve modules."""
     mock_ray_module = MagicMock()
     mock_serve_module = MagicMock()
-    mock_deployment_handle = MagicMock()
 
     with (
         patch.dict(
@@ -49,14 +48,12 @@ def mock_ray():
             {
                 "ray": mock_ray_module,
                 "ray.serve": mock_serve_module,
-                "ray.serve.handle": MagicMock(DeploymentHandle=mock_deployment_handle),
             },
         ),
         patch("framex.adapter.ray_adapter.ray", mock_ray_module),
         patch("framex.adapter.ray_adapter.serve", mock_serve_module),
-        patch("framex.adapter.ray_adapter.DeploymentHandle", mock_deployment_handle),
     ):
-        yield mock_ray_module, mock_serve_module, mock_deployment_handle
+        yield mock_ray_module, mock_serve_module, None
 
 
 class TestRayAdapter:
@@ -298,40 +295,6 @@ class TestRayAdapter:
             result = await adapter._invoke(mock_handle, param="value")
             mock_acall.assert_called_once_with(mock_handle, param="value")
             assert result == "handle_result"
-
-    async def test_invoke_with_sync_function(self, mock_ray):
-        """Test _invoke delegates to _call for sync functions."""
-        from framex.adapter.ray_adapter import RayAdapter
-
-        adapter = RayAdapter()
-        _, _, mock_deployment_handle = mock_ray
-
-        def sync_func(**kwargs):
-            return "sync_result"
-
-        # Patch isinstance to always return False for DeploymentHandle check
-        with (
-            patch(
-                "framex.adapter.ray_adapter.isinstance",
-                side_effect=lambda obj, cls: False if cls is mock_deployment_handle else isinstance(obj, cls),
-            ),
-            patch.object(adapter, "_call", return_value="sync_result") as mock_call,
-        ):
-            result = await adapter._invoke(sync_func, param="value")
-            mock_call.assert_called_once_with(sync_func, param="value")
-            assert result == "sync_result"
-
-    def test_call_invokes_function_directly(self, mock_ray):  # noqa
-        """Test _call invokes function directly with kwargs."""
-        from framex.adapter.ray_adapter import RayAdapter
-
-        adapter = RayAdapter()
-
-        def mock_func(**kwargs):
-            return kwargs
-
-        result = adapter._call(mock_func, key1="value1", key2="value2")
-        assert result == {"key1": "value1", "key2": "value2"}
 
     def test_bind_with_no_kwargs(self, mock_ray):  # noqa
         """Test bind with no kwargs."""

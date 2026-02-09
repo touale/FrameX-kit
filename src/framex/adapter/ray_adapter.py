@@ -6,7 +6,6 @@ from typing import Any, cast
 try:
     import ray  # type: ignore[import-not-found]
     from ray import serve  # type: ignore[import-not-found]
-    from ray.serve.handle import DeploymentHandle  # type: ignore[import-not-found]
 except ImportError as e:
     raise RuntimeError('Ray engine requires extra dependency.\nInstall with: uv add "framex-kit[ray]"') from e
 from fastapi import FastAPI
@@ -59,10 +58,8 @@ class RayAdapter(BaseAdapter):  # pragma: no cover
 
     @override
     async def _invoke(self, func: Callable[..., Any], **kwargs: Any) -> Any:
-        if inspect.iscoroutinefunction(func) or isinstance(func, DeploymentHandle):
-            return await self._acall(func, **kwargs)  # type: ignore
-        return self._call(func, **kwargs)
+        return await self._acall(func, **kwargs)  # type: ignore
 
     @override
     def _call(self, func: Callable[..., Any], **kwargs: Any) -> Any:
-        return func(**kwargs)
+        raise NotImplementedError("Ray does not need sync call")
