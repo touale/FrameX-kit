@@ -6,8 +6,9 @@ from typing import Any, cast
 try:
     import ray  # type: ignore[import-not-found]
     from ray import serve  # type: ignore[import-not-found]
+    from ray.serve.handle import DeploymentHandle
 except ImportError as e:
-    raise RuntimeError('Ray engine requires extra dependency.\nInstall with: uv pip install "framex-kit[ray]"') from e
+    raise RuntimeError('Ray engine requires extra dependency.\nInstall with: uv add "framex-kit[ray]"') from e
 from fastapi import FastAPI
 from typing_extensions import override
 
@@ -55,3 +56,13 @@ class RayAdapter(BaseAdapter):  # pragma: no cover
     @override
     async def _acall(self, func: Callable[..., Any], **kwargs: Any) -> Any:
         return await func.remote(**kwargs)  # type: ignore [attr-defined]
+
+    @override
+    async def _invoke(self, func: Callable[..., Any], **kwargs: Any) -> Any:
+        if inspect.iscoroutinefunction(func) or isinstance(func, DeploymentHandle):
+            return await self._acall(func, **kwargs)  # type: ignore
+        return self._call(func, **kwargs)
+
+    @override
+    def _call(self, func: Callable[..., Any], **kwargs: Any) -> Any:
+        return func(**kwargs)
