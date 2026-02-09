@@ -16,7 +16,7 @@ jobs:
       - name: Install UV
         run: |
           pip install uv==${{ env.UV_VERSION }}
-          uv sync --group dev
+          uv sync --extra ray --dev
       - name: Run Tests
         run: uv run poe test-ci
       - name: Upload coverage reports to Codecov
