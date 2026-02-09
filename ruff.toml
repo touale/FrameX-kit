@@ -79,7 +79,15 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "ANN201", "ANN001", "ANN002", "ANN003"]
+"tests/**/*.py" = [
+  "S101",
+  "ANN201",
+  "ANN001",
+  "ANN002",
+  "ANN003",
+  "ANN202",
+  "ARG001",
+]
 
 [lint.flake8-builtins]
 builtins-ignorelist = ["input", "id", "bytes", "type"]
