@@ -262,12 +262,12 @@ def supply_exception(func):
 
 
 @on_proxy()
-@supply_exception
 async def local_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
     return {"a_str": a_str, "b_int": b_int, "c_model": c_model}
 
 
 @on_proxy()
+@supply_exception
 async def remote_exchange_key_value(a_str: str, b_int: int, c_model: ExchangeModel) -> Any:
     raise RuntimeError("This function should be called remotely")
 
