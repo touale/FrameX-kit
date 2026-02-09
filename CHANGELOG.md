@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.12-beta.3 (2026-02-09)
+
+### Performance Improvements
+
+- Correct proxy function invocation logic
+  ([`c261b26`](https://github.com/touale/FrameX-kit/commit/c261b26e69c1a913cfed778d45c9ff87d79ad57a))
+
+
 ## v0.2.12-beta.2 (2026-02-09)
 
 
