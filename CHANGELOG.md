@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.14-beta.1 (2026-02-26)
+
+### Features
+
+- Add plugin description to tags
+  ([`e921f42`](https://github.com/touale/FrameX-kit/commit/e921f42d84903ada63370fc4f46e33f6f23a3afe))
+
+
 ## v0.2.13 (2026-02-26)
 
 ### Bug Fixes
