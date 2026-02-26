@@ -47,7 +47,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                             methods=func.__expose_methods_,
                             params=params,
                             call_type=call_type,
-                            tags=[plugin.name + f"({version})"],
+                            tags=[f"{plugin.name}({version}): {plugin.module.__plugin_meta__.description}"],
                             stream=func.__expose_stream,
                         )
                     )
