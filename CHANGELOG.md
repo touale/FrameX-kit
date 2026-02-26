@@ -2,6 +2,58 @@
 
 <!-- version list -->
 
+## v0.2.13 (2026-02-26)
+
+### Bug Fixes
+
+- Optimize imports and error handling
+  ([`52a571c`](https://github.com/touale/FrameX-kit/commit/52a571c49ddc5cc4cec6d824d6c40c12e453ca91))
+
+### Chores
+
+- Remove config.js
+  ([`ec60188`](https://github.com/touale/FrameX-kit/commit/ec601882e06c514b8ca22b959f76d90fb15abf7b))
+
+- Remove open-pull-requests-limit from dependabot.yml
+  ([`34cd30c`](https://github.com/touale/FrameX-kit/commit/34cd30c64994066313178a4f746fa55427c20e23))
+
+- **deps**: Bump ray from 2.53.0 to 2.54.0
+  ([`faa045b`](https://github.com/touale/FrameX-kit/commit/faa045bba61bf312cc0f733c4fadb48a142ffb08))
+
+- **deps**: Bump uvicorn from 0.38.0 to 0.40.0
+  ([`b74a974`](https://github.com/touale/FrameX-kit/commit/b74a9748347b9315675ab3da895d6272c1ad7517))
+
+- **deps-dev**: Bump poethepoet from 0.40.0 to 0.41.0
+  ([`69f1e62`](https://github.com/touale/FrameX-kit/commit/69f1e62b5349a8fbbd331508d02b0bea1813a4f5))
+
+- **deps-dev**: Bump ruff from 0.15.0 to 0.15.2
+  ([`f116fad`](https://github.com/touale/FrameX-kit/commit/f116fad4a2ad5a9ef08b7756824a532b1a6489c7))
+
+- **deps-dev**: Bump types-pytz
+  ([`a07323e`](https://github.com/touale/FrameX-kit/commit/a07323efa4de3b89bb3899e9234d15b3754b0e17))
+
+### Features
+
+- Add version endpoint and tests
+  ([`b115a53`](https://github.com/touale/FrameX-kit/commit/b115a532341a37194af1c7df10116ff7cefd2677))
+
+- Disable sensitive URLs from being displayed in OpenAPI.
+  ([`ae0e099`](https://github.com/touale/FrameX-kit/commit/ae0e0991e533464524ce16c1c72b2ba51f0a1f64))
+
+- Enhance proxy config
+  ([`ef2348d`](https://github.com/touale/FrameX-kit/commit/ef2348d8e012f3b63a503c4dd71675e1cd2f41fd))
+
+### Refactoring
+
+- Remove sync call support in ray adapter
+  ([`1950e27`](https://github.com/touale/FrameX-kit/commit/1950e2765f2e2cd7b9544d54128a59364da9409c))
+
+### Testing
+
+- Add proxy config tests
+  ([`d06c454`](https://github.com/touale/FrameX-kit/commit/d06c4544d8bb8c830bbbf3c93cbf746fc4387457))
+
+
 ## v0.2.12 (2026-02-09)
 
 ### Bug Fixes

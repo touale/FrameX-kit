@@ -1,5 +1,5 @@
 PROJECT_NAME = "FrameX"
-VERSION = "0.2.12"
+VERSION = "0.2.13"
 API_STR = "/api/v1"
 OPENAPI_URL = "/api/v1/openapi.json"
 DOCS_URL = "/docs"
