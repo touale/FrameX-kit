@@ -43,11 +43,11 @@ class ProxyPlugin(BasePlugin):
 
     @override
     async def on_start(self) -> None:
-        if not settings.proxy_urls:  # pragma: no cover
+        if not settings.proxy_url_list:  # pragma: no cover
             logger.opt(colors=True).warning("<y>No url provided, skipping proxy plugin</y>")
             return
 
-        for url in settings.proxy_urls:
+        for url in settings.proxy_url_list:
             await self._parse_openai_docs(url)
 
         if settings.proxy_functions:
@@ -84,7 +84,7 @@ class ProxyPlugin(BasePlugin):
         components = openapi_data.get("components", {}).get("schemas", {})
         for path, details in paths.items():
             # Check if the path is legal!
-            if not settings.is_white_url(path):
+            if not settings.is_white_url(url, path):
                 logger.opt(colors=True).warning(f"Proxy api(<y>{path}</y>) not in white_list, skipping...")
                 continue
 
@@ -142,7 +142,7 @@ class ProxyPlugin(BasePlugin):
                     handle=handle,
                     stream=is_stream,
                     direct_output=True,
-                    tags=[__plugin_meta__.name],
+                    tags=[f"{__plugin_meta__.name}({url})"],
                 )
 
                 # Proxy api to map
