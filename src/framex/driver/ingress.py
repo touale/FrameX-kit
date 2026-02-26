@@ -26,6 +26,15 @@ async def health() -> str:
     return "ok"
 
 
+@app.get("/version")
+async def version() -> str:
+    import os
+
+    from framex.config import settings
+
+    return settings.server.reversion or os.getenv("REVERSION") or "unknown"
+
+
 @api_ingress(app=app, name=BACKEND_NAME)
 class APIIngress:
     def __init__(self, deployments: list[Any], plugin_apis: list["PluginApi"]) -> None:
