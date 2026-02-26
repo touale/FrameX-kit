@@ -1,3 +1,4 @@
+import os
 import re
 from collections.abc import Callable
 from enum import Enum
@@ -28,7 +29,6 @@ async def health() -> str:
 
 @app.get("/version")
 async def version() -> str:
-    import os
 
     from framex.config import settings
 

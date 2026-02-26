@@ -58,7 +58,7 @@ class ProxyPluginConfig(BaseModel):
             return self.proxy_urls
         if isinstance(self.proxy_urls, dict):
             return list(self.proxy_urls.keys())
-        raise ValueError("proxy_urls must be a list or a dict")  # pragma: no cover
+        raise TypeError("Invalid proxy_urls type")  # pragma: no cover
 
     @model_validator(mode="after")
     def validate_proxy_functions(self) -> Self:
