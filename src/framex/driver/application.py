@@ -100,6 +100,7 @@ def create_fastapi_application() -> FastAPI:
             settings.auth.oauth.redirect_uri,
             oauth_callback,
             methods=["GET"],
+            include_in_schema=False,
         )
 
     @application.get(DOCS_URL, include_in_schema=False)
