@@ -169,6 +169,7 @@ class ProxyPlugin(BasePlugin):
             stream=False,
             direct_output=False,
             tags=[__plugin_meta__.name],
+            include_in_schema=False,
         )
 
     async def _proxy_func_route(self, model: ProxyFuncHttpBody) -> Any:

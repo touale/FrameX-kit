@@ -65,6 +65,7 @@ class APIIngress:
         direct_output: bool = False,
         tags: list[str | Enum] | None = None,
         auth_keys: list[str] | None = None,
+        include_in_schema: bool = True,
     ) -> bool:
         from framex.log import logger
 
@@ -131,6 +132,7 @@ class APIIngress:
                 tags=tags,
                 response_class=StreamingResponse if stream else JSONResponse,
                 dependencies=dependencies,
+                include_in_schema=include_in_schema,
             )
             methods_str = ",".join(m.upper() for m in methods)
             short_path = shorten_str(path)
