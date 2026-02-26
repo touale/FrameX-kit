@@ -46,3 +46,17 @@ def test_oauth_config_does_not_override_custom_urls():
     assert cfg.authorization_url == "https://custom.auth"
     assert cfg.token_url == "https://custom.token"  # noqa: S105
     assert cfg.user_info_url == "https://custom.user"
+
+
+def test_proxy_config():
+    from framex.plugins.proxy.config import ProxyPluginConfig, ProxyUrlRuleConfig
+
+    proxy_config = ProxyPluginConfig(
+        proxy_urls={
+            "http://localhost:10000": ProxyUrlRuleConfig(enable=["/*"], disable=["/health"]),
+            "http://localhost:10001": ProxyUrlRuleConfig(enable=["/*"]),
+        },
+    )
+    assert not proxy_config.is_white_url("http://localhost:10000", "/health")
+    assert proxy_config.is_white_url("http://localhost:10000", "/echo")
+    assert proxy_config.is_white_url("http://localhost:10001", "/health")
