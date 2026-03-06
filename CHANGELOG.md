@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.2.14-beta.2 (2026-03-06)
+
+### Chores
+
+- Remove renovate.json
+  ([`ac17367`](https://github.com/touale/FrameX-kit/commit/ac17367da4f1877024b2cd943cd60f4fe3a62118))
+
+### Features
+
+- Add api_prefix option to on_request
+  ([`0de764a`](https://github.com/touale/FrameX-kit/commit/0de764a8cf0c617667c8b6f2b62805293aba7ab5))
+
+
 ## v0.2.14-beta.1 (2026-02-26)
 
 ### Features
