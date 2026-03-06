@@ -30,10 +30,11 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                 if getattr(func, "_on_request", False):
                     call_type = func.__expose__call_type
                     path = func.__expose_path__
+                    api_prefix = func.__api_prefix
 
                     if not path:
                         call_type = ApiType.FUNC
-                    elif not path.startswith(API_STR):
+                    elif api_prefix and not path.startswith(API_STR):
                         path = f"{API_STR}{path}" if path.startswith("/") else f"{API_STR}/{path}"
 
                     params = extract_method_params(func)
@@ -64,7 +65,11 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
 
 
 def on_request(
-    path: str | None = None, methods: list[str] | None = None, call_type: ApiType = ApiType.HTTP, stream: bool = False
+    path: str | None = None,
+    methods: list[str] | None = None,
+    call_type: ApiType = ApiType.HTTP,
+    stream: bool = False,
+    api_prefix: bool = True,
 ) -> Callable:
     if methods is None:
         methods = ["GET"]
@@ -96,6 +101,7 @@ def on_request(
         func.__expose_methods_ = methods  # type: ignore [attr-defined]
         func.__expose__call_type = call_type  # type: ignore [attr-defined]
         func.__expose_stream = stream  # type: ignore [attr-defined]
+        func.__api_prefix = api_prefix  # type: ignore [attr-defined]
         return func
 
     return wrapper
