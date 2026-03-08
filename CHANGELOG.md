@@ -2,6 +2,34 @@
 
 <!-- version list -->
 
+## v0.2.14 (2026-03-08)
+
+### Chores
+
+- Remove renovate.json
+  ([`ac17367`](https://github.com/touale/FrameX-kit/commit/ac17367da4f1877024b2cd943cd60f4fe3a62118))
+
+- **deps**: Bump actions/download-artifact from 7 to 8
+  ([`c69563a`](https://github.com/touale/FrameX-kit/commit/c69563a6bad83131f71a4931c2616b1ec2ee11f8))
+
+- **deps**: Bump actions/upload-artifact from 6 to 7
+  ([`1249a03`](https://github.com/touale/FrameX-kit/commit/1249a03cba107dd260b54ae0a3929d8b410b5c12))
+
+- **deps-dev**: Bump ruff from 0.15.2 to 0.15.4
+  ([`0ff74e6`](https://github.com/touale/FrameX-kit/commit/0ff74e6dbfa211c341c0a29c09956e7b2367cad7))
+
+### Features
+
+- Add api_prefix option to on_request
+  ([`0de764a`](https://github.com/touale/FrameX-kit/commit/0de764a8cf0c617667c8b6f2b62805293aba7ab5))
+
+- Add call_plugin_api to exports
+  ([`42e4d4d`](https://github.com/touale/FrameX-kit/commit/42e4d4d6236399a1ed538361096fa330c9e595e7))
+
+- Add plugin description to tags
+  ([`e921f42`](https://github.com/touale/FrameX-kit/commit/e921f42d84903ada63370fc4f46e33f6f23a3afe))
+
+
 ## v0.2.13 (2026-02-26)
 
 ### Bug Fixes
