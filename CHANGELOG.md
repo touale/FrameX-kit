@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.15 (2026-03-10)
+
+### Features
+
+- Add raw_response option to on_request
+  ([`b2603f3`](https://github.com/touale/FrameX-kit/commit/b2603f37534c64a261739542e84737eabe98300a))
+
+
 ## v0.2.14 (2026-03-08)
 
 ### Chores
