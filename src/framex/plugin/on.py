@@ -31,6 +31,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                     call_type = func.__expose__call_type
                     path = func.__expose_path__
                     api_prefix = func.__api_prefix
+                    raw_response = func.__raw_response
 
                     if not path:
                         call_type = ApiType.FUNC
@@ -50,6 +51,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                             call_type=call_type,
                             tags=[f"{plugin.name}({version}): {plugin.module.__plugin_meta__.description}"],
                             stream=func.__expose_stream,
+                            raw_response=raw_response,
                         )
                     )
             from framex.config import settings
@@ -70,6 +72,7 @@ def on_request(
     call_type: ApiType = ApiType.HTTP,
     stream: bool = False,
     api_prefix: bool = True,
+    raw_response: bool = False,
 ) -> Callable:
     if methods is None:
         methods = ["GET"]
@@ -102,6 +105,7 @@ def on_request(
         func.__expose__call_type = call_type  # type: ignore [attr-defined]
         func.__expose_stream = stream  # type: ignore [attr-defined]
         func.__api_prefix = api_prefix  # type: ignore [attr-defined]
+        func.__raw_response = raw_response  # type: ignore [attr-defined]
         return func
 
     return wrapper

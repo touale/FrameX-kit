@@ -59,7 +59,7 @@ class APIIngress:
                     plugin_api.params,
                     deployment,
                     stream=plugin_api.stream,
-                    direct_output=False,
+                    direct_output=plugin_api.raw_response,
                     tags=plugin_api.tags,
                 )
 

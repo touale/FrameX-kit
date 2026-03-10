@@ -1,7 +1,8 @@
 PROJECT_NAME = "FrameX"
 VERSION = "0.2.14"
-API_STR = "/api/v1"
-OPENAPI_URL = "/api/v1/openapi.json"
+API_PRE_STR = "/api"
+API_STR = f"{API_PRE_STR}/v1"
+OPENAPI_URL = f"{API_STR}/openapi.json"
 DOCS_URL = "/docs"
 REDOC_URL = "/redoc"
 

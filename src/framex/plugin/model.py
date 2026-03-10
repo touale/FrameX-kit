@@ -35,6 +35,7 @@ class PluginApi(BaseModel):
     call_type: ApiType = ApiType.HTTP
     tags: list[str | Enum] | None = None
     stream: bool = False
+    raw_response: bool = False
 
 
 @dataclass(eq=False)

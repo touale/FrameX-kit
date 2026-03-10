@@ -22,7 +22,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from framex.config import settings
-from framex.consts import API_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
+from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
 from framex.driver.auth import authenticate, oauth_callback
 from framex.utils import format_uptime, safe_error_message
 
@@ -147,7 +147,7 @@ def create_fastapi_application() -> FastAPI:
     async def log_response(request: Request, call_next: Callable) -> Any:  # pragma: no cover
         response = await call_next(request)
         if (
-            not request.url.path.startswith(API_STR)
+            not request.url.path.startswith(API_PRE_STR)
             or request.url.path in [DOCS_URL, OPENAPI_URL, *settings.server.excluded_log_paths]
             or b"text/event-stream; charset=utf-8" in response.raw_headers[0]
             or response.headers.get("X-Raw-Output", "False") == "True"
