@@ -171,7 +171,7 @@ def create_fastapi_application() -> FastAPI:
             status_code=response.status_code,
             content={
                 "status": response.status_code,
-                "message": "success",
+                "message": "success" if response.status_code == 200 else "unexpected code",
                 "timestamp": timestamp,
                 "data": response_body,
             },
