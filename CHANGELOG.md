@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## v0.2.16-beta.1 (2026-03-18)
+
+### Bug Fixes
+
+- Update response message based on status code
+  ([`c8c2c50`](https://github.com/touale/FrameX-kit/commit/c8c2c50667a32e51053aa78e986d4274a1af90f6))
+
+- Use Field default_factory for mutable defaults
+  ([`0205e9f`](https://github.com/touale/FrameX-kit/commit/0205e9f3b267a9901d72ecfcf0898747f0911840))
+
+### Chores
+
+- **deps**: Bump pyasn1 from 0.6.2 to 0.6.3
+  ([`28a4f18`](https://github.com/touale/FrameX-kit/commit/28a4f1807760c037eb0da87e87101994ae1c22e4))
+
+- **deps**: Bump pyjwt from 2.10.1 to 2.12.0
+  ([`d75ea36`](https://github.com/touale/FrameX-kit/commit/d75ea36b5b90f9fc0b658f5dc267fbf0e9ba3458))
+
+- **deps-dev**: Bump pytest-env from 1.2.0 to 1.5.0
+  ([`4821e84`](https://github.com/touale/FrameX-kit/commit/4821e845c6d3ac85ab3f1ac057e4fb7924f6e140))
+
+- **deps-dev**: Bump types-pytz
+  ([`6c36498`](https://github.com/touale/FrameX-kit/commit/6c364985b049b480fb4f25d8f5220e0c198e673a))
+
+### Features
+
+- Add extend_kwargs and tags support to on_request
+  ([`da57497`](https://github.com/touale/FrameX-kit/commit/da5749744b0b323cf1a8c7699b18ecf1515f46a7))
+
+### Refactoring
+
+- Simplify deployment name assignment in on_register
+  ([`8c5f455`](https://github.com/touale/FrameX-kit/commit/8c5f45521d6b94f92ec22de3c4b60385af1d362b))
+
+
 ## v0.2.15 (2026-03-10)
 
 ### Features
