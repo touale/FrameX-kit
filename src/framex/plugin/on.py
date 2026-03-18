@@ -18,11 +18,10 @@ from . import _current_plugin, call_plugin_api
 def on_register(**kwargs: Any) -> Callable[[type], type]:
     def decorator(cls: type) -> type:
         if plugin := _current_plugin.get():
-            deployment_name: str = plugin_to_deployment_name(
-                plugin.name,
-                cls.__name__,
+            deployment_name = kwargs.setdefault(
+                "name",
+                plugin_to_deployment_name(plugin.name, cls.__name__),
             )
-            kwargs.setdefault("name", deployment_name)
 
             plugin_apis = []
 
