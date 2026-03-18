@@ -36,6 +36,7 @@ class PluginApi(BaseModel):
     tags: list[str | Enum] | None = None
     stream: bool = False
     raw_response: bool = False
+    extend_kwargs: dict = {}
 
 
 @dataclass(eq=False)

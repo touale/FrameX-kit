@@ -18,11 +18,11 @@ from . import _current_plugin, call_plugin_api
 def on_register(**kwargs: Any) -> Callable[[type], type]:
     def decorator(cls: type) -> type:
         if plugin := _current_plugin.get():
-            tag = plugin_to_deployment_name(
+            deployment_name: str = plugin_to_deployment_name(
                 plugin.name,
                 cls.__name__,
             )
-            kwargs.setdefault("name", tag)
+            kwargs.setdefault("name", deployment_name)
 
             plugin_apis = []
 
@@ -41,17 +41,23 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                     params = extract_method_params(func)
                     version: str = plugin.module.__plugin_meta__.version
                     version = f"v{version}" if not version.startswith("v") else version
+                    tags = [f"{plugin.name}({version}): {plugin.module.__plugin_meta__.description}"]
+
+                    if func.__tags:
+                        tags.extend(func.__tags)
+
                     plugin_apis.append(
                         PluginApi(
                             api=path,
-                            deployment_name=tag,
+                            deployment_name=deployment_name,
                             func_name=name,
                             methods=func.__expose_methods_,
                             params=params,
                             call_type=call_type,
-                            tags=[f"{plugin.name}({version}): {plugin.module.__plugin_meta__.description}"],
+                            tags=tags,
                             stream=func.__expose_stream,
                             raw_response=raw_response,
+                            extend_kwargs=func.__kwargs,
                         )
                     )
             from framex.config import settings
@@ -73,6 +79,8 @@ def on_request(
     stream: bool = False,
     api_prefix: bool = True,
     raw_response: bool = False,
+    tags: list[str] | None = None,
+    **kwargs: Any,
 ) -> Callable:
     if methods is None:
         methods = ["GET"]
@@ -106,6 +114,8 @@ def on_request(
         func.__expose_stream = stream  # type: ignore [attr-defined]
         func.__api_prefix = api_prefix  # type: ignore [attr-defined]
         func.__raw_response = raw_response  # type: ignore [attr-defined]
+        func.__tags = tags  # type: ignore [attr-defined]
+        func.__kwargs = kwargs  # type: ignore [attr-defined]
         return func
 
     return wrapper
