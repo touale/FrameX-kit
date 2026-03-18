@@ -61,6 +61,7 @@ class APIIngress:
                     stream=plugin_api.stream,
                     direct_output=plugin_api.raw_response,
                     tags=plugin_api.tags,
+                    **plugin_api.extend_kwargs,
                 )
 
     def register_route(
@@ -75,6 +76,7 @@ class APIIngress:
         tags: list[str | Enum] | None = None,
         auth_keys: list[str] | None = None,
         include_in_schema: bool = True,
+        **kwargs: Any,
     ) -> bool:
         from framex.log import logger
 
@@ -142,6 +144,7 @@ class APIIngress:
                 response_class=StreamingResponse if stream else JSONResponse,
                 dependencies=dependencies,
                 include_in_schema=include_in_schema,
+                **kwargs,
             )
             methods_str = ",".join(m.upper() for m in methods)
             short_path = shorten_str(path)
