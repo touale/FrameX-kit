@@ -30,13 +30,13 @@ class PluginApi(BaseModel):
     api: str | None = None
     deployment_name: str
     func_name: str = "__call__"
-    methods: list[str] = ["POST"]
-    params: list[tuple[str, type | Callable]] = []
+    methods: list[str] = Field(default_factory=lambda: ["POST"])
+    params: list[tuple[str, type[Any] | Callable[..., Any]]] = Field(default_factory=list)
     call_type: ApiType = ApiType.HTTP
     tags: list[str | Enum] | None = None
     stream: bool = False
     raw_response: bool = False
-    extend_kwargs: dict = {}
+    extend_kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
 @dataclass(eq=False)
