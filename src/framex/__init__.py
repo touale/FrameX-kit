@@ -66,6 +66,15 @@ def _setup_sentry(reversion: str | None = None) -> None:  # pragma: no cover
         )
 
 
+def _setup_ray_worker() -> None:  # pragma: no cover
+    settings.server.use_ray = True
+
+    import framex.adapter as adapter_module
+
+    adapter_module._adapter = None
+    _setup_sentry()
+
+
 def run(
     *,
     server_host: str | None = None,
@@ -146,7 +155,7 @@ def run(
                 "env_vars": {
                     "REVERSION": reversion,
                 },
-                "worker_process_setup_hook": _setup_sentry,
+                "worker_process_setup_hook": _setup_ray_worker,
             },
         )
         serve.start(
