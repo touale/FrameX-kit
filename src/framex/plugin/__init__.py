@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from contextvars import ContextVar
 from functools import lru_cache
 from typing import Any, Optional, TypeVar
@@ -15,6 +16,66 @@ C = TypeVar("C", bound=BaseModel)
 _manager: PluginManager = PluginManager(silent=settings.test.silent)
 
 _current_plugin: ContextVar[Optional["Plugin"]] = ContextVar("_current_plugin", default=None)
+_current_api_resolver: ContextVar["ApiResolver | None"] = ContextVar("_current_api_resolver", default=None)
+_current_remote_apis: ContextVar[Mapping[str, PluginApi | dict[str, Any]] | None] = ContextVar(
+    "_current_remote_apis", default=None
+)
+
+
+class ApiResolver:
+    def __init__(
+        self,
+        manager: PluginManager | None = None,
+        api_registry: Mapping[str, PluginApi | dict[str, Any]] | None = None,
+    ) -> None:
+        self._manager = manager
+        self._api_registry = api_registry or {}
+
+    @staticmethod
+    def _coerce_plugin_api(api: PluginApi | dict[str, Any] | None) -> PluginApi | None:
+        if api is None or isinstance(api, PluginApi):
+            return api
+        if isinstance(api, dict):
+            return PluginApi.model_validate(api)
+        return None
+
+    def resolve(
+        self,
+        api_name: str,
+        api_registry: Mapping[str, PluginApi | dict[str, Any]] | None = None,
+    ) -> PluginApi | None:
+        if api_registry is not None and (api := self._coerce_plugin_api(api_registry.get(api_name))):
+            return api
+        if self._manager and (api := self._manager.get_api(api_name)):
+            return api
+        return self._coerce_plugin_api(self._api_registry.get(api_name))
+
+
+_api_resolver = ApiResolver(manager=_manager)
+
+
+def get_current_api_resolver() -> ApiResolver | None:
+    return _current_api_resolver.get()
+
+
+def set_current_api_resolver(resolver: ApiResolver | None) -> Any:
+    return _current_api_resolver.set(resolver)
+
+
+def reset_current_api_resolver(token: Any) -> None:
+    _current_api_resolver.reset(token)
+
+
+def get_current_remote_apis() -> Mapping[str, PluginApi | dict[str, Any]] | None:
+    return _current_remote_apis.get()
+
+
+def set_current_remote_apis(remote_apis: Mapping[str, PluginApi | dict[str, Any]] | None) -> Any:
+    return _current_remote_apis.set(remote_apis)
+
+
+def reset_current_remote_apis(token: Any) -> None:
+    _current_remote_apis.reset(token)
 
 
 def get_plugin(plugin_id: str) -> Plugin | None:
@@ -40,6 +101,7 @@ def check_plugin_config_exists(plugin_name: str) -> bool:
 @logger.catch()
 def init_all_deployments(enable_proxy: bool) -> list[Any]:
     deployments = []
+    all_apis = {**_manager.all_plugin_apis[ApiType.FUNC], **_manager.all_plugin_apis[ApiType.HTTP]}
     for plugin in get_loaded_plugins():
         for dep in plugin.deployments:
             remote_apis = {
@@ -66,6 +128,7 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
             deployment = get_adapter().bind(
                 dep.deployment,
                 remote_apis=remote_apis,
+                api_registry=all_apis,
                 config=plugin.config,
             )
 
@@ -76,15 +139,24 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
 
 async def call_plugin_api(
     api_name: str | PluginApi,
-    interval_apis: dict[str, PluginApi] | None = None,
+    resolver: ApiResolver | None = None,
     **kwargs: Any,
 ) -> Any:
+    current_remote_apis = get_current_remote_apis()
     if isinstance(api_name, PluginApi):
         api: PluginApi | None = api_name
     elif isinstance(api_name, str):
-        api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
+        active_resolver = resolver or get_current_api_resolver() or _api_resolver
+        if current_remote_apis is not None:
+            api = active_resolver._coerce_plugin_api(current_remote_apis.get(api_name))
+        else:
+            api = active_resolver.resolve(api_name, None)
     use_proxy = False
     if not api:
+        if isinstance(api_name, str) and current_remote_apis is not None:
+            raise RuntimeError(
+                f"API {api_name} is not declared in current plugin remote_apis; add it to required_remote_apis."
+            )
         if isinstance(api_name, str) and api_name.startswith("/") and settings.server.enable_proxy:
             api = PluginApi(
                 api=api_name,

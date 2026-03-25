@@ -14,13 +14,21 @@ def test_get_plugin():
     assert plugin.config.model_dump() == {"id": 123, "name": "test"}
 
 
+import inspect
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic import BaseModel
 
 from framex.consts import PROXY_PLUGIN_NAME
-from framex.plugin import call_plugin_api
+from framex.plugin import (
+    ApiResolver,
+    call_plugin_api,
+    reset_current_api_resolver,
+    reset_current_remote_apis,
+    set_current_api_resolver,
+    set_current_remote_apis,
+)
 from framex.plugin.model import ApiType, PluginApi
 
 
@@ -173,11 +181,111 @@ class TestCallPluginApi:
         ):
             mock_adapter.return_value.call_func = AsyncMock(return_value="interval_result")
 
-            result = await call_plugin_api("test_api", interval_apis=interval_apis)
+            token = set_current_remote_apis(interval_apis)
+            try:
+                result = await call_plugin_api("test_api")
+            finally:
+                reset_current_remote_apis(token)
 
             # Manager get_api should not be called
             mock_get_api.assert_not_called()
             assert result == "interval_result"
+
+    @pytest.mark.asyncio
+    async def test_call_plugin_api_with_interval_apis_dict_payload(self):
+        """Test interval_apis values serialized through Ray can be rehydrated."""
+        api = PluginApi(api="test_api", deployment_name="test_deployment")
+        interval_apis = {"test_api": api.model_dump()}
+
+        with (
+            patch("framex.plugin._manager.get_api") as mock_get_api,
+            patch("framex.plugin.get_adapter") as mock_adapter,
+        ):
+            mock_adapter.return_value.call_func = AsyncMock(return_value="interval_dict_result")
+
+            token = set_current_remote_apis(interval_apis)
+            try:
+                result = await call_plugin_api("test_api")
+            finally:
+                reset_current_remote_apis(token)
+
+            mock_get_api.assert_not_called()
+            assert result == "interval_dict_result"
+
+    @pytest.mark.asyncio
+    async def test_call_plugin_api_uses_resolver_when_manager_misses(self):
+        """Test ApiResolver fallback works when Ray workers lack manager state."""
+        func_api = PluginApi(deployment_name="demo_plugin.DemoDeployment", func_name="run", call_type=ApiType.FUNC)
+        http_api = PluginApi(api="/api/v1/resource_match/resource_detail", deployment_name="resource_match.Detail")
+        resolver = ApiResolver(
+            api_registry={
+                "demo_plugin.DemoDeployment.run": func_api,
+                "/api/v1/resource_match/resource_detail": http_api,
+            }
+        )
+
+        with (
+            patch("framex.plugin._manager.get_api", return_value=None),
+            patch("framex.plugin.get_adapter") as mock_adapter,
+        ):
+            mock_adapter.return_value.call_func = AsyncMock(side_effect=["func_result", "http_result"])
+
+            assert await call_plugin_api("demo_plugin.DemoDeployment.run", resolver=resolver) == "func_result"
+            assert await call_plugin_api("/api/v1/resource_match/resource_detail", resolver=resolver) == "http_result"
+
+    @pytest.mark.asyncio
+    async def test_call_plugin_api_uses_context_resolver_when_no_explicit_resolver(self):
+        """Test context-bound resolver works for nested service-style calls."""
+        http_api = PluginApi(api="/api/v1/fetch/fetch_company_by_dim_info", deployment_name="fetch.FetchPlugin")
+        resolver = ApiResolver(api_registry={"/api/v1/fetch/fetch_company_by_dim_info": http_api})
+
+        with (
+            patch("framex.plugin._manager.get_api", return_value=None),
+            patch("framex.plugin.get_adapter") as mock_adapter,
+        ):
+            mock_adapter.return_value.call_func = AsyncMock(return_value="context_result")
+            token = set_current_api_resolver(resolver)
+            try:
+                result = await call_plugin_api("/api/v1/fetch/fetch_company_by_dim_info")
+            finally:
+                reset_current_api_resolver(token)
+
+            assert result == "context_result"
+            assert mock_adapter.return_value.call_func.call_args[0][0] == http_api
+
+    @pytest.mark.asyncio
+    async def test_call_plugin_api_plugin_context_requires_remote_apis(self):
+        """Test plugin-context calls do not fall back to global registry outside remote_apis."""
+        http_api = PluginApi(api="/api/v1/fetch/fetch_company_by_dim_info", deployment_name="fetch.FetchPlugin")
+        resolver = ApiResolver(api_registry={"/api/v1/fetch/fetch_company_by_dim_info": http_api})
+
+        with patch("framex.plugin._manager.get_api", return_value=http_api):
+            resolver_token = set_current_api_resolver(resolver)
+            remote_token = set_current_remote_apis({})
+            try:
+                with pytest.raises(RuntimeError, match="not declared in current plugin remote_apis"):
+                    await call_plugin_api("/api/v1/fetch/fetch_company_by_dim_info")
+            finally:
+                reset_current_remote_apis(remote_token)
+                reset_current_api_resolver(resolver_token)
+
+    @pytest.mark.asyncio
+    async def test_call_plugin_api_context_wrapper_preserves_async_generator(self):
+        """Test resolver context wrapping keeps stream handlers as async generators."""
+        from framex.plugin.base import BasePlugin
+        from framex.plugin.on import on_request
+
+        class DemoPlugin(BasePlugin):
+            @on_request("/demo", stream=True)
+            async def stream_api(self):
+                yield "a"
+                yield "b"
+
+        plugin = DemoPlugin(api_registry={})
+        stream = plugin.stream_api()
+
+        assert inspect.isasyncgen(stream)
+        assert [chunk async for chunk in stream] == ["a", "b"]
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_proxy_creates_correct_plugin_api(self):
