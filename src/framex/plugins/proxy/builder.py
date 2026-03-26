@@ -2,6 +2,9 @@ from typing import Any, Union
 
 from pydantic import BaseModel, create_model
 
+from framex.plugins.proxy.model import ProxyFuncHttpBody
+from framex.utils import cache_decode
+
 _created_models: dict[str, type[BaseModel]] = {}
 
 type_map = {
@@ -103,3 +106,11 @@ def create_pydantic_model(
     model: type[BaseModel] = create_model(name, **fields)  # type: ignore
     _created_models[name] = model
     return model
+
+
+def format_proxy_params(**kwargs: Any) -> str:
+    if (model := kwargs.get("model")) and isinstance(model, ProxyFuncHttpBody):
+        func_name = cache_decode(model.func_name)
+        data = cache_decode(model.data)
+        return str({"func_name": func_name, "data": data})
+    return str(kwargs)

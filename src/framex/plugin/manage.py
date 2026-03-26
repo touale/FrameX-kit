@@ -15,6 +15,7 @@ from itertools import chain
 from pathlib import Path
 from types import ModuleType
 
+from framex.config import settings
 from framex.log import logger
 from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
 from framex.utils import escape_tag, path_to_module_name
@@ -269,3 +270,5 @@ class PluginLoader(SourceFileLoader):
 
 # Insert a custom plugin module finder into the front of the Python import system to intercept and load plugin modules
 sys.meta_path.insert(0, PluginFinder())
+
+_manager: PluginManager = PluginManager(silent=settings.test.silent)

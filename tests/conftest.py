@@ -68,3 +68,24 @@ def client(test_app: FastAPI) -> Generator:
 def runner():
     """Provide a reusable Click CLI runner."""
     return CliRunner()
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session, exitstatus):
+    try:
+        from coverage import Coverage
+    except ImportError:
+        return
+
+    coverage_dir = Path(".coverage")
+    if not coverage_dir.exists():
+        return
+
+    data_files = list(coverage_dir.glob(".coverage.*"))
+    if not data_files:
+        return
+
+    cov = Coverage(config_file=True, data_file=str(coverage_dir / ".coverage"))
+    cov.load()
+    cov.combine()
+    cov.save()

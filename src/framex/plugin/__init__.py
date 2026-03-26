@@ -8,13 +8,20 @@ from framex.adapter import get_adapter
 from framex.config import settings
 from framex.consts import PROXY_PLUGIN_NAME
 from framex.log import logger
-from framex.plugin.manage import PluginManager
+from framex.plugin.manage import _manager
 from framex.plugin.model import Plugin, PluginApi
+from framex.plugin.resolver import (
+    ApiResolver,
+    _set_default_api_resolver,
+    get_current_api_resolver,
+    get_current_remote_apis,
+    get_default_api_resolver,
+)
 
 C = TypeVar("C", bound=BaseModel)
-_manager: PluginManager = PluginManager(silent=settings.test.silent)
 
 _current_plugin: ContextVar[Optional["Plugin"]] = ContextVar("_current_plugin", default=None)
+_set_default_api_resolver(ApiResolver(manager=_manager))
 
 
 def get_plugin(plugin_id: str) -> Plugin | None:
@@ -40,6 +47,7 @@ def check_plugin_config_exists(plugin_name: str) -> bool:
 @logger.catch()
 def init_all_deployments(enable_proxy: bool) -> list[Any]:
     deployments = []
+    all_apis = {**_manager.all_plugin_apis[ApiType.FUNC], **_manager.all_plugin_apis[ApiType.HTTP]}
     for plugin in get_loaded_plugins():
         for dep in plugin.deployments:
             remote_apis = {
@@ -66,6 +74,7 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
             deployment = get_adapter().bind(
                 dep.deployment,
                 remote_apis=remote_apis,
+                api_registry=all_apis,
                 config=plugin.config,
             )
 
@@ -74,18 +83,26 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
     return deployments
 
 
-async def call_plugin_api(
+def _resolve_plugin_api(
     api_name: str | PluginApi,
-    interval_apis: dict[str, PluginApi] | None = None,
-    **kwargs: Any,
-) -> Any:
+    resolver: ApiResolver | None = None,
+) -> tuple[PluginApi, bool]:
+    current_remote_apis = get_current_remote_apis()
     if isinstance(api_name, PluginApi):
-        api: PluginApi | None = api_name
-    elif isinstance(api_name, str):
-        api = interval_apis.get(api_name) if interval_apis else _manager.get_api(api_name)
-    use_proxy = False
-    if not api:
-        if isinstance(api_name, str) and api_name.startswith("/") and settings.server.enable_proxy:
+        return api_name, api_name.call_type == ApiType.PROXY
+
+    active_resolver = resolver or get_current_api_resolver() or get_default_api_resolver()
+    if current_remote_apis is not None:
+        api = active_resolver.coerce_plugin_api(current_remote_apis.get(api_name))
+    else:
+        api = active_resolver.resolve(api_name, None)
+
+    if api is None:
+        if current_remote_apis is not None:
+            raise RuntimeError(
+                f"API {api_name} is not declared in current plugin remote_apis; add it to required_remote_apis."
+            )
+        if api_name.startswith("/") and settings.server.enable_proxy:
             api = PluginApi(
                 api=api_name,
                 deployment_name=PROXY_PLUGIN_NAME,
@@ -94,15 +111,18 @@ async def call_plugin_api(
             logger.opt(colors=True).warning(
                 f"Api(<y>{api_name}</y>) not found, use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
             )
-            use_proxy = True
         else:
             raise RuntimeError(
                 f"API {api_name} is not found, please check if the plugin is loaded or the API name is correct."
             )
-    if api.call_type == ApiType.PROXY:
-        use_proxy = True
+
+    return api, api.call_type == ApiType.PROXY
+
+
+def _normalize_plugin_call_kwargs(api: PluginApi, kwargs: dict[str, Any]) -> dict[str, Any]:
+    normalized_kwargs = dict(kwargs)
     param_type_map = dict(api.params)
-    for key, val in kwargs.items():
+    for key, val in normalized_kwargs.items():
         if (
             isinstance(val, dict)
             and (expected_type := param_type_map.get(key))
@@ -110,26 +130,41 @@ async def call_plugin_api(
             and issubclass(expected_type, BaseModel)
         ):
             try:
-                kwargs[key] = expected_type(**val)
+                normalized_kwargs[key] = expected_type(**val)
             except Exception as e:  # pragma: no cover
                 raise RuntimeError(f"Failed to convert '{key}' to {expected_type}") from e
-    result = await get_adapter().call_func(api, **kwargs)
+    return normalized_kwargs
+
+
+def _unwrap_plugin_call_result(api_name: str | PluginApi, result: Any, use_proxy: bool) -> Any:
     if isinstance(result, BaseModel):
         return result.model_dump(by_alias=True)
-    if use_proxy:
-        if not isinstance(result, dict):
-            return result
-        if "status" not in result:
-            raise RuntimeError(f"Proxy API {api_name} returned invalid response: missing 'status' field")
-        res = result.get("data")
-        status = result.get("status")
-        if status not in settings.server.legal_proxy_code:
-            logger.opt(colors=True).error(f"<>Proxy API {api_name} call illegal: <r>{result}</r>")
-            raise RuntimeError(f"Proxy API {api_name} returned status {status}")
-        if res is None:
-            logger.opt(colors=True).warning(f"API {api_name} returned empty data")
-        return res
-    return result
+    if not use_proxy:
+        return result
+    if not isinstance(result, dict):
+        return result
+    if "status" not in result:
+        raise RuntimeError(f"Proxy API {api_name} returned invalid response: missing 'status' field")
+
+    res = result.get("data")
+    status = result.get("status")
+    if status not in settings.server.legal_proxy_code:
+        logger.opt(colors=True).error(f"<>Proxy API {api_name} call illegal: <r>{result}</r>")
+        raise RuntimeError(f"Proxy API {api_name} returned status {status}")
+    if res is None:
+        logger.opt(colors=True).warning(f"API {api_name} returned empty data")
+    return res
+
+
+async def call_plugin_api(
+    api_name: str | PluginApi,
+    resolver: ApiResolver | None = None,
+    **kwargs: Any,
+) -> Any:
+    api, use_proxy = _resolve_plugin_api(api_name, resolver=resolver)
+    normalized_kwargs = _normalize_plugin_call_kwargs(api, kwargs)
+    result = await get_adapter().call_func(api, **normalized_kwargs)
+    return _unwrap_plugin_call_result(api_name, result, use_proxy)
 
 
 def get_http_plugin_apis() -> list["PluginApi"]:
