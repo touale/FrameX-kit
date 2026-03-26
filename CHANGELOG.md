@@ -2,6 +2,78 @@
 
 <!-- version list -->
 
+## v0.3.0-beta.1 (2026-03-26)
+
+### Bug Fixes
+
+- Enforce default API resolver configuration
+  ([`37212a3`](https://github.com/touale/FrameX-kit/commit/37212a3ee648e696b505b703724edcc4f7f8b559))
+
+- Update response message based on status code
+  ([`c8c2c50`](https://github.com/touale/FrameX-kit/commit/c8c2c50667a32e51053aa78e986d4274a1af90f6))
+
+- Update use_ray setting and improve exception handling
+  ([`6c184cb`](https://github.com/touale/FrameX-kit/commit/6c184cb4954f7e543ea6664aa41c6cdf0ff9a397))
+
+- Use Field default_factory for mutable defaults
+  ([`0205e9f`](https://github.com/touale/FrameX-kit/commit/0205e9f3b267a9901d72ecfcf0898747f0911840))
+
+### Chores
+
+- **deps**: Bump pyasn1 from 0.6.2 to 0.6.3
+  ([`28a4f18`](https://github.com/touale/FrameX-kit/commit/28a4f1807760c037eb0da87e87101994ae1c22e4))
+
+- **deps**: Bump pydantic from 2.12.3 to 2.12.5
+  ([`b92a0b2`](https://github.com/touale/FrameX-kit/commit/b92a0b2cb57cc82e8ea86e049229bad4b1b7db41))
+
+- **deps**: Bump pydantic-settings from 2.11.0 to 2.13.1
+  ([`d3de700`](https://github.com/touale/FrameX-kit/commit/d3de700a633e56de4f3daa6563cfec2e5a6dcd6a))
+
+- **deps**: Bump pyjwt from 2.10.1 to 2.12.0
+  ([`d75ea36`](https://github.com/touale/FrameX-kit/commit/d75ea36b5b90f9fc0b658f5dc267fbf0e9ba3458))
+
+- **deps**: Bump pyjwt from 2.12.0 to 2.12.1
+  ([`08acce0`](https://github.com/touale/FrameX-kit/commit/08acce04ed5ccac27892bafd96fbdd64666c96e5))
+
+- **deps-dev**: Bump pre-commit from 4.3.0 to 4.5.1
+  ([`0e0a19d`](https://github.com/touale/FrameX-kit/commit/0e0a19d217b75fb7f16d55a17da81bd4fcd1b1b6))
+
+- **deps-dev**: Bump pytest-env from 1.2.0 to 1.5.0
+  ([`4821e84`](https://github.com/touale/FrameX-kit/commit/4821e845c6d3ac85ab3f1ac057e4fb7924f6e140))
+
+- **deps-dev**: Bump pytest-env from 1.5.0 to 1.6.0
+  ([`3816b7b`](https://github.com/touale/FrameX-kit/commit/3816b7ba41d3dc4c402b83a4499c0b7dcc3fcd69))
+
+- **deps-dev**: Bump types-pytz
+  ([`6c36498`](https://github.com/touale/FrameX-kit/commit/6c364985b049b480fb4f25d8f5220e0c198e673a))
+
+### Features
+
+- Add ApiResolver and context management for plugin APIs
+  ([`1fc81d8`](https://github.com/touale/FrameX-kit/commit/1fc81d81e6c5fe13a087666f4a092fa7da5c6d80))
+
+- Add extend_kwargs and tags support to on_request
+  ([`da57497`](https://github.com/touale/FrameX-kit/commit/da5749744b0b323cf1a8c7699b18ecf1515f46a7))
+
+### Refactoring
+
+- Extract ApiResolver to separate module
+  ([`d7e3262`](https://github.com/touale/FrameX-kit/commit/d7e3262a474045b0712122af834a3e977a168600))
+
+- Simplify deployment name assignment in on_register
+  ([`8c5f455`](https://github.com/touale/FrameX-kit/commit/8c5f45521d6b94f92ec22de3c4b60385af1d362b))
+
+### Testing
+
+- Add Ray integration tests and coverage support
+  ([`940761f`](https://github.com/touale/FrameX-kit/commit/940761f735a253315056f00fac63e37e91c82330))
+
+### Update
+
+- Improve proxy params logging with format_proxy_params
+  ([`0e29702`](https://github.com/touale/FrameX-kit/commit/0e297020fee5c8372f1e48268f37c0027dadae1a))
+
+
 ## v0.2.15 (2026-03-10)
 
 ### Features
