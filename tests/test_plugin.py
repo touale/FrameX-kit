@@ -1,5 +1,20 @@
+import inspect
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from pydantic import BaseModel
+
 import framex
-from framex.consts import VERSION
+from framex.consts import PROXY_PLUGIN_NAME, VERSION
+from framex.plugin import (
+    ApiResolver,
+    call_plugin_api,
+    reset_current_api_resolver,
+    reset_current_remote_apis,
+    set_current_api_resolver,
+    set_current_remote_apis,
+)
+from framex.plugin.model import ApiType, PluginApi
 
 
 def test_get_plugin():
@@ -12,24 +27,6 @@ def test_get_plugin():
 
     assert plugin.config
     assert plugin.config.model_dump() == {"id": 123, "name": "test"}
-
-
-import inspect
-from unittest.mock import AsyncMock, patch
-
-import pytest
-from pydantic import BaseModel
-
-from framex.consts import PROXY_PLUGIN_NAME
-from framex.plugin import (
-    ApiResolver,
-    call_plugin_api,
-    reset_current_api_resolver,
-    reset_current_remote_apis,
-    set_current_api_resolver,
-    set_current_remote_apis,
-)
-from framex.plugin.model import ApiType, PluginApi
 
 
 class SampleModel(BaseModel):

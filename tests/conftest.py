@@ -74,7 +74,7 @@ def runner():
 def pytest_sessionfinish(session, exitstatus):
     try:
         from coverage import Coverage
-    except Exception:
+    except ImportError:
         return
 
     coverage_dir = Path(".coverage")

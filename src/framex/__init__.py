@@ -96,6 +96,7 @@ def run(
     dashboard_port = dashboard_port if dashboard_port is not None else settings.server.dashboard_port
     num_cpus = num_cpus if num_cpus is not None else settings.server.num_cpus
     use_ray = use_ray if use_ray is not None else settings.server.use_ray
+    settings.server.use_ray = use_ray
     enable_proxy = enable_proxy if enable_proxy is not None else settings.server.enable_proxy
     builtin_plugins = settings.load_builtin_plugins if load_builtin_plugins is None else load_builtin_plugins
     external_plugins = settings.load_plugins if load_plugins is None else load_plugins
