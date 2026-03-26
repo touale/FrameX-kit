@@ -49,7 +49,9 @@ def get_current_api_resolver() -> ApiResolver | None:
     return _current_api_resolver.get()
 
 
-def get_default_api_resolver() -> ApiResolver | None:
+def get_default_api_resolver() -> ApiResolver:
+    if _default_api_resolver is None:
+        raise RuntimeError("Default API resolver is not configured")
     return _default_api_resolver
 
 
