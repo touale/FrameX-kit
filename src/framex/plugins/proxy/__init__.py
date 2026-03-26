@@ -15,7 +15,7 @@ from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
 from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
-from framex.plugins.proxy.builder import create_pydantic_model, type_map
+from framex.plugins.proxy.builder import create_pydantic_model, format_proxy_params, type_map
 from framex.plugins.proxy.config import ProxyPluginConfig, settings
 from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
 from framex.utils import cache_decode, cache_encode, shorten_str
@@ -235,7 +235,7 @@ class ProxyPlugin(BasePlugin):
 
         # Construct dynamic methods
         async def dynamic_method(**kwargs: Any) -> AsyncGenerator[str, None] | dict[str, Any] | str:
-            log_info = shorten_str(str(kwargs), 512)
+            log_info = shorten_str(format_proxy_params(**kwargs), 512)
             logger.info(f"Calling proxy url: {url} with kwargs: {log_info}")
             validated = RequestModel(**kwargs)  # Type Validation
             query = {}

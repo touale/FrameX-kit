@@ -55,7 +55,7 @@ def get_default_api_resolver() -> ApiResolver:
     return _default_api_resolver
 
 
-def _set_default_api_resolver(resolver: ApiResolver | None) -> None:
+def _set_default_api_resolver(resolver: ApiResolver) -> None:
     global _default_api_resolver
     _default_api_resolver = resolver
 
