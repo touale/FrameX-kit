@@ -5,15 +5,15 @@ from typing import Any, final
 
 from framex.config import settings
 from framex.log import setup_logger
-from framex.plugin import (
+from framex.plugin import call_plugin_api
+from framex.plugin.model import PluginApi
+from framex.plugin.resolver import (
     ApiResolver,
-    call_plugin_api,
     reset_current_api_resolver,
     reset_current_remote_apis,
     set_current_api_resolver,
     set_current_remote_apis,
 )
-from framex.plugin.model import PluginApi
 
 
 class BasePlugin:

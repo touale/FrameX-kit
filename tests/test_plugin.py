@@ -6,15 +6,15 @@ from pydantic import BaseModel
 
 import framex
 from framex.consts import PROXY_PLUGIN_NAME, VERSION
-from framex.plugin import (
+from framex.plugin import call_plugin_api
+from framex.plugin.model import ApiType, PluginApi
+from framex.plugin.resolver import (
     ApiResolver,
-    call_plugin_api,
     reset_current_api_resolver,
     reset_current_remote_apis,
     set_current_api_resolver,
     set_current_remote_apis,
 )
-from framex.plugin.model import ApiType, PluginApi
 
 
 def test_get_plugin():
