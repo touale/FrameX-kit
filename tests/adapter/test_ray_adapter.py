@@ -180,7 +180,12 @@ class TestRayAdapter:
         # Now test the captured wrapper
         assert captured_wrapper is not None
         with patch("asyncio.run") as mock_asyncio_run:
-            mock_asyncio_run.return_value = 10
+
+            def _consume_coroutine(coro):
+                coro.close()
+                return 10
+
+            mock_asyncio_run.side_effect = _consume_coroutine
             result = captured_wrapper(5)
             mock_asyncio_run.assert_called_once()
             assert result == 10
