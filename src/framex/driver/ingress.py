@@ -1,7 +1,6 @@
 import os
 import re
 from collections.abc import Callable
-from enum import Enum
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request, Response, status
@@ -73,7 +72,7 @@ class APIIngress:
         handle: Any,
         stream: bool = False,
         direct_output: bool = False,
-        tags: list[str | Enum] | None = None,
+        tags: list[str] | None = None,
         auth_keys: list[str] | None = None,
         include_in_schema: bool = True,
         **kwargs: Any,

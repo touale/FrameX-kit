@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum, StrEnum
+from enum import StrEnum
 from types import ModuleType
 from typing import Any
 
@@ -33,7 +33,7 @@ class PluginApi(BaseModel):
     methods: list[str] = Field(default_factory=lambda: ["POST"])
     params: list[tuple[str, type[Any] | Callable[..., Any]]] = Field(default_factory=list)
     call_type: ApiType = ApiType.HTTP
-    tags: list[str | Enum] | None = None
+    tags: list[str] | None = None
     stream: bool = False
     raw_response: bool = False
     extend_kwargs: dict[str, Any] = Field(default_factory=dict)
