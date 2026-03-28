@@ -1,12 +1,13 @@
+import inspect
 import os
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import Annotated, Any, get_args, get_origin
 
 from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
-from pydantic import create_model
+from pydantic import BaseModel
 from starlette.routing import Route
 
 from framex.adapter import get_adapter
@@ -19,6 +20,17 @@ from framex.plugin.model import ApiType, PluginApi
 from framex.utils import escape_tag, shorten_str
 
 app = create_fastapi_application()
+
+
+def _unwrap_annotation(annotation: Any) -> Any:
+    if get_origin(annotation) is Annotated:
+        return get_args(annotation)[0]
+    return annotation
+
+
+def _is_basemodel_annotation(annotation: Any) -> bool:
+    annotation = _unwrap_annotation(annotation)
+    return isinstance(annotation, type) and issubclass(annotation, BaseModel)
 
 
 @app.get("/health")
@@ -100,9 +112,8 @@ class APIIngress:
                 return False
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
-            Model: BaseModel = create_model(f"{func_name}_InputModel", **{name: (tp, ...) for name, tp in params})  # type:ignore # noqa
 
-            async def route_handler(response: Response, model: Model = Depends()) -> Any:  # type: ignore [valid-type]
+            async def route_handler(response: Response, **request_kwargs: Any) -> Any:
                 c_handle = getattr(handle, func_name)
                 if not c_handle:
                     raise RuntimeError(
@@ -110,13 +121,32 @@ class APIIngress:
                     )
                 response.headers["X-Raw-Output"] = str(direct_output)
                 if stream:
-                    gen = adapter._stream_call(c_handle, **(model.__dict__))
+                    gen = adapter._stream_call(c_handle, **request_kwargs)
                     return StreamingResponse(  # type: ignore
                         gen,
                         media_type="text/event-stream",
                     )
 
-                return await adapter._acall(c_handle, **model.__dict__)  # type: ignore
+                return await adapter._acall(c_handle, **request_kwargs)  # type: ignore
+
+            route_handler.__signature__ = inspect.Signature(  # type: ignore
+                [
+                    inspect.Parameter(
+                        "response",
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        annotation=Response,
+                    ),
+                    *[
+                        inspect.Parameter(
+                            name,
+                            inspect.Parameter.KEYWORD_ONLY,
+                            annotation=tp,
+                            default=inspect.Parameter.empty,
+                        )
+                        for name, tp in params
+                    ],
+                ]
+            )
 
             # Inject auth dependency if needed
             dependencies = []

@@ -63,8 +63,8 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
                         call_type=ApiType.PROXY,
                     )
                     logger.opt(colors=True).warning(
-                        f"Api(<r>{api_name}</r>) not found, "
-                        f"plugin(<r>{dep.deployment}</r>) will "
+                        f"Api(<y>{api_name}</y>) not found, "
+                        f"plugin(<y>{dep.deployment}</y>) will "
                         f"use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
                     )
                 else:  # pragma: no cover

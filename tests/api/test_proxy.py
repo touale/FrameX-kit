@@ -29,6 +29,46 @@ def test_get_proxy_post_model(client: TestClient):
     assert res == {"method": "POST", "body": data}
 
 
+def test_get_proxy_upload(client: TestClient):
+    params = {"message": "hello world"}
+    data = {"note": "upload note"}
+    files = {
+        "ppt_file": (
+            "demo.pptx",
+            b"ppt-content",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ),
+        "txt_file": ("demo.txt", b"txt-content", "text/plain"),
+    }
+    res = client.post("/proxy/mock/upload", params=params, data=data, files=files).json()
+    assert res == {
+        "method": "POST",
+        "params": params,
+        "body": data,
+        "files": [
+            {
+                "field": "ppt_file",
+                "filename": "demo.pptx",
+                "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            },
+            {
+                "field": "txt_file",
+                "filename": "demo.txt",
+                "content_type": "text/plain",
+            },
+        ],
+    }
+
+
+def test_get_proxy_upload_openapi(client: TestClient):
+    data = client.get("/api/v1/openapi.json").json()
+    post = data["paths"]["/proxy/mock/upload"]["post"]
+    ref = post["requestBody"]["content"]["multipart/form-data"]["schema"]["$ref"].split("/")[-1]
+    schema = data["components"]["schemas"][ref]
+    assert schema["properties"]["ppt_file"]["format"] == "binary"
+    assert schema["properties"]["txt_file"]["format"] == "binary"
+
+
 def test_get_proxy_black_get(client: TestClient):
     res = client.get("/proxy/mock/black_get").json()
     assert res["status"] == 404

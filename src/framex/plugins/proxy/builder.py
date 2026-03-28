@@ -1,5 +1,6 @@
-from typing import Any, Union
+from typing import Annotated, Any, Union, get_args, get_origin
 
+from fastapi import File, Form, UploadFile
 from pydantic import BaseModel, create_model
 
 from framex.plugins.proxy.model import ProxyFuncHttpBody
@@ -16,7 +17,27 @@ type_map = {
     "object": dict,
     "null": None,
 }
-from typing import get_args, get_origin
+
+
+def unwrap_annotation(annotation: Any) -> Any:
+    if get_origin(annotation) is Annotated:
+        return get_args(annotation)[0]
+    return annotation
+
+
+def is_upload_annotation(annotation: Any) -> bool:
+    annotation = unwrap_annotation(annotation)
+    origin = get_origin(annotation)
+    if origin is list:
+        args = get_args(annotation)
+        return len(args) == 1 and is_upload_annotation(args[0])
+    return annotation is UploadFile
+
+
+def to_multipart_annotation(annotation: Any) -> Any:
+    if is_upload_annotation(annotation):
+        return Annotated[annotation, File(...)]
+    return Annotated[annotation, Form(...)]
 
 
 def resolve_annotation(
@@ -54,9 +75,18 @@ def resolve_annotation(
         if "$ref" in prop_schema:
             item_type = resolve_annotation(prop_schema, components)
         else:
+            if prop_schema.get("type") == "string" and (
+                prop_schema.get("contentMediaType") == "application/octet-stream"
+                or prop_schema.get("format") == "binary"
+            ):
+                return list[UploadFile]  # type: ignore [valid-type]
             item_type = type_map.get(prop_schema.get("type", "string"), str)
         return list[item_type]  # type: ignore [valid-type]
     if typ:
+        if typ == "string" and (
+            prop_schema.get("contentMediaType") == "application/octet-stream" or prop_schema.get("format") == "binary"
+        ):
+            return UploadFile
         return type_map.get(typ, str)
     raise RuntimeError(f"Unsupported prop_schema: {prop_schema}")
 
