@@ -56,7 +56,6 @@ async def register_proxy_func(func: Callable) -> None:
     )
     await call_plugin_api(
         api_reg,
-        None,
         func_name=full_func_name,
         func_callable=_PROXY_REGISTRY[full_func_name],
     )

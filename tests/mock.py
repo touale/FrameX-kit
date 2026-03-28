@@ -26,6 +26,7 @@ async def mock_get(_, url: str, *__, **kwargs: Any):
 async def mock_request(_, method: str, url: str, **kwargs: Any):
     params = kwargs.get("params")
     body = kwargs.get("json") or kwargs.get("data")
+    files = kwargs.get("files")
     headers = kwargs.get("headers", {})
 
     resp = MagicMock()
@@ -44,6 +45,20 @@ async def mock_request(_, method: str, url: str, **kwargs: Any):
         resp.json.return_value = {
             "method": "POST",
             "body": body,
+        }
+    elif url.endswith("/proxy/mock/upload") and method == "POST":
+        resp.json.return_value = {
+            "method": "POST",
+            "params": params,
+            "body": body,
+            "files": [
+                {
+                    "field": field_name,
+                    "filename": file_info[0],
+                    "content_type": file_info[2],
+                }
+                for field_name, file_info in (files or [])
+            ],
         }
     elif url.endswith("/proxy/mock/info") and method == "GET":
         resp.json.return_value = {

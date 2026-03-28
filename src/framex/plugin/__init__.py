@@ -10,18 +10,11 @@ from framex.consts import PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin.manage import _manager
 from framex.plugin.model import Plugin, PluginApi
-from framex.plugin.resolver import (
-    ApiResolver,
-    _set_default_api_resolver,
-    get_current_api_resolver,
-    get_current_remote_apis,
-    get_default_api_resolver,
-)
+from framex.plugin.resolver import coerce_plugin_api, get_current_remote_apis
 
 C = TypeVar("C", bound=BaseModel)
 
 _current_plugin: ContextVar[Optional["Plugin"]] = ContextVar("_current_plugin", default=None)
-_set_default_api_resolver(ApiResolver(manager=_manager))
 
 
 def get_plugin(plugin_id: str) -> Plugin | None:
@@ -47,7 +40,6 @@ def check_plugin_config_exists(plugin_name: str) -> bool:
 @logger.catch()
 def init_all_deployments(enable_proxy: bool) -> list[Any]:
     deployments = []
-    all_apis = {**_manager.all_plugin_apis[ApiType.FUNC], **_manager.all_plugin_apis[ApiType.HTTP]}
     for plugin in get_loaded_plugins():
         for dep in plugin.deployments:
             remote_apis = {
@@ -63,8 +55,8 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
                         call_type=ApiType.PROXY,
                     )
                     logger.opt(colors=True).warning(
-                        f"Api(<r>{api_name}</r>) not found, "
-                        f"plugin(<r>{dep.deployment}</r>) will "
+                        f"Api(<y>{api_name}</y>) not found, "
+                        f"plugin(<y>{dep.deployment}</y>) will "
                         f"use proxy plugin({PROXY_PLUGIN_NAME}) to transfer!"
                     )
                 else:  # pragma: no cover
@@ -74,7 +66,6 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
             deployment = get_adapter().bind(
                 dep.deployment,
                 remote_apis=remote_apis,
-                api_registry=all_apis,
                 config=plugin.config,
             )
 
@@ -83,20 +74,12 @@ def init_all_deployments(enable_proxy: bool) -> list[Any]:
     return deployments
 
 
-def _resolve_plugin_api(
-    api_name: str | PluginApi,
-    resolver: ApiResolver | None = None,
-) -> tuple[PluginApi, bool]:
+def _resolve_plugin_api(api_name: str | PluginApi) -> tuple[PluginApi, bool]:
     current_remote_apis = get_current_remote_apis()
     if isinstance(api_name, PluginApi):
         return api_name, api_name.call_type == ApiType.PROXY
 
-    active_resolver = resolver or get_current_api_resolver() or get_default_api_resolver()
-    if current_remote_apis is not None:
-        api = active_resolver.coerce_plugin_api(current_remote_apis.get(api_name))
-    else:
-        api = active_resolver.resolve(api_name, None)
-
+    api = coerce_plugin_api(current_remote_apis.get(api_name)) if current_remote_apis is not None else None
     if api is None:
         if current_remote_apis is not None:
             raise RuntimeError(
@@ -149,19 +132,15 @@ def _unwrap_plugin_call_result(api_name: str | PluginApi, result: Any, use_proxy
     res = result.get("data")
     status = result.get("status")
     if status not in settings.server.legal_proxy_code:
-        logger.opt(colors=True).error(f"<>Proxy API {api_name} call illegal: <r>{result}</r>")
+        logger.opt(colors=True).error(f"Proxy API {api_name} call illegal: <r>{result}</r>")
         raise RuntimeError(f"Proxy API {api_name} returned status {status}")
     if res is None:
         logger.opt(colors=True).warning(f"API {api_name} returned empty data")
     return res
 
 
-async def call_plugin_api(
-    api_name: str | PluginApi,
-    resolver: ApiResolver | None = None,
-    **kwargs: Any,
-) -> Any:
-    api, use_proxy = _resolve_plugin_api(api_name, resolver=resolver)
+async def call_plugin_api(api_name: str | PluginApi, **kwargs: Any) -> Any:
+    api, use_proxy = _resolve_plugin_api(api_name)
     normalized_kwargs = _normalize_plugin_call_kwargs(api, kwargs)
     result = await get_adapter().call_func(api, **normalized_kwargs)
     return _unwrap_plugin_call_result(api_name, result, use_proxy)

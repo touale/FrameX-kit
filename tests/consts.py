@@ -70,6 +70,34 @@ MOCK_RESPONSE = {
                 },
             }
         },
+        "/proxy/mock/upload": {
+            "post": {
+                "tags": ["proxy"],
+                "summary": "Proxy Mock Upload",
+                "operationId": "proxy_mock_upload",
+                "parameters": [
+                    {
+                        "name": "message",
+                        "in": "query",
+                        "required": True,
+                        "schema": {
+                            "type": "string",
+                            "title": "Message",
+                        },
+                    }
+                ],
+                "requestBody": {
+                    "required": True,
+                    "content": {"multipart/form-data": {"schema": {"$ref": "#/components/schemas/MockUploadBody"}}},
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {"application/json": {"schema": {"type": "object"}}},
+                    }
+                },
+            }
+        },
         "/proxy/mock/black_get": {
             "get": {
                 "tags": ["proxy"],
@@ -197,7 +225,28 @@ MOCK_RESPONSE = {
                         "default": "default",
                     },
                 },
-            }
+            },
+            "MockUploadBody": {
+                "title": "MockUploadBody",
+                "type": "object",
+                "required": ["note", "ppt_file", "txt_file"],
+                "properties": {
+                    "note": {
+                        "type": "string",
+                        "title": "Note",
+                    },
+                    "ppt_file": {
+                        "type": "string",
+                        "contentMediaType": "application/octet-stream",
+                        "title": "Ppt File",
+                    },
+                    "txt_file": {
+                        "type": "string",
+                        "format": "binary",
+                        "title": "Txt File",
+                    },
+                },
+            },
         }
     },
 }

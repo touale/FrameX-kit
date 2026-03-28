@@ -15,7 +15,14 @@ from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
 from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
-from framex.plugins.proxy.builder import create_pydantic_model, format_proxy_params, type_map
+from framex.plugins.proxy.builder import (
+    create_pydantic_model,
+    format_proxy_params,
+    is_upload_annotation,
+    resolve_annotation,
+    to_multipart_annotation,
+    type_map,
+)
 from framex.plugins.proxy.config import ProxyPluginConfig, settings
 from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
 from framex.utils import cache_decode, cache_encode, shorten_str
@@ -48,6 +55,7 @@ class ProxyPlugin(BasePlugin):
             return
 
         for url in settings.proxy_url_list:
+            logger.info(f"Try to parse openapi docs from {url}")
             await self._parse_openai_docs(url)
 
         if settings.proxy_functions:
@@ -96,6 +104,7 @@ class ProxyPlugin(BasePlugin):
                 headers = None
 
             for method, body in details.items():
+                func_name = body.get("operationId")
                 # Process request parameters
                 params: list[tuple[str, Any]] = [
                     (name, c_type)
@@ -104,26 +113,54 @@ class ProxyPlugin(BasePlugin):
                     and (typ := param.get("schema").get("type"))
                     and (c_type := type_map.get(typ))
                 ]
+                body_param_names: set[str] = set()
+                file_param_names: set[str] = set()
 
                 # Process request body
                 if request_body := body.get("requestBody"):
-                    schema_name = (
-                        request_body.get("content", {})
-                        .get("application/json", {})
-                        .get("schema", {})
-                        .get("$ref", "")
-                        .rsplit("/", 1)[-1]
-                    )
-                    if not (model_schema := components.get(schema_name)):  # pragma: no cover
-                        raise ValueError(f"Schema '{schema_name}' not found in components.")
+                    body_content = request_body.get("content", {})
+                    if "application/json" in body_content:
+                        content_type = "application/json"
+                    elif "multipart/form-data" in body_content:
+                        content_type = "multipart/form-data"
+                    else:
+                        logger.opt(colors=True).error(
+                            f"Failed to proxy api({method}) <r>{url}{path}</r>, unsupported content type: ${body_content.keys()}"
+                        )
+                        continue
 
-                    Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
-                    params.append(("model", Model))
+                    schema = body_content.get(content_type, {}).get("schema", {})
+                    if (schema_name := schema.get("$ref", {}).rsplit("/", 1)[-1]) and not (
+                        model_schema := components.get(schema_name)
+                    ):
+                        logger.opt(colors=True).error(
+                            f"Failed to proxy api({method}) <r>{url}{path}</r>, schema '{schema_name}' not found in components"
+                        )
+                        continue
+
+                    if content_type == "application/json":
+                        Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
+                        params.append(("model", Model))
+                        body_param_names.add("model")
+                    else:
+                        for field_name, prop_schema in model_schema.get("properties", {}).items():
+                            annotation = resolve_annotation(prop_schema, components)
+                            params.append((field_name, to_multipart_annotation(annotation)))
+                            body_param_names.add(field_name)
+                            if is_upload_annotation(annotation):
+                                file_param_names.add(field_name)
+
                 logger.opt(colors=True).trace(f"Found proxy api({method}) <g>{url}{path}</g>")
-                func_name = body.get("operationId")
                 is_stream = path in settings.force_stream_apis
                 func = self._create_dynamic_method(
-                    func_name, method, params, f"{url}{path}", stream=is_stream, headers=headers
+                    func_name,
+                    method,
+                    params,
+                    f"{url}{path}",
+                    body_param_names=body_param_names,
+                    file_param_names=file_param_names,
+                    stream=is_stream,
+                    headers=headers,
                 )
                 setattr(self, func_name, func)
 
@@ -196,6 +233,7 @@ class ProxyPlugin(BasePlugin):
             return await func(**kwargs)
         raise RuntimeError(f"api({proxy_path}) not found")
 
+    # @logger.catch
     async def fetch_response(
         self,
         stream: bool = False,
@@ -226,12 +264,16 @@ class ProxyPlugin(BasePlugin):
         method: str,
         params: list[tuple[str, type]],
         url: str,
+        body_param_names: set[str] | None = None,
+        file_param_names: set[str] | None = None,
         stream: bool = False,
         headers: dict[str, str] | None = None,
     ) -> Callable[..., Any]:
         # Build a Pydantic request model (for data validation)
         model_name = f"{func_name.title()}_RequestModel"
         RequestModel = create_model(model_name, **{k: (t, ...) for k, t in params})  # type: ignore # noqa
+        body_param_names = body_param_names or set()
+        file_param_names = file_param_names or set()
 
         # Construct dynamic methods
         async def dynamic_method(**kwargs: Any) -> AsyncGenerator[str, None] | dict[str, Any] | str:
@@ -240,19 +282,50 @@ class ProxyPlugin(BasePlugin):
             validated = RequestModel(**kwargs)  # Type Validation
             query = {}
             json_body = None
+            form_body = {}
+            files = []
             for field_name, value in validated:
-                if isinstance(value, BaseModel):
+                if field_name in body_param_names:
+                    if field_name == "model" and isinstance(value, BaseModel):
+                        json_body = value.model_dump()
+                    elif field_name in file_param_names:
+                        upload_values = value if isinstance(value, list) else [value]
+                        for upload in upload_values:
+                            upload.file.seek(0)
+                            files.append(
+                                (
+                                    field_name,
+                                    (
+                                        upload.filename or field_name,
+                                        upload.file,
+                                        upload.content_type or "application/octet-stream",
+                                    ),
+                                )
+                            )
+                    else:
+                        form_body[field_name] = value
+                elif isinstance(value, BaseModel):
                     json_body = value.model_dump()
                 else:
                     query[field_name] = value
             try:
+                request_kwargs: dict[str, Any] = {
+                    "stream": stream,
+                    "method": method.upper(),
+                    "url": url,
+                    "params": query,
+                    "headers": headers,
+                }
+                if method.upper() != "GET":
+                    if files or form_body:
+                        if form_body:
+                            request_kwargs["data"] = form_body
+                        if files:
+                            request_kwargs["files"] = files
+                    elif json_body is not None:
+                        request_kwargs["json"] = json_body
                 return await self.fetch_response(
-                    stream=stream,
-                    method=method.upper(),
-                    url=url,
-                    params=query,
-                    json=json_body if method.upper() != "GET" else None,
-                    headers=headers,
+                    **request_kwargs,
                 )
             except Exception as e:
                 logger.opt(exception=e, colors=True).error(f"Error calling proxy api({method}) <y>{url}</y>: {e}")

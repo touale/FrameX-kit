@@ -8,17 +8,10 @@ import framex
 from framex.consts import PROXY_PLUGIN_NAME, VERSION
 from framex.plugin import call_plugin_api
 from framex.plugin.model import ApiType, PluginApi
-from framex.plugin.resolver import (
-    ApiResolver,
-    reset_current_api_resolver,
-    reset_current_remote_apis,
-    set_current_api_resolver,
-    set_current_remote_apis,
-)
+from framex.plugin.resolver import reset_current_remote_apis, set_current_remote_apis
 
 
 def test_get_plugin():
-    # check simple plugin
     plugin = framex.get_plugin("export")
     assert plugin
     assert plugin.version == VERSION
@@ -30,108 +23,51 @@ def test_get_plugin():
 
 
 class SampleModel(BaseModel):
-    """Sample model for testing parameter conversion."""
-
     field1: str
     field2: int
 
 
 class TestCallPluginApi:
-    """Comprehensive tests for call_plugin_api function with proxy handling."""
-
-    @pytest.mark.asyncio
-    async def test_call_plugin_api_with_existing_api(self):
-        """Test calling an API that exists in the manager."""
-        # Setup
-        api = PluginApi(api="test_api", deployment_name="test_deployment", params=[("param1", str), ("param2", int)])
-
-        with (
-            patch("framex.plugin._manager.get_api", return_value=api),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value="test_result")
-
-            # Execute
-            result = await call_plugin_api("test_api", param1="value1", param2=42)
-
-            # Assert
-            assert result == "test_result"
-            mock_adapter.return_value.call_func.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_call_plugin_api_with_basemodel_result(self):
-        """Test that BaseModel results are converted to dict with aliases."""
-        api = PluginApi(api="test_api", deployment_name="test_deployment")
-        model_result = SampleModel(field1="test", field2=123)
-
-        with (
-            patch("framex.plugin._manager.get_api", return_value=api),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value=model_result)
-
-            result = await call_plugin_api("test_api")
-
-            assert isinstance(result, dict)
-            assert result == {"field1": "test", "field2": 123}
-
     @pytest.mark.asyncio
     async def test_call_plugin_api_with_proxy_success(self):
-        """Test proxy API call with successful response (status 200)."""
         with (
             patch("framex.plugin._manager.get_api", return_value=None),
             patch("framex.plugin.settings.server.enable_proxy", True),
             patch("framex.plugin.get_adapter") as mock_adapter,
         ):
-            # Simulate proxy response
-            proxy_response = {"status": 200, "data": {"result": "proxy_success"}}
-            mock_adapter.return_value.call_func = AsyncMock(return_value=proxy_response)
-
+            mock_adapter.return_value.call_func = AsyncMock(return_value={"status": 200, "data": {"result": "ok"}})
             result = await call_plugin_api("/external/api")
-
-            # Should return just the data field
-            assert result == {"result": "proxy_success"}
+            assert result == {"result": "ok"}
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_with_proxy_empty_data(self):
-        """Test proxy API call that returns empty data with warning."""
         with (
             patch("framex.plugin._manager.get_api", return_value=None),
             patch("framex.plugin.settings.server.enable_proxy", True),
             patch("framex.plugin.get_adapter") as mock_adapter,
             patch("framex.plugin.logger") as mock_logger,
         ):
-            proxy_response = {"status": 200, "data": None}
-            mock_adapter.return_value.call_func = AsyncMock(return_value=proxy_response)
-
+            mock_adapter.return_value.call_func = AsyncMock(return_value={"status": 200, "data": None})
             result = await call_plugin_api("/external/api")
-
             assert result is None
-            # Verify warning was logged
             mock_logger.opt.return_value.warning.assert_called()
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_with_proxy_error_status(self):
-        """Test proxy API call with non-200 status logs error."""
         with (
             patch("framex.plugin._manager.get_api", return_value=None),
             patch("framex.plugin.settings.server.enable_proxy", True),
             patch("framex.plugin.get_adapter") as mock_adapter,
             patch("framex.plugin.logger") as mock_logger,
         ):
-            proxy_response = {"status": 500, "data": None}
-            mock_adapter.return_value.call_func = AsyncMock(return_value=proxy_response)
+            mock_adapter.return_value.call_func = AsyncMock(return_value={"status": 500, "data": None})
             with pytest.raises(RuntimeError, match="Proxy API /external/api returned status 500"):
                 await call_plugin_api("/external/api")
-
-            # Verify error was logged
             mock_logger.opt.return_value.error.assert_called()
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_not_found_no_proxy(self):
-        """Test API not found when proxy is disabled raises RuntimeError."""
         with (
-            patch("framex.plugin._manager.get_api", return_value=None),
             patch("framex.plugin.settings.server.enable_proxy", False),
             pytest.raises(RuntimeError, match="API test_api is not found"),
         ):
@@ -139,136 +75,69 @@ class TestCallPluginApi:
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_not_found_non_slash_with_proxy(self):
-        """Test non-slash prefixed API not found with proxy enabled raises error."""
         with (
-            patch("framex.plugin._manager.get_api", return_value=None),
             patch("framex.plugin.settings.server.enable_proxy", True),
             pytest.raises(RuntimeError, match="API test_api is not found"),
         ):
             await call_plugin_api("test_api")
 
     @pytest.mark.asyncio
-    async def test_call_plugin_api_with_dict_to_basemodel_conversion(self):
-        """Test automatic conversion of dict parameters to BaseModel."""
+    async def test_call_plugin_api_requires_remote_apis_in_context(self):
+        token = set_current_remote_apis({})
+        try:
+            with pytest.raises(RuntimeError, match="not declared in current plugin remote_apis"):
+                await call_plugin_api("test_api")
+        finally:
+            reset_current_remote_apis(token)
+
+    @pytest.mark.asyncio
+    async def test_call_plugin_api_with_remote_apis_dict_to_basemodel_conversion(self):
         api = PluginApi(api="test_api", deployment_name="test_deployment", params=[("model_param", SampleModel)])
-
-        with (
-            patch("framex.plugin._manager.get_api", return_value=api),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value="success")
-
-            # Pass dict that should be converted to SampleModel
-            result = await call_plugin_api("test_api", model_param={"field1": "test", "field2": 456})
-
-            # Verify the call was made and dict was converted
-            assert result == "success"
-            call_args = mock_adapter.return_value.call_func.call_args
-            assert isinstance(call_args[1]["model_param"], SampleModel)
+        token = set_current_remote_apis({"test_api": api})
+        try:
+            with patch("framex.plugin.get_adapter") as mock_adapter:
+                mock_adapter.return_value.call_func = AsyncMock(return_value="success")
+                result = await call_plugin_api("test_api", model_param={"field1": "test", "field2": 456})
+                assert result == "success"
+                call_args = mock_adapter.return_value.call_func.call_args
+                assert isinstance(call_args[1]["model_param"], SampleModel)
+        finally:
+            reset_current_remote_apis(token)
 
     @pytest.mark.asyncio
-    async def test_call_plugin_api_with_interval_apis(self):
-        """Test using interval_apis parameter to override manager lookup."""
+    async def test_call_plugin_api_with_remote_apis(self):
         api = PluginApi(api="test_api", deployment_name="test_deployment")
-        interval_apis = {"test_api": api}
-
-        with (
-            patch("framex.plugin._manager.get_api") as mock_get_api,
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value="interval_result")
-
-            token = set_current_remote_apis(interval_apis)
-            try:
+        token = set_current_remote_apis({"test_api": api})
+        try:
+            with (
+                patch("framex.plugin._manager.get_api") as mock_get_api,
+                patch("framex.plugin.get_adapter") as mock_adapter,
+            ):
+                mock_adapter.return_value.call_func = AsyncMock(return_value="remote_result")
                 result = await call_plugin_api("test_api")
-            finally:
-                reset_current_remote_apis(token)
-
-            # Manager get_api should not be called
-            mock_get_api.assert_not_called()
-            assert result == "interval_result"
+                mock_get_api.assert_not_called()
+                assert result == "remote_result"
+        finally:
+            reset_current_remote_apis(token)
 
     @pytest.mark.asyncio
-    async def test_call_plugin_api_with_interval_apis_dict_payload(self):
-        """Test interval_apis values serialized through Ray can be rehydrated."""
+    async def test_call_plugin_api_with_remote_apis_dict_payload(self):
         api = PluginApi(api="test_api", deployment_name="test_deployment")
-        interval_apis = {"test_api": api.model_dump()}
-
-        with (
-            patch("framex.plugin._manager.get_api") as mock_get_api,
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value="interval_dict_result")
-
-            token = set_current_remote_apis(interval_apis)
-            try:
+        token = set_current_remote_apis({"test_api": api.model_dump()})
+        try:
+            with (
+                patch("framex.plugin._manager.get_api") as mock_get_api,
+                patch("framex.plugin.get_adapter") as mock_adapter,
+            ):
+                mock_adapter.return_value.call_func = AsyncMock(return_value="remote_dict_result")
                 result = await call_plugin_api("test_api")
-            finally:
-                reset_current_remote_apis(token)
-
-            mock_get_api.assert_not_called()
-            assert result == "interval_dict_result"
-
-    @pytest.mark.asyncio
-    async def test_call_plugin_api_uses_resolver_when_manager_misses(self):
-        """Test ApiResolver fallback works when Ray workers lack manager state."""
-        func_api = PluginApi(deployment_name="demo_plugin.DemoDeployment", func_name="run", call_type=ApiType.FUNC)
-        http_api = PluginApi(api="/api/v1/resource_match/resource_detail", deployment_name="resource_match.Detail")
-        resolver = ApiResolver(
-            api_registry={
-                "demo_plugin.DemoDeployment.run": func_api,
-                "/api/v1/resource_match/resource_detail": http_api,
-            }
-        )
-
-        with (
-            patch("framex.plugin._manager.get_api", return_value=None),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(side_effect=["func_result", "http_result"])
-
-            assert await call_plugin_api("demo_plugin.DemoDeployment.run", resolver=resolver) == "func_result"
-            assert await call_plugin_api("/api/v1/resource_match/resource_detail", resolver=resolver) == "http_result"
-
-    @pytest.mark.asyncio
-    async def test_call_plugin_api_uses_context_resolver_when_no_explicit_resolver(self):
-        """Test context-bound resolver works for nested service-style calls."""
-        http_api = PluginApi(api="/api/v1/fetch/fetch_company_by_dim_info", deployment_name="fetch.FetchPlugin")
-        resolver = ApiResolver(api_registry={"/api/v1/fetch/fetch_company_by_dim_info": http_api})
-
-        with (
-            patch("framex.plugin._manager.get_api", return_value=None),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value="context_result")
-            token = set_current_api_resolver(resolver)
-            try:
-                result = await call_plugin_api("/api/v1/fetch/fetch_company_by_dim_info")
-            finally:
-                reset_current_api_resolver(token)
-
-            assert result == "context_result"
-            assert mock_adapter.return_value.call_func.call_args[0][0] == http_api
-
-    @pytest.mark.asyncio
-    async def test_call_plugin_api_plugin_context_requires_remote_apis(self):
-        """Test plugin-context calls do not fall back to global registry outside remote_apis."""
-        http_api = PluginApi(api="/api/v1/fetch/fetch_company_by_dim_info", deployment_name="fetch.FetchPlugin")
-        resolver = ApiResolver(api_registry={"/api/v1/fetch/fetch_company_by_dim_info": http_api})
-
-        with patch("framex.plugin._manager.get_api", return_value=http_api):
-            resolver_token = set_current_api_resolver(resolver)
-            remote_token = set_current_remote_apis({})
-            try:
-                with pytest.raises(RuntimeError, match="not declared in current plugin remote_apis"):
-                    await call_plugin_api("/api/v1/fetch/fetch_company_by_dim_info")
-            finally:
-                reset_current_remote_apis(remote_token)
-                reset_current_api_resolver(resolver_token)
+                mock_get_api.assert_not_called()
+                assert result == "remote_dict_result"
+        finally:
+            reset_current_remote_apis(token)
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_context_wrapper_preserves_async_generator(self):
-        """Test resolver context wrapping keeps stream handlers as async generators."""
         from framex.plugin.base import BasePlugin
         from framex.plugin.on import on_request
 
@@ -278,28 +147,59 @@ class TestCallPluginApi:
                 yield "a"
                 yield "b"
 
-        plugin = DemoPlugin(api_registry={})
+        plugin = DemoPlugin()
         stream = plugin.stream_api()
 
         assert inspect.isasyncgen(stream)
         assert [chunk async for chunk in stream] == ["a", "b"]
 
     @pytest.mark.asyncio
+    async def test_call_remote_api_uses_whitelist_via_request_context(self):
+        from framex.plugin.base import BasePlugin
+        from framex.plugin.on import on_request
+
+        api = PluginApi(api="test_api", deployment_name="test_deployment", params=[("model_param", SampleModel)])
+
+        class DemoPlugin(BasePlugin):
+            @on_request("/demo")
+            async def request_api(self):
+                return await self._call_remote_api("test_api", model_param={"field1": "test", "field2": 456})
+
+        plugin = DemoPlugin(remote_apis={"test_api": api})
+
+        with patch("framex.plugin.get_adapter") as mock_adapter:
+            mock_adapter.return_value.call_func = AsyncMock(return_value="success")
+            result = await plugin.request_api()
+            assert result == "success"
+            call_args = mock_adapter.return_value.call_func.call_args
+            assert isinstance(call_args[0][0], PluginApi)
+            assert isinstance(call_args[1]["model_param"], SampleModel)
+
+    @pytest.mark.asyncio
+    async def test_call_remote_api_rejects_missing_whitelist_entry_via_request_context(self):
+        from framex.plugin.base import BasePlugin
+        from framex.plugin.on import on_request
+
+        class DemoPlugin(BasePlugin):
+            @on_request("/demo")
+            async def request_api(self):
+                return await self._call_remote_api("test_api")
+
+        plugin = DemoPlugin(remote_apis={})
+
+        with pytest.raises(RuntimeError, match="not declared in current plugin remote_apis"):
+            await plugin.request_api()
+
+    @pytest.mark.asyncio
     async def test_call_plugin_api_proxy_creates_correct_plugin_api(self):
-        """Test that proxy fallback creates PluginApi with correct parameters."""
         with (
-            patch("framex.plugin._manager.get_api", return_value=None),
             patch("framex.plugin.settings.server.enable_proxy", True),
             patch("framex.plugin.get_adapter") as mock_adapter,
             patch("framex.plugin.logger"),
         ):
             mock_adapter.return_value.call_func = AsyncMock(return_value={"status": 200, "data": "ok"})
-
             await call_plugin_api("/proxy/test")
-
-            # Check the PluginApi passed to call_func
-            call_args = mock_adapter.return_value.call_func.call_args
-            api = call_args[0][0]
+            api = mock_adapter.return_value.call_func.call_args[0][0]
             assert isinstance(api, PluginApi)
             assert api.api == "/proxy/test"
             assert api.deployment_name == PROXY_PLUGIN_NAME
@@ -307,47 +207,37 @@ class TestCallPluginApi:
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_regular_dict_result_not_proxy(self):
-        """Test that regular dict results (non-proxy) are returned as-is."""
         api = PluginApi(api="test_api", deployment_name="test_deployment")
-
-        with (
-            patch("framex.plugin._manager.get_api", return_value=api),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            # Regular dict result (not from proxy)
-            mock_adapter.return_value.call_func = AsyncMock(return_value={"key": "value", "status": 200})
-
-            result = await call_plugin_api("test_api")
-
-            # Should return the entire dict, not extract "data"
-            assert result == {"key": "value", "status": 200}
+        token = set_current_remote_apis({"test_api": api})
+        try:
+            with patch("framex.plugin.get_adapter") as mock_adapter:
+                mock_adapter.return_value.call_func = AsyncMock(return_value={"key": "value", "status": 200})
+                result = await call_plugin_api("test_api")
+                assert result == {"key": "value", "status": 200}
+        finally:
+            reset_current_remote_apis(token)
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_with_multiple_kwargs(self):
-        """Test calling API with multiple keyword arguments."""
         api = PluginApi(
             api="test_api", deployment_name="test_deployment", params=[("a", int), ("b", str), ("c", bool)]
         )
-
-        with (
-            patch("framex.plugin._manager.get_api", return_value=api),
-            patch("framex.plugin.get_adapter") as mock_adapter,
-        ):
-            mock_adapter.return_value.call_func = AsyncMock(return_value="multi_args")
-
-            result = await call_plugin_api("test_api", a=1, b="test", c=True)
-
-            assert result == "multi_args"
-            call_kwargs = mock_adapter.return_value.call_func.call_args[1]
-            assert call_kwargs["a"] == 1
-            assert call_kwargs["b"] == "test"
-            assert call_kwargs["c"] is True
+        token = set_current_remote_apis({"test_api": api})
+        try:
+            with patch("framex.plugin.get_adapter") as mock_adapter:
+                mock_adapter.return_value.call_func = AsyncMock(return_value="multi_args")
+                result = await call_plugin_api("test_api", a=1, b="test", c=True)
+                assert result == "multi_args"
+                call_kwargs = mock_adapter.return_value.call_func.call_args[1]
+                assert call_kwargs["a"] == 1
+                assert call_kwargs["b"] == "test"
+                assert call_kwargs["c"] is True
+        finally:
+            reset_current_remote_apis(token)
 
     @pytest.mark.asyncio
     async def test_call_plugin_api_with_proxy_missing_status(self):
-        """Test proxy API call raises when status field is missing."""
         with (
-            patch("framex.plugin._manager.get_api", return_value=None),
             patch("framex.plugin.settings.server.enable_proxy", True),
             patch("framex.plugin.get_adapter") as mock_adapter,
             patch("framex.plugin.logger"),

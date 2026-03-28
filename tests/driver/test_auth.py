@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
@@ -14,6 +15,8 @@ from framex.consts import DOCS_URL
 from framex.driver.application import create_fastapi_application
 from framex.driver.auth import auth_jwt, authenticate, create_jwt, oauth_callback
 
+JWT_SECRET = uuid.uuid4().hex
+
 # =========================================================
 # helpers
 # =========================================================
@@ -28,7 +31,7 @@ def fake_oauth(**overrides):
         client_secret="secret",  # noqa: S106
         redirect_uri="/oauth/callback",
         call_back_url="http://test/callback",
-        jwt_secret="secret",  # noqa: S106
+        jwt_secret=JWT_SECRET,
         jwt_algorithm="HS256",
     )
     data.update(overrides)
@@ -44,7 +47,7 @@ class TestCreateJWT:
     def test_create_jwt_success(self):
         with patch("framex.config.settings.auth.oauth", fake_oauth()):
             token = create_jwt({"username": "test"})
-            decoded = jwt.decode(token, "secret", algorithms=["HS256"])
+            decoded = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
             assert decoded["username"] == "test"
             assert "iat" in decoded
             assert "exp" in decoded
@@ -67,7 +70,7 @@ class TestAuthJWT:
 
     def test_returns_false_when_no_token_cookie(self):
         with patch("framex.config.settings.auth.oauth") as mock_oauth:
-            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_secret = JWT_SECRET
             mock_oauth.jwt_algorithm = "HS256"
 
             req = Mock(spec=Request)
@@ -77,7 +80,7 @@ class TestAuthJWT:
 
     def test_returns_true_when_token_is_valid(self):
         with patch("framex.config.settings.auth.oauth") as mock_oauth:
-            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_secret = JWT_SECRET
             mock_oauth.jwt_algorithm = "HS256"
 
             now = datetime.now(UTC)
@@ -87,7 +90,7 @@ class TestAuthJWT:
                     "iat": int(now.timestamp()),
                     "exp": int((now + timedelta(hours=1)).timestamp()),
                 },
-                "secret",
+                JWT_SECRET,
                 algorithm="HS256",
             )
 
@@ -98,7 +101,7 @@ class TestAuthJWT:
 
     def test_returns_false_when_token_is_invalid(self):
         with patch("framex.config.settings.auth.oauth") as mock_oauth:
-            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_secret = JWT_SECRET
             mock_oauth.jwt_algorithm = "HS256"
 
             req = Mock(spec=Request)
@@ -108,7 +111,7 @@ class TestAuthJWT:
 
     def test_returns_false_when_token_is_expired(self):
         with patch("framex.config.settings.auth.oauth") as mock_oauth:
-            mock_oauth.jwt_secret = "secret"  # noqa: S105
+            mock_oauth.jwt_secret = JWT_SECRET
             mock_oauth.jwt_algorithm = "HS256"
 
             now = datetime.now(UTC)
@@ -118,7 +121,7 @@ class TestAuthJWT:
                     "iat": int((now - timedelta(days=2)).timestamp()),
                     "exp": int((now - timedelta(days=1)).timestamp()),
                 },
-                "secret",
+                JWT_SECRET,
                 algorithm="HS256",
             )
 
@@ -213,7 +216,7 @@ class TestAuthenticationIntegration:
                     "iat": int(now.timestamp()),
                     "exp": int((now + timedelta(hours=1)).timestamp()),
                 },
-                "secret",
+                JWT_SECRET,
                 algorithm="HS256",
             )
             client.cookies.set("token", token)

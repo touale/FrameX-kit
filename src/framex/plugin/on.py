@@ -40,10 +40,11 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                     params = extract_method_params(func)
                     version: str = plugin.module.__plugin_meta__.version
                     version = f"v{version}" if not version.startswith("v") else version
-                    tags = [f"{plugin.name}({version}): {plugin.module.__plugin_meta__.description}"]
 
                     if func.__tags:
-                        tags.extend(func.__tags)
+                        tags: list[str] = func.__tags
+                    else:
+                        tags = [f"{plugin.name}({version}): {plugin.module.__plugin_meta__.description}"]
 
                     plugin_apis.append(
                         PluginApi(
@@ -177,7 +178,6 @@ def on_proxy() -> Callable:
             )
             res = await call_plugin_api(
                 api_call,
-                None,
                 func_name=cache_encode(full_func_name),
                 data=cache_encode(data=kwargs),
             )
