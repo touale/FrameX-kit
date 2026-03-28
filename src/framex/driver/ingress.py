@@ -2,12 +2,11 @@ import inspect
 import os
 import re
 from collections.abc import Callable
-from typing import Annotated, Any, get_args, get_origin
+from typing import Any
 
 from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
-from pydantic import BaseModel
 from starlette.routing import Route
 
 from framex.adapter import get_adapter
@@ -20,17 +19,6 @@ from framex.plugin.model import ApiType, PluginApi
 from framex.utils import escape_tag, shorten_str
 
 app = create_fastapi_application()
-
-
-def _unwrap_annotation(annotation: Any) -> Any:
-    if get_origin(annotation) is Annotated:
-        return get_args(annotation)[0]
-    return annotation
-
-
-def _is_basemodel_annotation(annotation: Any) -> bool:
-    annotation = _unwrap_annotation(annotation)
-    return isinstance(annotation, type) and issubclass(annotation, BaseModel)
 
 
 @app.get("/health")
