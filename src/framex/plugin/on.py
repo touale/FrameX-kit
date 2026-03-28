@@ -178,7 +178,6 @@ def on_proxy() -> Callable:
             )
             res = await call_plugin_api(
                 api_call,
-                None,
                 func_name=cache_encode(full_func_name),
                 data=cache_encode(data=kwargs),
             )
