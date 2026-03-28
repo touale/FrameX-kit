@@ -142,18 +142,14 @@ class ProxyPlugin(BasePlugin):
                         Model = create_pydantic_model(schema_name, model_schema, components)  # noqa
                         params.append(("model", Model))
                         body_param_names.add("model")
-                    elif content_type == "multipart/form-data":
+                    else:
                         for field_name, prop_schema in model_schema.get("properties", {}).items():
                             annotation = resolve_annotation(prop_schema, components)
                             params.append((field_name, to_multipart_annotation(annotation)))
                             body_param_names.add(field_name)
                             if is_upload_annotation(annotation):
                                 file_param_names.add(field_name)
-                    else:
-                        logger.opt(colors=True).error(
-                            f"Failed to proxy api({method}) <r>{url}{path}</r>, unsupported content type: ${body_content.keys()}"
-                        )
-                        continue
+
                 logger.opt(colors=True).trace(f"Found proxy api({method}) <g>{url}{path}</g>")
                 is_stream = path in settings.force_stream_apis
                 func = self._create_dynamic_method(
