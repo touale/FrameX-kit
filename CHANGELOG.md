@@ -2,6 +2,58 @@
 
 <!-- version list -->
 
+## v0.3.1-beta.1 (2026-03-30)
+
+### Bug Fixes
+
+- Remove unused annotation helpers
+  ([`825a030`](https://github.com/touale/FrameX-kit/commit/825a0304dbd1ebebe5effeab5b1a8edbe0e81f6e))
+
+- Simplify proxy content type handling
+  ([`3a04343`](https://github.com/touale/FrameX-kit/commit/3a043436afa1a428ab0a1292c541259bce1ba513))
+
+### Chores
+
+- **deps**: Bump actions/deploy-pages from 4 to 5
+  ([`b30ce0f`](https://github.com/touale/FrameX-kit/commit/b30ce0fe448b12ac6b944431a73728cc00253898))
+
+- **deps**: Bump codecov/codecov-action from 5 to 6
+  ([`436b4fa`](https://github.com/touale/FrameX-kit/commit/436b4fa46f9eba5da0baec71571fb98ad698edab))
+
+- **deps**: Bump pytz from 2025.2 to 2026.1.post1
+  ([`42d18ae`](https://github.com/touale/FrameX-kit/commit/42d18aed7aa232d79623ed8a52de646c701b44db))
+
+- **deps**: Bump requests from 2.32.5 to 2.33.0
+  ([`3b596ff`](https://github.com/touale/FrameX-kit/commit/3b596ff029d3eecd1d7e54407d399ed702655a52))
+
+- **deps**: Bump uvicorn from 0.41.0 to 0.42.0
+  ([`0c8f719`](https://github.com/touale/FrameX-kit/commit/0c8f719d7f59faa912b31aec3406ac7a151f7cfc))
+
+- **deps-dev**: Bump coverage from 7.13.3 to 7.13.5
+  ([`94b0cfb`](https://github.com/touale/FrameX-kit/commit/94b0cfbb96d639950698c83677a43c1fb48acc56))
+
+- **deps-dev**: Bump ruff from 0.15.4 to 0.15.8
+  ([`b43f9cf`](https://github.com/touale/FrameX-kit/commit/b43f9cf37094e0e25091e483f0f2c9dc6a03fbe1))
+
+### Features
+
+- Add multipart/form-data support for proxy plugin
+  ([`6a5c129`](https://github.com/touale/FrameX-kit/commit/6a5c129197b239a7357438a09e00ee0ee00fb92e))
+
+- Remove Enum from tags type hints
+  ([`7bcf9c1`](https://github.com/touale/FrameX-kit/commit/7bcf9c1d5ca971b3ea0a6a5f0d591974334333f0))
+
+### Refactoring
+
+- Simplify API resolver and remove ApiResolver class
+  ([`84f3f60`](https://github.com/touale/FrameX-kit/commit/84f3f60cfb3ea8fd9520b37ebc3aefc9376a26d9))
+
+### Testing
+
+- Improve auth tests and coroutine handling
+  ([`b7c0cad`](https://github.com/touale/FrameX-kit/commit/b7c0cad005fe0a5c9abd5ab0e5bab5193b41ce62))
+
+
 ## v0.3.0 (2026-03-26)
 
 ### Bug Fixes
