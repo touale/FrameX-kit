@@ -38,13 +38,15 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                         path = f"{API_STR}{path}" if path.startswith("/") else f"{API_STR}/{path}"
 
                     params = extract_method_params(func)
-                    version: str = plugin.module.__plugin_meta__.version
-                    version = f"v{version}" if not version.startswith("v") else version
 
                     if func.__tags:
                         tags: list[str] = func.__tags
                     else:
-                        tags = [f"{plugin.name}({version}): {plugin.module.__plugin_meta__.description}"]
+                        author: str = plugin.module.__plugin_meta__.author
+                        description = plugin.module.__plugin_meta__.description
+                        version: str = plugin.module.__plugin_meta__.version
+                        version = f"v{version}" if not version.startswith("v") else version
+                        tags = [f"{plugin.name} ({version}) by {author}: {description}"]
 
                     plugin_apis.append(
                         PluginApi(
