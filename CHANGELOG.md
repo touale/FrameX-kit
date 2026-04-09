@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.3.2 (2026-04-09)
+
+### Features
+
+- Add AUTH_TOKEN_NAME constant for token handling
+  ([`2b26319`](https://github.com/touale/FrameX-kit/commit/2b2631918d69fee85b24250ab797369a65b6e132))
+
+- Add plugin description and tags metadata
+  ([`d7f98dc`](https://github.com/touale/FrameX-kit/commit/d7f98dc2475af2a7b108fc06bea50fe052b94170))
+
+- Update plugin tags and version config
+  ([`d08d616`](https://github.com/touale/FrameX-kit/commit/d08d616015180a756b3c7d2a182c2029b2adbb7f))
+
+
 ## v0.3.1 (2026-04-08)
 
 ### Bug Fixes
