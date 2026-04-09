@@ -60,6 +60,7 @@ class APIIngress:
                     stream=plugin_api.stream,
                     direct_output=plugin_api.raw_response,
                     tags=plugin_api.tags,
+                    description=plugin_api.description,
                     **plugin_api.extend_kwargs,
                 )
 
@@ -73,6 +74,7 @@ class APIIngress:
         stream: bool = False,
         direct_output: bool = False,
         tags: list[str] | None = None,
+        description: str | None = None,
         auth_keys: list[str] | None = None,
         include_in_schema: bool = True,
         **kwargs: Any,
@@ -161,6 +163,7 @@ class APIIngress:
                 response_class=StreamingResponse if stream else JSONResponse,
                 dependencies=dependencies,
                 include_in_schema=include_in_schema,
+                description=description,
                 **kwargs,
             )
             methods_str = ",".join(m.upper() for m in methods)
@@ -188,6 +191,9 @@ class APIIngress:
         endpoint: Callable[..., Any],
         *,
         methods: list[str] | None = None,
+        tags: list[str] | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
         **kwargs: Any,
     ) -> None:
         method_set: set[str] = {m.upper() for m in methods} if methods else {"GET"}
@@ -201,4 +207,22 @@ class APIIngress:
             ):
                 raise RuntimeError(f"Duplicate API route: {sorted(method_set)} {norm_path}")
 
-        app.add_api_route(path, endpoint, methods=list(method_set), **kwargs)
+        app.add_api_route(
+            path,
+            endpoint,
+            methods=list(method_set),  # type: ignore
+            tags=tags,  # type: ignore
+            include_in_schema=include_in_schema,
+            **kwargs,
+        )
+
+        if include_in_schema and tags:
+            names = list({tag["name"] for tag in app.state.tags_metadata_map})
+            for tag in tags:
+                if tag not in names:
+                    app.state.tags_metadata_map.append(
+                        {
+                            "name": tag,
+                            "description": description,
+                        },
+                    )

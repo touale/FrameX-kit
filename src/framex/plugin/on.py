@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from framex.adapter import get_adapter
 from framex.consts import API_STR, PROXY_PLUGIN_NAME
+from framex.plugin.base import build_plugin_description
 from framex.plugin.model import ApiType, PluginApi, PluginDeployment
 from framex.utils import cache_decode, cache_encode, extract_method_params, plugin_to_deployment_name
 
@@ -42,11 +43,16 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                     if func.__tags:
                         tags: list[str] = func.__tags
                     else:
-                        author: str = plugin.module.__plugin_meta__.author
-                        description = plugin.module.__plugin_meta__.description
-                        version: str = plugin.module.__plugin_meta__.version
-                        version = f"v{version}" if not version.startswith("v") else version
-                        tags = [f"{plugin.name} ({version}) by {author}: {description}"]
+                        tags = [plugin.name]
+
+                    version: str = plugin.module.__plugin_meta__.version
+                    version = f"v{version}" if not version.startswith("v") else version
+                    description = build_plugin_description(
+                        plugin.module.__plugin_meta__.author,
+                        version,
+                        plugin.module.__plugin_meta__.description,
+                        plugin.module.__plugin_meta__.url,
+                    )
 
                     plugin_apis.append(
                         PluginApi(
@@ -57,6 +63,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                             params=params,
                             call_type=call_type,
                             tags=tags,
+                            description=description,
                             stream=func.__expose_stream,
                             raw_response=raw_response,
                             extend_kwargs=func.__kwargs,

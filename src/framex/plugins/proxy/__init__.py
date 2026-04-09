@@ -10,9 +10,10 @@ from typing_extensions import override
 
 from framex.adapter import get_adapter
 from framex.adapter.base import BaseAdapter
-from framex.consts import BACKEND_NAME, PROXY_FUNC_HTTP_PATH, PROXY_PLUGIN_NAME, VERSION
+from framex.consts import BACKEND_NAME, PROXY_FUNC_HTTP_PATH, PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
+from framex.plugin.base import build_plugin_description
 from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
 from framex.plugins.proxy.builder import (
@@ -23,15 +24,14 @@ from framex.plugins.proxy.builder import (
     to_multipart_annotation,
     type_map,
 )
-from framex.plugins.proxy.config import ProxyPluginConfig, settings
+from framex.plugins.proxy.config import VERSION, ProxyPluginConfig, settings
 from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
 from framex.utils import cache_decode, cache_encode, shorten_str
 
 __plugin_meta__ = PluginMetadata(
     name="proxy",
     version=VERSION,
-    description="一个特殊的 framx proxy 插件, 充当透明代理。"
-    "它接收 API 请求并将其转发到已配置的外部 HTTP 端点,并将响应返回给调用者。",
+    description="proxy 是 FrameX 的核心系统插件, 作为透明代理转发 API 请求至外部 HTTP 端点并返回响应。",
     author="touale",
     url="https://github.com/touale/FrameX-kit",
     required_remote_apis=[],
@@ -170,6 +170,12 @@ class ProxyPlugin(BasePlugin):
                     func_name="register_route",
                 )
                 handle = adapter.get_handle(PROXY_PLUGIN_NAME)
+                description = build_plugin_description(
+                    __plugin_meta__.author,
+                    f"v{__plugin_meta__.version}",
+                    __plugin_meta__.description,
+                    __plugin_meta__.url,
+                )
                 await adapter.call_func(
                     plugin_api,
                     path=path,
@@ -180,6 +186,7 @@ class ProxyPlugin(BasePlugin):
                     stream=is_stream,
                     direct_output=True,
                     tags=[f"{__plugin_meta__.name}({url})"],
+                    description=description,
                 )
 
                 # Proxy api to map

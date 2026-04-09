@@ -40,7 +40,13 @@ def test_add_first_route_success(ingress, mock_app):
 
     ingress.add_api_route("/users", endpoint, methods=["GET"])
 
-    mock_app.add_api_route.assert_called_once_with("/users", endpoint, methods=["GET"])
+    mock_app.add_api_route.assert_called_once_with(
+        "/users",
+        endpoint,
+        methods=["GET"],
+        tags=None,
+        include_in_schema=True,
+    )
 
 
 @pytest.mark.parametrize(

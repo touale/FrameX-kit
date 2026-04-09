@@ -19,3 +19,5 @@ SEBTRY_BLOCK_URLS = [
     "/health",
     "/ping",
 ]
+
+AUTH_COOKIE_NAME = "framex_token"

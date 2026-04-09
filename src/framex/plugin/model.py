@@ -34,6 +34,7 @@ class PluginApi(BaseModel):
     params: list[tuple[str, type[Any] | Callable[..., Any]]] = Field(default_factory=list)
     call_type: ApiType = ApiType.HTTP
     tags: list[str] | None = None
+    description: str | None = None
     stream: bool = False
     raw_response: bool = False
     extend_kwargs: dict[str, Any] = Field(default_factory=dict)
