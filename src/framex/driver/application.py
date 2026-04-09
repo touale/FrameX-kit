@@ -95,6 +95,8 @@ def create_fastapi_application() -> FastAPI:
         redirect_slashes=False,
     )
 
+    application.state.tags_metadata_map = []
+
     if settings.auth.oauth:
         application.add_api_route(
             settings.auth.oauth.redirect_uri,
@@ -118,6 +120,7 @@ def create_fastapi_application() -> FastAPI:
             version=VERSION,
             description=build_openapi_description(),
             routes=application.routes,
+            tags=application.state.tags_metadata_map,
         )
 
     @application.exception_handler(HTTPException)
