@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.3.3 (2026-04-09)
+
+### Features
+
+- Customize Swagger UI and move plugin description
+  ([`84f2ae0`](https://github.com/touale/FrameX-kit/commit/84f2ae0e28f82838febe5409a163ec92abbec764))
+
+### Testing
+
+- Use AUTH_COOKIE_NAME constant in auth test
+  ([`c74ac4a`](https://github.com/touale/FrameX-kit/commit/c74ac4a4cc88c19b6443d4e82e82a8434f656ca4))
+
+
 ## v0.3.2 (2026-04-09)
 
 ### Features
