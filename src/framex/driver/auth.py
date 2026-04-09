@@ -8,7 +8,7 @@ from fastapi.security import APIKeyHeader
 from starlette.requests import Request
 
 from framex.config import settings
-from framex.consts import DOCS_URL
+from framex.consts import AUTH_COOKIE_NAME, DOCS_URL
 
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
 
@@ -32,7 +32,7 @@ def auth_jwt(request: Request) -> bool:
     if not settings.auth.oauth:
         return False
 
-    token = request.cookies.get("token")
+    token = request.cookies.get(AUTH_COOKIE_NAME)
     if not token:
         return False
 
@@ -49,7 +49,7 @@ def auth_jwt(request: Request) -> bool:
 
 def authenticate(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
     if settings.auth.oauth:
-        if token := request.cookies.get("token"):
+        if token := request.cookies.get(AUTH_COOKIE_NAME):
             try:
                 jwt.decode(
                     token,
@@ -120,7 +120,7 @@ async def oauth_callback(code: str) -> Response:
 
     res = RedirectResponse(url=DOCS_URL, status_code=status.HTTP_302_FOUND)
     res.set_cookie(
-        "token",
+        AUTH_COOKIE_NAME,
         create_jwt(user_info),
         httponly=True,
         samesite="lax",
