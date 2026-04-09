@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 from framex.config import AuthConfig
-from framex.consts import DOCS_URL
+from framex.consts import AUTH_COOKIE_NAME, DOCS_URL
 from framex.driver.application import create_fastapi_application
 from framex.driver.auth import auth_jwt, authenticate, create_jwt, oauth_callback
 
@@ -219,6 +219,6 @@ class TestAuthenticationIntegration:
                 JWT_SECRET,
                 algorithm="HS256",
             )
-            client.cookies.set("token", token)
+            client.cookies.set(AUTH_COOKIE_NAME, token)
             resp = client.get("/docs", follow_redirects=False)
             assert resp.status_code == status.HTTP_200_OK

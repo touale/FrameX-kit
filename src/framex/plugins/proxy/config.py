@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field, model_validator
 from framex.config import AuthConfig
 from framex.plugin import get_plugin_config
 
+VERSION = "0.3.0"
+
 
 class ProxyUrlRuleConfig(BaseModel):
     enable: list[str] = Field(default_factory=list)

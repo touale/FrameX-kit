@@ -10,7 +10,7 @@ from typing_extensions import override
 
 from framex.adapter import get_adapter
 from framex.adapter.base import BaseAdapter
-from framex.consts import BACKEND_NAME, PROXY_FUNC_HTTP_PATH, PROXY_PLUGIN_NAME, VERSION
+from framex.consts import BACKEND_NAME, PROXY_FUNC_HTTP_PATH, PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
 from framex.plugin.model import ApiType
@@ -23,7 +23,7 @@ from framex.plugins.proxy.builder import (
     to_multipart_annotation,
     type_map,
 )
-from framex.plugins.proxy.config import ProxyPluginConfig, settings
+from framex.plugins.proxy.config import VERSION, ProxyPluginConfig, settings
 from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
 from framex.utils import cache_decode, cache_encode, shorten_str
 
@@ -179,7 +179,7 @@ class ProxyPlugin(BasePlugin):
                     handle=handle,
                     stream=is_stream,
                     direct_output=True,
-                    tags=[f"{__plugin_meta__.name}({url})"],
+                    tags=[f"{__plugin_meta__.name} (v{__plugin_meta__.version}) by {__plugin_meta__.author} [{url}]"],
                 )
 
                 # Proxy api to map
