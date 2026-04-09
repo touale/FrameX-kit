@@ -183,7 +183,7 @@ class TestOAuthCallback:
             res = await oauth_callback(code="abc")
             assert res.status_code == status.HTTP_302_FOUND
             assert res.headers["location"] == DOCS_URL
-            assert "token=" in res.headers.get("set-cookie", "")
+            assert f"{AUTH_COOKIE_NAME}=" in res.headers.get("set-cookie", "")
 
 
 # =========================================================
