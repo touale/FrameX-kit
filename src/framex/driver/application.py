@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 import pytz
 from fastapi import Depends, FastAPI
-from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
 from starlette import status
@@ -24,7 +24,7 @@ from starlette.responses import JSONResponse
 from framex.config import settings
 from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
 from framex.driver.auth import authenticate, oauth_callback
-from framex.utils import format_uptime, safe_error_message
+from framex.utils import build_swagger_ui_html, format_uptime, safe_error_message
 
 FRAME_START_TIME = datetime.now(tz=UTC)
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
@@ -107,7 +107,7 @@ def create_fastapi_application() -> FastAPI:
 
     @application.get(DOCS_URL, include_in_schema=False)
     async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
-        return get_swagger_ui_html(openapi_url=OPENAPI_URL, title="FrameX Docs")
+        return build_swagger_ui_html(openapi_url=OPENAPI_URL, title="FrameX Docs")
 
     @application.get(REDOC_URL, include_in_schema=False)
     async def get_redoc_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:

@@ -9,9 +9,14 @@ from pydantic import BaseModel
 
 from framex.adapter import get_adapter
 from framex.consts import API_STR, PROXY_PLUGIN_NAME
-from framex.plugin.base import build_plugin_description
 from framex.plugin.model import ApiType, PluginApi, PluginDeployment
-from framex.utils import cache_decode, cache_encode, extract_method_params, plugin_to_deployment_name
+from framex.utils import (
+    build_plugin_description,
+    cache_decode,
+    cache_encode,
+    extract_method_params,
+    plugin_to_deployment_name,
+)
 
 from . import _current_plugin, call_plugin_api
 

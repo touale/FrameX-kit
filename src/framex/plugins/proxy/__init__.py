@@ -13,7 +13,6 @@ from framex.adapter.base import BaseAdapter
 from framex.consts import BACKEND_NAME, PROXY_FUNC_HTTP_PATH, PROXY_PLUGIN_NAME
 from framex.log import logger
 from framex.plugin import BasePlugin, PluginApi, PluginMetadata, on_register
-from framex.plugin.base import build_plugin_description
 from framex.plugin.model import ApiType
 from framex.plugin.on import on_request
 from framex.plugins.proxy.builder import (
@@ -26,7 +25,7 @@ from framex.plugins.proxy.builder import (
 )
 from framex.plugins.proxy.config import VERSION, ProxyPluginConfig, settings
 from framex.plugins.proxy.model import ProxyFunc, ProxyFuncHttpBody
-from framex.utils import cache_decode, cache_encode, shorten_str
+from framex.utils import build_plugin_description, cache_decode, cache_encode, shorten_str
 
 __plugin_meta__ = PluginMetadata(
     name="proxy",

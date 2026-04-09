@@ -73,17 +73,3 @@ class BasePlugin:
 
     def _post_call_remote_api_hook(self, data: Any) -> Any:
         return data
-
-
-def build_plugin_description(
-    author: str,
-    version: str,
-    description: str,
-    repo: str,
-) -> str:
-    return (
-        f"**Author**: {author}\n\n"
-        f"**Version**: {version}\n\n"
-        f"**Description**: {description}\n\n"
-        f"**Repo**: [{repo}]({repo})"
-    )
