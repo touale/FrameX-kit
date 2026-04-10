@@ -4,7 +4,7 @@
 [![Coverage](https://codecov.io/gh/touale/FrameX-kit/branch/master/graph/badge.svg)](https://app.codecov.io/gh/touale/FrameX-kit)
 [![Release](https://img.shields.io/github/v/release/touale/FrameX-kit)](https://github.com/touale/FrameX-kit/releases)
 [![PyPI](https://img.shields.io/pypi/v/framex-kit)](https://pypi.org/project/framex-kit/)
-[![License](https://img.shields.io/badge/license-MIT%20No%20Attribution-blue)](./LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 Build modular Python services with plug-and-play plugins, clear team boundaries, and transparent API integration.
 
@@ -408,4 +408,4 @@ A good contribution path is:
 
 ## License
 
-This project is licensed under `MIT No Attribution`. See [LICENSE](./LICENSE).
+This project is licensed under `MIT`. See [LICENSE](./LICENSE).
