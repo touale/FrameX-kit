@@ -1,57 +1,96 @@
 # FrameX
 
-[![pipeline status](https://github.com/touale/FrameX-kit/actions/workflows/test.yml/badge.svg)](https://github.com/touale/FrameX-kit/actions/workflows/test.yml)
-[![coverage report](https://codecov.io/gh/touale/FrameX-kit/branch/master/graph/badge.svg)](https://app.codecov.io/gh/touale/FrameX-kit)
-[![Latest Release](https://img.shields.io/github/v/release/touale/FrameX-kit?label=latest)](https://github.com/touale/FrameX-kit/releases)
+[![CI](https://github.com/touale/FrameX-kit/actions/workflows/test.yml/badge.svg)](https://github.com/touale/FrameX-kit/actions/workflows/test.yml)
+[![Coverage](https://codecov.io/gh/touale/FrameX-kit/branch/master/graph/badge.svg)](https://app.codecov.io/gh/touale/FrameX-kit)
+[![Release](https://img.shields.io/github/v/release/touale/FrameX-kit)](https://github.com/touale/FrameX-kit/releases)
+[![PyPI](https://img.shields.io/pypi/v/framex-kit)](https://pypi.org/project/framex-kit/)
+[![Python](https://img.shields.io/pypi/pyversions/framex-kit)](https://pypi.org/project/framex-kit/)
+[![License](https://img.shields.io/badge/license-MIT%20No%20Attribution-blue)](./LICENSE)
 
-**FrameX** is a lightweight, pluggable Python framework designed for building modular and extensible algorithmic systems.\\
+FrameX is a plugin-first framework for modular Python services.
 
-It provides a clean architecture that supports **dynamic plugin registration**, **isolated execution**, and **secure invocation**, making it well-suited for multi-algorithm collaboration, heterogeneous task scheduling, and distributed deployments.
+It is built for plug-and-play development: package capabilities as independently loadable plugins, let multiple people or teams work in parallel, expose them through one service surface, and run the same plugin code locally or on Ray Serve.
 
-Each algorithm can be developed, deployed, and loaded as an independent plugin, achieving infinite scalability.
+## Architecture
 
-![](./book/src/img/v2andv3.svg)
+![FrameX architecture](docs/assets/framex-architecture.svg)
 
-______________________________________________________________________
+## What Problem It Solves
 
-## Project Information
+FrameX is most useful when multiple teams need to build capabilities in parallel, call each other through stable service interfaces, and keep implementation details private so teams do not need to understand or depend on each other's codebases.
 
-- **Author:** Touale Cula
-- **License:** MIT
-- **Source Code:** [FrameX Repository](https://github.com/touale/FrameX-kit)
-- **Online Documentation:** [FrameX Docs](https://touale.github.io/FrameX-kit/)
+Use it when you need to:
 
-______________________________________________________________________
+- develop service capabilities as plug-and-play modules
+- let multiple engineers or teams work in parallel with lower coupling
+- split one service into independently evolving capability units
+- expose local plugins and upstream APIs behind one consistent service surface
+- integrate third-party or internal HTTP services with minimal client-side changes
+- keep local development simple while preserving a path to Ray-based execution
+- keep the system extensible as capabilities and traffic grow
 
-## Key Features
+## Core Concepts
 
-- **Plugin-Based Architecture**\
-  Algorithms are encapsulated as independent plugins, which can be added, removed, or updated without impacting others.
-- **Distributed Execution with Ray**\
-  Optional Ray integration delivers high concurrency, high throughput, and resilience against blocking tasks.
-- **Cross-plugin Calls**\
-  Enables interaction between local and remote plugins. If a plugin is not available locally, the system automatically routes the request to the corresponding cloud plugin.
-- **Backward Compatibility**\
-  FrameX can seamlessly forward requests to standard FastAPI endpoints, enabling smooth integration without code changes.
-- **Streaming Support**\
-  Native support for streaming responses, suitable for long-running or large-scale inference tasks.
-- **Built-in Observability**\
-  Integrated logging, tracing, and performance monitoring to ease debugging and root-cause analysis.
-- **Flexible Configuration & Tooling**\
-  Clean configuration management (`.toml`, `.env`) plus scaffolding, packaging, and CI/CD integration for automation.
+FrameX is built around a small set of ideas:
+
+- `Plugin`: a Python module with metadata and one or more registered plugin classes
+- `@on_register()`: turns a plugin class into a runtime deployment unit
+- `@on_request(...)`: exposes plugin methods as HTTP APIs, function APIs, or both
+- `required_remote_apis`: declares the APIs a plugin depends on
+- `@remote()`: provides a unified `.remote(...)` call surface for local and Ray runtimes
+- `proxy` plugin: dynamically forwards external services from their OpenAPI schema
+
+## Why FrameX Instead Of Plain FastAPI
+
+Plain FastAPI works well for a single cohesive application. FrameX is for plugin-oriented services where modular ownership, transparent integration, and runtime flexibility matter more.
+
+Compared with plain FastAPI, FrameX adds:
+
+- plugin discovery, registration, and lifecycle management
+- decorator-driven exposure for both HTTP APIs and internal callable APIs
+- explicit plugin-to-plugin dependency resolution
+- transparent proxying of upstream OpenAPI services
+- a unified runtime abstraction for local execution and Ray execution
+- a better fit for service decomposition and multi-team parallel development
+
+If you only need a straightforward application with a small and stable route surface, plain FastAPI is usually the better choice.
+
+## Features
+
+- plug-and-play plugin development for service capabilities
+- support for multi-person and multi-team parallel development
+- decorator-based registration for HTTP, internal, and streaming APIs
+- dynamic plugin loading and built-in system plugins
+- transparent bridging of upstream APIs through the proxy plugin
+- explicit remote dependency resolution between plugins
+- local execution and optional Ray Serve backend
+- API key protection, OAuth-based docs access, and config from `.env`, `config.toml`, and `pyproject.toml`
 
 ## Installation
 
-```
+Base package:
+
+```bash
 pip install framex-kit
 ```
 
-### 1) Execute by loading your plugin
+With Ray Serve support:
 
-Create foo.py file
-
+```bash
+pip install "framex-kit[ray]"
 ```
+
+Requirements:
+
+- Python `>=3.11`
+
+## Quick Start
+
+Create `foo.py`:
+
+```python
 from typing import Any
+
 from pydantic import BaseModel
 
 from framex.consts import VERSION
@@ -61,14 +100,14 @@ from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
 __plugin_meta__ = PluginMetadata(
     name="foo",
     version=VERSION,
-    description="A simple Foo plugin example",
-    author="touale",
+    description="A minimal example plugin",
+    author="you",
     url="https://github.com/touale/FrameX-kit",
 )
 
 
-class FooModel(BaseModel):
-    text: str = "Hello Foo"
+class EchoBody(BaseModel):
+    text: str
 
 
 @on_register()
@@ -77,86 +116,297 @@ class FooPlugin(BasePlugin):
         super().__init__(**kwargs)
 
     @on_request("/foo", methods=["GET"])
-    async def foo(self, message: str) -> str:
-        return f"Foo says: {message}"
+    async def echo(self, message: str) -> str:
+        return f"foo: {message}"
 
     @on_request("/foo_model", methods=["POST"])
-    async def foo_model(self, model: FooModel) -> str:
-        return f"Foo received model: {model.text}"#   
+    async def echo_model(self, model: EchoBody) -> dict[str, str]:
+        return {"text": model.text}
 ```
 
-Run the following command to start the project creation process:
+Run it:
 
+```bash
+PYTHONPATH=. framex run --load-plugins foo
 ```
-$ PYTHONPATH=. framex run --load-plugins foo
-🚀 Starting FrameX with configuration:
+
+Call it:
+
+```bash
+curl "http://127.0.0.1:8080/api/v1/foo?message=hello"
+```
+
+Open docs:
+
+- `http://127.0.0.1:8080/docs`
+- `http://127.0.0.1:8080/redoc`
+- `http://127.0.0.1:8080/api/v1/openapi.json`
+
+You can also start with the built-in example plugin:
+
+```bash
+framex run --load-builtin-plugins echo
+```
+
+## CLI
+
+FrameX exposes a `framex` CLI:
+
+```bash
+framex run --host 0.0.0.0 --port 8080 --load-builtin-plugins echo
+```
+
+Main options:
+
+- `--host`
+- `--port`
+- `--dashboard-host`
+- `--dashboard-port`
+- `--num-cpus`
+- `--load-plugins`
+- `--load-builtin-plugins`
+- `--use-ray/--no-use-ray`
+- `--enable-proxy/--no-enable-proxy`
+
+Important:
+
+- `--load-plugins` and `--load-builtin-plugins` are repeatable options
+- they are not comma-separated lists
+
+Example:
+
+```bash
+framex run \
+  --load-builtin-plugins echo \
+  --load-plugins foo \
+  --load-plugins your_project.plugins.bar
+```
+
+## Programming Model
+
+### Define plugin metadata
+
+Each plugin module typically defines `__plugin_meta__`:
+
+```python
+__plugin_meta__ = PluginMetadata(
+    name="demo",
+    version=VERSION,
+    description="demo plugin",
+    author="you",
+    url="https://example.com",
+    required_remote_apis=["/api/v1/echo", "echo.EchoPlugin.confess"],
+)
+```
+
+`required_remote_apis` can contain:
+
+- HTTP paths such as `/api/v1/echo`
+- internal function APIs such as `echo.EchoPlugin.confess`
+
+### Expose APIs
+
+Use `@on_request(...)` to expose plugin methods.
+
+Typical modes:
+
+- HTTP API: provide a route path
+- function API: use `call_type=ApiType.FUNC`
+- both: use `call_type=ApiType.ALL`
+
+Current implementation notes:
+
+- a handler may declare at most one `BaseModel` parameter
+- `stream=True` produces a streaming endpoint
+- `raw_response=True` bypasses the default response wrapper
+
+### Call other plugins
+
+Use `call_plugin_api(...)` to call another registered plugin API:
+
+```python
+from framex import call_plugin_api
+
+
+result = await call_plugin_api("/api/v1/echo", message="hello")
+```
+
+FrameX resolves the target API from `required_remote_apis`. If proxy mode is enabled, unresolved HTTP paths can fall back to the built-in proxy plugin. Inside a plugin class, you can also use the convenience wrapper around the same mechanism.
+
+### Use `@remote()`
+
+FrameX provides `@remote()` for functions, instance methods, and class methods.
+
+- in local mode, async functions are awaited directly and sync functions run in a thread pool
+- in Ray mode, calls are wrapped with `ray.remote(...)`
+
+```python
+from framex.plugin import remote
+
+
+@remote()
+def heavy_job(x: int) -> int:
+    return x * 2
+
+
+result = await heavy_job.remote(21)
+```
+
+## Configuration
+
+FrameX settings are loaded from:
+
+- environment variables
+- `.env`
+- `.env.prod`
+- `config.toml`
+- `[tool.framex]` in `pyproject.toml`
+
+CLI options override the in-memory settings before startup.
+
+Minimal `config.toml`:
+
+```toml
+load_builtin_plugins = ["echo"]
+load_plugins = ["your_project.plugins.foo"]
+
+[server]
+host = "127.0.0.1"
+port = 8080
+use_ray = false
+enable_proxy = false
+
+[plugins.foo]
+debug = true
+```
+
+Common settings:
+
+- `server.host`, `server.port`
+- `server.use_ray`
+- `server.enable_proxy`
+- `load_builtin_plugins`
+- `load_plugins`
+- `plugins.<plugin_name>`
+- `auth.rules`
+
+Nested environment variables are supported, for example:
+
+```bash
+export SERVER__PORT=9000
+export SERVER__ENABLE_PROXY=true
+```
+
+## Proxy Mode
+
+FrameX includes a built-in `proxy` plugin for bridging external HTTP services.
+
+To enable it:
+
+1. load the built-in `proxy` plugin
+1. set `server.enable_proxy = true`
+1. configure upstream service URLs in `plugins.proxy`
+
+Example:
+
+```toml
+load_builtin_plugins = ["proxy"]
+
+[server]
+enable_proxy = true
+
+[plugins.proxy]
+proxy_urls = ["http://127.0.0.1:9000"]
+force_stream_apis = ["/api/v1/chat/stream"]
+white_list = ["/*"]
+timeout = 600
+```
+
+The current implementation reads the upstream `/api/v1/openapi.json` document and dynamically creates local forwarding routes. It supports:
+
+- query parameters
+- JSON request bodies
+- `multipart/form-data`
+- file upload fields
+- forced streaming APIs
+
+## Built-in Plugins
+
+### `echo`
+
+The built-in example plugin exposes:
+
+- `GET /api/v1/echo`
+- `POST /api/v1/echo_model`
+- `GET /api/v1/echo_stream`
+- function API `echo.EchoPlugin.confess`
+
+### `proxy`
+
+The built-in system proxy plugin is used to:
+
+- register proxy routes from remote OpenAPI specs
+- forward unresolved HTTP APIs
+- register and call proxy functions
+
+## Runtime Behavior
+
+A few implementation details are important for adopters:
+
+- docs are served at `/docs` and `/redoc`
+- OpenAPI is served at `/api/v1/openapi.json`
+- health endpoints include `/health` and `/ping`
+- non-streaming API responses are wrapped into a common JSON envelope unless `raw_response=True` is used
+- if `auth.oauth` is configured, docs and OpenAPI access are protected through the auth flow
+
+Default wrapped response shape:
+
+```json
 {
-  "host": "127.0.0.1",
-  "port": 8080,
-  "dashboard_host": "127.0.0.1",
-  "dashboard_port": 8260,
-  "use_ray": false,
-  "enable_proxy": false,
-  "num_cpus": 8,
-  "excluded_log_paths": []
+  "status": 200,
+  "message": "success",
+  "timestamp": "2026-01-01 12:00:00",
+  "data": {}
 }
-11-05 16:01:13 [SUCCESS] framex.plugin.manage | Succeeded to load plugin "foo" from foo
-11-05 16:01:13 [INFO] framex | Start initializing all DeploymentHandle...
-11-05 16:01:13 [SUCCESS] framex.plugin.manage | Found plugin HTTP API "['/api/v1/foo', '/api/v1/foo_model']" from plugin(foo)
-11-05 16:01:13 [SUCCESS] framex.driver.ingress | Succeeded to register api(['GET']): /api/v1/foo from foo.FooPlugin
-11-05 16:01:13 [SUCCESS] framex.driver.ingress | Succeeded to register api(['POST']): /api/v1/foo_model from foo.FooPlugin
-INFO:     Started server process [59373]
-INFO:     Waiting for application startup.
-11-05 16:01:13 [INFO] framex.driver.application | Starting FastAPI application...
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 ```
 
-### 2) Execute by loading a system plugin
+## Architecture
 
-```
-$ framex run --load-builtin-plugins echo
-🚀 Starting FrameX with configuration:
-{
-  "host": "127.0.0.1",
-  "port": 8080,
-  "dashboard_host": "127.0.0.1",
-  "dashboard_port": 8260,
-  "use_ray": false,
-  "enable_proxy": false,
-  "num_cpus": 8,
-  "excluded_log_paths": []
-}
-11-05 16:27:36 [SUCCESS] framex.plugin.manage | Succeeded to load plugin "echo" from framex.plugins.echo
-11-05 16:27:36 [INFO] framex | Start initializing all DeploymentHandle...
-11-05 16:27:36 [SUCCESS] framex.plugin.manage | Found plugin HTTP API "['/api/v1/echo', '/api/v1/echo_model', '/api/v1/echo_stream']" from plugin(echo)
-11-05 16:27:36 [SUCCESS] framex.plugin.manage | Found plugin FUNC API "['echo.EchoPlugin.confess']" from plugin(echo)
-11-05 16:27:36 [SUCCESS] framex.driver.ingress | Succeeded to register api(['GET']): /api/v1/echo from echo.EchoPlugin
-11-05 16:27:36 [SUCCESS] framex.driver.ingress | Succeeded to register api(['POST']): /api/v1/echo_model from echo.EchoPlugin
-11-05 16:27:36 [SUCCESS] framex.driver.ingress | Succeeded to register api(['GET']): /api/v1/echo_stream from echo.EchoPlugin
-INFO:     Started server process [554]
-INFO:     Waiting for application startup.
-11-05 16:27:36 [INFO] framex.driver.application | Starting FastAPI application...
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
-```
+The `src/framex` package is organized into a small set of layers:
 
-### 3) Execute by loading a third-party plugin
+- `cli.py`: command-line entrypoint
+- `config.py`: settings models and source precedence
+- `plugin/`: decorators, plugin loading, registration, dependency resolution
+- `adapter/`: local and Ray runtime adapters
+- `driver/`: FastAPI application, auth, ingress, middleware
+- `plugins/`: built-in plugins such as `echo` and `proxy`
 
-```
-framex run --load-plugins <plugin_name>,<plugin_name>
-```
+## Use Cases
 
-## Application Scenarios
+FrameX fits well when you want to:
 
-- **Quick Onboarding & Project Setup**\
-  New developers can rapidly bootstrap projects and reuse existing algorithms via remote calls, without accessing legacy code.
+- split a service into independently maintained capability modules
+- keep a FastAPI-friendly programming model while adding a plugin boundary
+- reuse the same plugin code in local and Ray-based deployments
+- gradually bridge legacy HTTP services into a unified API surface
 
-- **Multi-Team Parallel Development & Isolation**\
-  Different teams manage their own isolated plugin spaces. Access control ensure security and reduce interference.
+## Project Status
 
-- **Hybrid Deployment & Smooth Migration**\
-  Supports hybrid calls with other FastAPI services, dynamic endpoint registration, and multi-instance FrameX deployment with inter-instance communication.
+FrameX is usable today, but the project should be treated as an actively evolving framework rather than a frozen platform API.
 
-- **Modular Delivery & Commercial Licensing**\
-  Deliver selected algorithm modules locally to clients while keeping others as remotely callable services. This supports licensing, pay-per-use, and flexible business models.
+If you plan to adopt it in production, review the current implementation details and test the behaviors you depend on, especially around proxying, response wrapping, and auth integration.
+
+## Contributing
+
+Contributions are welcome.
+
+A good contribution path is:
+
+1. open an issue for bugs, API gaps, or design discussion
+1. keep pull requests focused and small
+1. include tests for behavior changes when possible
+1. update documentation when the public behavior changes
+
+## License
+
+This project is licensed under `MIT No Attribution`. See [LICENSE](./LICENSE).
