@@ -1,16 +1,24 @@
-# FrameX
+<p align="center">
+  <img src="docs/assets/framex-logo.svg" alt="FrameX logo" width="144" height="144">
+</p>
 
-[![CI](https://github.com/touale/FrameX-kit/actions/workflows/test.yml/badge.svg)](https://github.com/touale/FrameX-kit/actions/workflows/test.yml)
-[![Coverage](https://codecov.io/gh/touale/FrameX-kit/branch/master/graph/badge.svg)](https://app.codecov.io/gh/touale/FrameX-kit)
-[![Release](https://img.shields.io/github/v/release/touale/FrameX-kit)](https://github.com/touale/FrameX-kit/releases)
-[![PyPI](https://img.shields.io/pypi/v/framex-kit)](https://pypi.org/project/framex-kit/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+<h1 align="center">FrameX</h1>
 
-Build modular Python services with plug-and-play plugins, clear team boundaries, and transparent API integration.
+<p align="center">
+  Build modular Python services with plug-and-play plugins, clear team boundaries, and transparent API integration.
+</p>
+
+<p align="center">
+  <a href="https://github.com/touale/FrameX-kit/actions/workflows/test.yml"><img src="https://github.com/touale/FrameX-kit/actions/workflows/test.yml/badge.svg" alt="CI"></a>
+  <a href="https://app.codecov.io/gh/touale/FrameX-kit"><img src="https://codecov.io/gh/touale/FrameX-kit/branch/master/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/touale/FrameX-kit/releases"><img src="https://img.shields.io/github/v/release/touale/FrameX-kit" alt="Release"></a>
+  <a href="https://pypi.org/project/framex-kit/"><img src="https://img.shields.io/pypi/v/framex-kit" alt="PyPI"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
+</p>
+
+## About
 
 FrameX is a plugin-first Python framework for teams that need service decomposition, multi-team parallel development, private implementation boundaries, and one consistent service surface across local plugins and upstream APIs.
-
-## Architecture
 
 ![FrameX architecture](docs/assets/framex-architecture.svg)
 

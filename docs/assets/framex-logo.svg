@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="accent" x1="120" y1="120" x2="392" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="120" fill="#F8FAFC"/>
+  <rect x="52" y="52" width="408" height="408" rx="96" fill="white" stroke="#E2E8F0" stroke-width="8"/>
+
+  <path d="M150 140H238V168H178C172.477 168 168 172.477 168 178V238H140V150C140 144.477 144.477 140 150 140Z" fill="url(#accent)"/>
+  <path d="M274 140H362C367.523 140 372 144.477 372 150V238H344V178C344 172.477 339.523 168 334 168H274V140Z" fill="url(#accent)"/>
+  <path d="M344 274H372V362C372 367.523 367.523 372 362 372H274V344H334C339.523 344 344 339.523 344 334V274Z" fill="url(#accent)"/>
+  <path d="M140 274H168V334C168 339.523 172.477 344 178 344H238V372H150C144.477 372 140 367.523 140 362V274Z" fill="url(#accent)"/>
+
+  <path d="M207 195L255.5 244.5L304 195H337L272 260L337 325H304L255.5 276L207 325H174L239 260L174 195H207Z" fill="#0F172A"/>
+</svg>
