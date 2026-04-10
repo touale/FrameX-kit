@@ -7,9 +7,9 @@
 [![Python](https://img.shields.io/pypi/pyversions/framex-kit)](https://pypi.org/project/framex-kit/)
 [![License](https://img.shields.io/badge/license-MIT%20No%20Attribution-blue)](./LICENSE)
 
-FrameX is a plugin-first framework for modular Python services.
+Build modular Python services with plug-and-play plugins, clear team boundaries, and transparent API integration.
 
-It is built for plug-and-play development: package capabilities as independently loadable plugins, let multiple people or teams work in parallel, expose them through one service surface, and run the same plugin code locally or on Ray Serve.
+FrameX is a plugin-first Python framework for teams that need service decomposition, multi-team parallel development, private implementation boundaries, and one consistent service surface across local plugins and upstream APIs.
 
 ## Architecture
 
@@ -17,54 +17,54 @@ It is built for plug-and-play development: package capabilities as independently
 
 ## What Problem It Solves
 
-FrameX is most useful when multiple teams need to build capabilities in parallel, call each other through stable service interfaces, and keep implementation details private so teams do not need to understand or depend on each other's codebases.
+FrameX is most useful when multiple teams need to ship capabilities in parallel, call each other through stable service interfaces, and keep implementation details private so each team can work without understanding or depending on other teams' codebases.
 
 Use it when you need to:
 
-- develop service capabilities as plug-and-play modules
-- let multiple engineers or teams work in parallel with lower coupling
-- split one service into independently evolving capability units
+- build service capabilities as plug-and-play modules
+- let multiple engineers or teams ship in parallel with clearer ownership boundaries
+- split a growing service into independently evolving capability units
+- call other teams' capabilities without depending on their codebases
 - expose local plugins and upstream APIs behind one consistent service surface
 - integrate third-party or internal HTTP services with minimal client-side changes
-- keep local development simple while preserving a path to Ray-based execution
-- keep the system extensible as capabilities and traffic grow
+- start with simple local execution and scale to Ray when needed
+- keep the system extensible as capabilities, teams, and traffic grow
 
 ## Core Concepts
 
-FrameX is built around a small set of ideas:
+FrameX is built around a few core ideas:
 
-- `Plugin`: a Python module with metadata and one or more registered plugin classes
-- `@on_register()`: turns a plugin class into a runtime deployment unit
-- `@on_request(...)`: exposes plugin methods as HTTP APIs, function APIs, or both
-- `required_remote_apis`: declares the APIs a plugin depends on
-- `@remote()`: provides a unified `.remote(...)` call surface for local and Ray runtimes
-- `proxy` plugin: dynamically forwards external services from their OpenAPI schema
+- `Plugin`: a capability package with its own code, metadata, and API surface
+- `@on_register()`: registers a plugin class as a runtime unit
+- `@on_request(...)`: exposes plugin methods as HTTP APIs, internal callable APIs, or both
+- `required_remote_apis`: declares which other plugin or HTTP APIs a plugin depends on
+- `call_plugin_api(...)`: lets one capability call another through a stable service interface
+- `@remote()`: keeps the same call style across local execution and Ray execution
+- `proxy` plugin: makes upstream OpenAPI services look like part of the same service surface
 
 ## Why FrameX Instead Of Plain FastAPI
 
-Plain FastAPI works well for a single cohesive application. FrameX is for plugin-oriented services where modular ownership, transparent integration, and runtime flexibility matter more.
+Plain FastAPI is a good choice for a single cohesive application. FrameX is better when the real problem is not route handling, but service decomposition, team boundaries, and cross-service integration.
 
-Compared with plain FastAPI, FrameX adds:
+Compared with plain FastAPI, FrameX gives you:
 
-- plugin discovery, registration, and lifecycle management
-- decorator-driven exposure for both HTTP APIs and internal callable APIs
-- explicit plugin-to-plugin dependency resolution
-- transparent proxying of upstream OpenAPI services
-- a unified runtime abstraction for local execution and Ray execution
-- a better fit for service decomposition and multi-team parallel development
+- plugin boundaries for clearer ownership between capabilities and teams
+- a better development model for plug-and-play modules and parallel delivery
+- one consistent surface for local capabilities and upstream HTTP services
+- internal callable APIs in addition to normal HTTP routes
+- explicit dependency declarations between capabilities
+- the ability to start locally and move to Ray-backed execution without rewriting plugin code
 
-If you only need a straightforward application with a small and stable route surface, plain FastAPI is usually the better choice.
+If you only need a small application with a stable route surface and one codebase, plain FastAPI is usually simpler.
 
 ## Features
 
-- plug-and-play plugin development for service capabilities
-- support for multi-person and multi-team parallel development
+- plug-and-play development for modular service capabilities
+- clearer boundaries for multi-person and multi-team development
+- one consistent surface for local plugins and upstream HTTP APIs
 - decorator-based registration for HTTP, internal, and streaming APIs
-- dynamic plugin loading and built-in system plugins
-- transparent bridging of upstream APIs through the proxy plugin
-- explicit remote dependency resolution between plugins
-- local execution and optional Ray Serve backend
-- API key protection, OAuth-based docs access, and config from `.env`, `config.toml`, and `pyproject.toml`
+- local execution by default, with an optional path to Ray Serve
+- built-in proxying, auth controls, and flexible configuration sources
 
 ## Installation
 
