@@ -4,7 +4,6 @@
 [![Coverage](https://codecov.io/gh/touale/FrameX-kit/branch/master/graph/badge.svg)](https://app.codecov.io/gh/touale/FrameX-kit)
 [![Release](https://img.shields.io/github/v/release/touale/FrameX-kit)](https://github.com/touale/FrameX-kit/releases)
 [![PyPI](https://img.shields.io/pypi/v/framex-kit)](https://pypi.org/project/framex-kit/)
-[![Python](https://img.shields.io/pypi/pyversions/framex-kit)](https://pypi.org/project/framex-kit/)
 [![License](https://img.shields.io/badge/license-MIT%20No%20Attribution-blue)](./LICENSE)
 
 Build modular Python services with plug-and-play plugins, clear team boundaries, and transparent API integration.
