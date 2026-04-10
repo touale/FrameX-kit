@@ -370,6 +370,30 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             word-break: break-word;
         }}
 
+        /* 新增: 按钮容器, 放在第一个 tag 上方 */
+        .swagger-ui .tag-toolbar {{
+            display: flex;
+            justify-content: flex-end;
+            margin: 0 0 8px 0;
+        }}
+
+        .swagger-ui .tag-toolbar button {{
+            appearance: none;
+            border: 1px solid var(--fx-border);
+            background: #fff;
+            color: var(--fx-text);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--fx-shadow);
+        }}
+
+        .swagger-ui .tag-toolbar button:hover {{
+            background: #f9fafb;
+        }}
+
         @media (max-width: 1400px) {{
             .swagger-ui .opblock-tag {{
                 grid-template-columns: 360px minmax(0, 1fr) 28px;
@@ -415,6 +439,62 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
     <script>
+        let allExpanded = false;
+
+        function getTagSections() {{
+            return Array.from(document.querySelectorAll(".swagger-ui .opblock-tag-section"));
+        }}
+
+        function isExpanded(section) {{
+            return !!section.querySelector(".opblock");
+        }}
+
+        function toggleTag(section, expand) {{
+            const expanded = isExpanded(section);
+            if (expanded === expand) return;
+
+            const btn = section.querySelector(".opblock-tag > button");
+            if (btn) btn.click();
+        }}
+
+        function syncToolbarText() {{
+            const btn = document.getElementById("toggle-all-tags");
+            if (!btn) return;
+            btn.innerText = allExpanded ? "收起全部" : "展开全部";
+        }}
+
+        function toggleAllTags() {{
+            const sections = getTagSections();
+            allExpanded = !allExpanded;
+
+            sections.forEach((section, index) => {{
+                setTimeout(() => toggleTag(section, allExpanded), index * 20);
+            }});
+
+            syncToolbarText();
+        }}
+
+        function insertToolbar() {{
+            if (document.querySelector(".swagger-ui .tag-toolbar")) return;
+
+            const firstTagSection = document.querySelector(".swagger-ui .opblock-tag-section");
+            if (!firstTagSection) return;
+
+            const toolbar = document.createElement("div");
+            toolbar.className = "tag-toolbar";
+            toolbar.innerHTML = `
+                <button type="button" id="toggle-all-tags">展开全部</button>
+            `;
+
+            firstTagSection.parentNode.insertBefore(toolbar, firstTagSection);
+
+            document
+                .getElementById("toggle-all-tags")
+                .addEventListener("click", toggleAllTags);
+
+            syncToolbarText();
+        }}
+
         window.ui = SwaggerUIBundle({{
             url: "{openapi_url}",
             dom_id: "#swagger-ui",
@@ -426,7 +506,19 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
                 SwaggerUIBundle.presets.apis,
                 SwaggerUIStandalonePreset
             ],
-            layout: "BaseLayout"
+            layout: "BaseLayout",
+            onComplete: function() {{
+                insertToolbar();
+            }}
+        }});
+
+        const observer = new MutationObserver(() => {{
+            insertToolbar();
+        }});
+
+        observer.observe(document.body, {{
+            childList: true,
+            subtree: true
         }});
     </script>
 </body>
