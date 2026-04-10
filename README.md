@@ -95,7 +95,6 @@ from pydantic import BaseModel
 from framex.consts import VERSION
 from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
 
-
 __plugin_meta__ = PluginMetadata(
     name="foo",
     version=VERSION,
@@ -225,7 +224,6 @@ Use `call_plugin_api(...)` to call another registered plugin API:
 
 ```python
 from framex import call_plugin_api
-
 
 result = await call_plugin_api("/api/v1/echo", message="hello")
 ```
