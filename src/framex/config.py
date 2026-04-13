@@ -45,7 +45,7 @@ class ServerConfig(BaseModel):
     legal_proxy_code: list[int] = Field(default_factory=lambda: [200])
     num_cpus: int = -1
     excluded_log_paths: list[str] = Field(default_factory=list)
-    ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 60})
+    ingress_config: dict[str, Any] = Field(default_factory=dict)
     reversion: str = ""
 
 

@@ -12,6 +12,16 @@ from framex.config import settings
 from tests.mock import mock_get, mock_request
 
 
+@pytest.fixture(autouse=True)
+def reset_runtime_state(monkeypatch):
+    import framex.adapter as adapter_module
+
+    adapter_module._adapter = None
+    monkeypatch.setattr(settings.server, "use_ray", False)
+    yield
+    adapter_module._adapter = None
+
+
 @pytest.fixture(scope="module")
 def vcr_config():
     return {
