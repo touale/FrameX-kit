@@ -2,6 +2,65 @@
 
 <!-- version list -->
 
+## v0.3.4 (2026-04-13)
+
+### Chores
+
+- **deps**: Bump python-multipart from 0.0.24 to 0.0.26
+  ([`7a7f641`](https://github.com/touale/FrameX-kit/commit/7a7f6417224ccaa19c6ca501d88b9f7fe10db93a))
+
+- **deps**: Bump uvicorn from 0.43.0 to 0.44.0
+  ([`fc4fe67`](https://github.com/touale/FrameX-kit/commit/fc4fe671c4b7e6e169daeeaf062b7781f35a6631))
+
+- **deps-dev**: Bump poethepoet from 0.41.0 to 0.44.0
+  ([`48342e3`](https://github.com/touale/FrameX-kit/commit/48342e37659d0bcc788cab8fc1c8e54da77a5650))
+
+- **deps-dev**: Bump pytest-cov from 7.0.0 to 7.1.0
+  ([`5e19707`](https://github.com/touale/FrameX-kit/commit/5e19707130ebc2c06d23e8e25f8c2fbd447209a2))
+
+### Continuous Integration
+
+- Bump ruff to v0.15.10
+  ([`a6883c7`](https://github.com/touale/FrameX-kit/commit/a6883c716f3819fc99289418972f0d8ce7e98fa2))
+
+- Enable autofix for PRs in pre-commit config
+  ([`324e968`](https://github.com/touale/FrameX-kit/commit/324e968b510d8aaafa5a97a594c86f96a368a069))
+
+- Restrict permissions to read-only contents
+  ([`9f73ced`](https://github.com/touale/FrameX-kit/commit/9f73cedac8c386ed5e356c599802ec1efb7d9a88))
+
+### Documentation
+
+- Add logo and improve README layout
+  ([`94b5c72`](https://github.com/touale/FrameX-kit/commit/94b5c724153d8502846d4ec09050e7203ee18393))
+
+- Refine documentation structure
+  ([`7f15f5b`](https://github.com/touale/FrameX-kit/commit/7f15f5b759877ddb6174452cbc6a581584a951e2))
+
+- Refine README for clarity and conciseness
+  ([`5d6e381`](https://github.com/touale/FrameX-kit/commit/5d6e3813a7748905d49dd3908b5a9e7628fe49dd))
+
+- Remove blank lines in README
+  ([`20343f1`](https://github.com/touale/FrameX-kit/commit/20343f18e149775691f50e872eac491670d7a3a0))
+
+- Remove Python version badge from README
+  ([`9781d8e`](https://github.com/touale/FrameX-kit/commit/9781d8e4d1156b64d03032a142d9574ca37743d9))
+
+- Update license to MIT
+  ([`187fe56`](https://github.com/touale/FrameX-kit/commit/187fe567b6ed0ecfb19c2dd9d07a3e27fdeaaba1))
+
+- Update README with architecture diagram and features
+  ([`c79b14c`](https://github.com/touale/FrameX-kit/commit/c79b14cab036527eaa7e4ea889d3923cc4658429))
+
+### Features
+
+- Add expand/collapse all tags button in Swagger UI
+  ([`e569bce`](https://github.com/touale/FrameX-kit/commit/e569bce0f5b2cb7cd6ee93b93d231faa1a21857f))
+
+- Implement adaptive ingress config for ray serve
+  ([`424fbf1`](https://github.com/touale/FrameX-kit/commit/424fbf1599846465a9a4a0f017c3457dd8b498ee))
+
+
 ## v0.3.3 (2026-04-09)
 
 ### Features
