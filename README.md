@@ -9,6 +9,11 @@
 </p>
 
 <p align="center">
+  <strong><a href="https://touale.github.io/FrameX-kit/">Read the Online Documentation</a></strong>
+</p>
+
+<p align="center">
+  <a href="https://touale.github.io/FrameX-kit/"><img src="https://img.shields.io/badge/docs-online-0A7EA4" alt="Docs"></a>
   <a href="https://github.com/touale/FrameX-kit/actions/workflows/test.yml"><img src="https://github.com/touale/FrameX-kit/actions/workflows/test.yml/badge.svg" alt="CI"></a>
   <a href="https://app.codecov.io/gh/touale/FrameX-kit"><img src="https://codecov.io/gh/touale/FrameX-kit/branch/master/graph/badge.svg" alt="Coverage"></a>
   <a href="https://github.com/touale/FrameX-kit/releases"><img src="https://img.shields.io/github/v/release/touale/FrameX-kit" alt="Release"></a>
