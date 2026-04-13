@@ -1,108 +1,184 @@
 # Project Structure
 
-A typical project generated with **FrameX** follows a standardized structure to ensure consistency, maintainability, and easy plugin management.
+In practice, FrameX projects usually fall into **two different structures**.
+
+You should choose the structure based on what you are publishing and how many plugins the project contains.
+
+## Structure 1: Single Plugin Package
+
+Use this structure when the project itself is **one plugin package**.
+
+This is a good fit when you want to:
+
+- build one reusable plugin
+- publish it to PyPI
+- let other FrameX projects load it directly by import path
+
+Recommended layout:
+
+```text
+your_plugin/
+├── pyproject.toml
+├── README.md
+├── src/
+│   └── your_plugin/
+│       ├── __init__.py
+│       ├── config.py
+│       ├── models.py
+│       └── service.py
+└── tests/
+```
+
+In this structure, the plugin entry is usually defined in:
+
+```text
+src/your_plugin/__init__.py
+```
+
+That means other projects can load it directly, for example:
 
 ```bash
-$ tree demo_project
-demo_project
-|-- LICENSE
-|-- README.md
-|-- data
-|   `-- demo@f738
-|-- mypy.ini
-|-- poe_tasks.toml
-|-- pyproject.toml
-|-- releaserc.toml
-|-- ruff.toml
-|-- src
-|   `-- demo_project
-|       |-- __init__.py
-|       |-- __main__.py
-|       |-- consts.py
-|       |-- log.py
-|       `-- plugins
-|           |-- __init__.py
-|           `-- demo.py
-|-- tests
-|   |-- __init__.py
-|   `-- test_add.py
-`-- uv.lock
+framex run --load-plugins your_plugin
 ```
 
-______________________________________________________________________
+Or in `config.toml`:
 
-## 1) Key Directories and Files
-
-- src/ – Main source code directory.
-  - __main__.py: **Application entry point.**
-  - consts.py: Constants (e.g., version).
-  - log.py: Logging setup.
-  - plugins/: **All plugins can be placed here.**
-- tests/ – Unit and integration tests.
-- pyproject.toml – Project configuration and dependency management.
-- ruff.toml / mypy.ini – Linting and type-checking configuration.
-- data/ – Sample or runtime data.
-- poe_tasks.toml – Task automation configuration.
-- releaserc.toml – Release configuration.
-- __init__.py - **Single plugin can be placed here.**
-
-## 2) Where should the plugin be placed
-
-> The difference from **Single plugin management** is that one is placed in `src/demo_project/__init__.py`, and **Multiple plugin management** is in `src/demo_project/plugins/`!
-
-### Single plugin
-
-If there is only one algorithm or only one plugin, you can directly prevent its entry in the package's __init__.py.
-
-Example:
-
-```
-src/demo_project/
-├── __init__.py # defines one plugin
+```toml
+load_plugins = ["your_plugin"]
 ```
 
-### Multiple plugin
+### When to use it
 
-All FrameX plugins can live inside the plugins/ directory.
-You can structure them in two ways:
+Choose this structure when:
 
-### A. Easy-file plugin
+- the package contains one plugin
+- the plugin is intended to be reused across projects
+- you want the package name itself to be the plugin import path
 
-Each .py file inside plugins/ is treated as one plugin.
-Example:
+### Why it works
 
+Because the whole package is the plugin, using `src/your_plugin/__init__.py` as the plugin entry is natural here.
+
+The package is small, self-contained, and meant to be loaded as one unit.
+
+## Structure 2: Multi-Plugin Project
+
+Use this structure when one project contains **multiple plugins**.
+
+This is a good fit when you want to:
+
+- build several capabilities in one service
+- let different people or teams own different plugins
+- load only part of the project in different environments
+
+Recommended layout:
+
+```text
+your_project/
+├── pyproject.toml
+├── config.toml
+├── README.md
+├── src/
+│   └── your_project/
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── consts.py
+│       └── plugins/
+│           ├── __init__.py
+│           ├── foo.py
+│           └── bar/
+│               ├── __init__.py
+│               ├── config.py
+│               └── service.py
+└── tests/
 ```
-src/demo_project/plugins/
-├── __init__.py
-└── demo.py     # defines one plugin
+
+In this structure, plugins usually live under:
+
+```text
+src/your_project/plugins/
 ```
 
-### B. Folder-based plugin
+Typical import paths are:
 
-A plugin can also be organized as a package (folder). This is recommended for more complex plugins with multiple modules.
-Example:
+- `your_project.plugins.foo`
+- `your_project.plugins.bar`
 
+Examples:
+
+```bash
+framex run --load-plugins your_project.plugins.foo
 ```
-$ tree ../src/framex/plugins -I '__pycache__|*.pyc|*.pyo|*.pyd'
-../src/framex/plugins
-├── __init__.py
-├── echo.py          # single-file plugin
-└── proxy/           # folder-based plugin
+
+```toml
+load_plugins = [
+  "your_project.plugins.foo",
+  "your_project.plugins.bar",
+]
+```
+
+### When to use it
+
+Choose this structure when:
+
+- one project contains multiple plugins
+- different capabilities should stay clearly separated
+- you want cleaner ownership boundaries inside one codebase
+
+### Why it works
+
+Because the project package and the plugin modules are different things.
+
+- `your_project` is the application package
+- `your_project.plugins.*` are the plugin packages or modules
+
+That separation makes the codebase easier to understand and maintain.
+
+## Single File vs Package Plugin
+
+Inside a multi-plugin project, each plugin can still be organized in two ways.
+
+### Single-file plugin
+
+```text
+src/your_project/plugins/
+└── foo.py
+```
+
+Use this when the plugin is still small.
+
+### Package plugin
+
+```text
+src/your_project/plugins/
+└── bar/
     ├── __init__.py
-    ├── builder.py
-    └── config.py
+    ├── config.py
+    ├── models.py
+    └── service.py
 ```
 
-Here, two plugins are defined:
+Use this when the plugin is larger and needs multiple modules.
 
-- echo – a simple single-file plugin (echo.py)
-- proxy – a more complex plugin implemented as a package with multiple modules
+## Built-In Plugins vs Your Plugins
 
-______________________________________________________________________
+Keep built-in plugins and your own plugins separate.
 
-## 3) Guidelines
+- built-in plugins come from `framex.plugins`, such as `echo` and `proxy`
+- your own plugins come from your own package
 
-- Every plugin must be placed under plugins/.
-- Each plugin should have a clear entry point (__init__.py or main class).
-- Use single-file plugins for simple functionality.
-- Use folder-based plugins for more complex features requiring multiple modules.
+Example:
+
+```bash
+framex run \
+  --load-builtin-plugins echo \
+  --load-plugins your_project.plugins.foo
+```
+
+## Rule of Thumb
+
+Use this simple rule:
+
+- if the package itself is one reusable plugin, put the plugin in `src/your_plugin/__init__.py`
+- if the project contains multiple plugins, create `src/your_project/plugins/`
+- if one plugin grows large, turn it from one file into one package

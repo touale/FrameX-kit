@@ -1,104 +1,106 @@
 # Proxy Function & Remote Invocation
 
-This chapter introduces the **proxy function mechanism** in FrameX, including a new decorator, runtime support, and an HTTP endpoint for **remote proxy invocation**.
+This feature is for one specific case: a function may run locally in one deployment, but must run on another FrameX service in another deployment.
 
-This feature enables **cross-FrameX-instance function execution**, allowing plugins to transparently call functions hosted on remote FrameX instances.
+FrameX lets you keep the same function call in code and decide through configuration whether that function runs locally or remotely.
 
-______________________________________________________________________
+## When To Use It
 
-## 1) Background & Motivation
+Use proxy functions when a capability cannot or should not run in the local service.
 
-In multi-FrameX deployments, different instances may run under different security or infrastructure constraints.
+Typical scenarios:
 
-Typical scenarios include:
+- the local service does not have MySQL or Redis access, but another FrameX service does
+- the local service is restricted to outbound HTTP only, while another FrameX service can access internal networks
+- sensitive logic should stay on the team-owned service instead of being copied into another codebase
+- one team wants to call another team's internal capability without importing that implementation locally
 
-- Instance A does not have access to MySQL
-- Instance A is restricted to HTTP-only outbound access
-- Instance B has database access or privileged network permissions
+In these cases, proxy functions let you keep the local call path stable while moving the real execution to another FrameX instance.
 
-To fully implement plugin functionality without violating security constraints, FrameX introduces the **on_proxy mechanism**, enabling remote function proxying across FrameX instances.
+## How It Differs From `@on_request(...)`
 
-______________________________________________________________________
+Use `@on_request(...)` when you want to expose an API route.
 
-## 2) Design Overview
+Use `@on_proxy()` when you want a function call to stay internal, but be able to run either:
 
-- Functions can be marked as proxy-enabled
-- FrameX automatically decides whether to execute locally or remotely
-- No explicit client/server role configuration is required
-- The same code runs on both sides
+- locally
+- or on a remote FrameX service
 
-______________________________________________________________________
+The key difference is that proxy functions are configuration-driven.
 
-## 3) Defining a Proxy Function
+The same function can:
 
-### Step 1: Register Proxy Function in Plugin
+- run locally if it is not listed in `plugins.proxy.proxy_functions`
+- run remotely if it is listed there
 
-Proxy functions must be registered during plugin startup.
+That switch does not require changing the call site.
 
-> **Important:** Lazy import is required.
-
-```python
-@on_register()
-class ExamplePlugin(BasePlugin):
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-
-    async def on_start(self) -> None:
-        from demo.some import example_func  # Important: Lazy import
-
-        await register_proxy_func(example_func)
-```
-
-______________________________________________________________________
-
-### Step 2: Mark Function with on_proxy
+## Minimal Example
 
 ```python
+from typing import Any
+
+from framex.plugin import BasePlugin, on_proxy, on_register, register_proxy_func
+
+
 @on_proxy()
-@other_func
-async def example_func(id, user):
-    data = "..."
-    return data
+async def build_report(job_id: str) -> dict[str, Any]:
+    return {"job_id": job_id, "status": "done"}
+
+
+@on_register()
+class ReportPlugin(BasePlugin):
+    async def on_start(self) -> None:
+        await register_proxy_func(build_report)
 ```
 
-______________________________________________________________________
+## How To Configure It
 
-## 4) Enabling Remote Proxy Invocation
-
-To enable remote execution, add the following configuration to `config.toml`.
-
-### Proxy Configuration
+Enable the built-in `proxy` plugin and declare the remote function under `plugins.proxy.proxy_functions`.
 
 ```toml
+load_builtin_plugins = ["proxy"]
+
+[server]
+enable_proxy = true
+
+[plugins.proxy.proxy_urls."http://remote-framex:8080"]
+enable = ["/api/v1/*"]
+disable = []
+
 [plugins.proxy]
-proxy_urls = ["http://remotehost:8080"]
-white_list = ["/api/v1/proxy/remote"]
-proxy_functions = {"http://remotehost:8080" = ["demo.some.example_func"]}
+proxy_functions = { "http://remote-framex:8080" = ["your_module.build_report"] }
 ```
 
-### Authentication Configuration
+With this config:
+
+- `build_report(...)` stays the same in code
+- if the function name is listed in `proxy_functions`, FrameX forwards it to the remote service
+- if it is not listed there, the function runs locally
+
+## Requirements
+
+- `@on_proxy()` only supports async functions
+- proxy-function calls only support keyword arguments
+- `server.enable_proxy = true` and `load_builtin_plugins = ["proxy"]` must both be set
+- every URL used in `proxy_functions` must also exist in `proxy_urls`
+- the remote service must also register the same proxy function during startup
+
+## Protected Remote Services
+
+If the remote FrameX service protects the proxy-function endpoint, add an auth rule for `/api/v1/proxy/remote` under `plugins.proxy.auth.rules`.
 
 ```toml
 [plugins.proxy.auth]
-rules = {"/api/v1/proxy/remote" = ["proxy-key"],"/api/v1/openapi.json" = ["openapi-key"]}
+rules = {
+  "/api/v1/proxy/remote" = ["proxy-key"]
+}
 ```
 
-Once configured, FrameX automatically routes function calls to remote instances when required.
+For the full auth model, see [Security & Authorization](./authentication.md).
 
-______________________________________________________________________
+## Rule Of Thumb
 
-## 5) Security, Performance & Compatibility
+Use `@on_request(...)` for public API routes.
 
-### Security
-
-- Automatic serialization and deserialization
-- Data compression and encryption
-- Safe fallback when local decorators fail
-
-### Compatibility
-
-Supports:
-
-- Primitive types
-- BaseModel (Pydantic)
-- Most stateless class objects
+Use `@on_proxy()` when you want the same internal function call to be able to run locally or on another FrameX service, depending on configuration.

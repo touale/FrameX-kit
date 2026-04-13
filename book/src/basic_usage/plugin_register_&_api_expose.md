@@ -1,156 +1,178 @@
 # Plugin Register & API Expose
 
-Every plugin **must** declare metadata and a plugin class. This section explains how to register a plugin, define its metadata, and expose APIs (HTTP, streaming, or function calls).
+This chapter explains the core FrameX programming model:
 
-______________________________________________________________________
+1. define plugin metadata
+1. register a plugin class
+1. expose APIs from plugin methods
 
-## 1) Plugin Metadata (`__plugin_meta__`)
+If you understand these three pieces, you understand how a capability becomes part of a FrameX service.
 
-Each plugin **must** define `__plugin_meta__ = PluginMetadata(...)`. Fill it carefully and accurately—this information is used for discovery, dependency resolution, routing, and UI/display.
+## Define Plugin Metadata
 
-Guidelines for fields:
+Each plugin module should define `__plugin_meta__` with `PluginMetadata(...)`.
 
-- `name` (required): A short, unique, human-readable plugin name.
-- `version` (required): Follow semantic versioning (e.g., `1.2.0`).
-- `description` (required): What the plugin does and when to use it.
-- `author` (required): Owner/maintainer identity (team/company).
-- `url` (required): Project/repo/docs link for the plugin.
-- `required_remote_apis`: A list of external API paths your plugin depends on (e.g. endpoints provided by other plugins/services). It enables dependency checks and optional preflight validation.
+Example:
 
-For example:
+```python
+from framex.consts import VERSION
+from framex.plugin import PluginMetadata
 
-```
 __plugin_meta__ = PluginMetadata(
-    name="echo",
+    name="foo",
     version=VERSION,
-    description="原神会重复你说的话",
-    author="原神",
+    description="A minimal example plugin",
+    author="you",
     url="https://github.com/touale/FrameX-kit",
-    required_remote_apis=[],
+    required_remote_apis=["/api/v1/echo", "echo.EchoPlugin.confess"],
 )
 ```
 
-## 2) Plugin Class & Registration
+### Important fields
 
-Each plugin must implement a class decorated with `@on_register()` and inherit from `BasePlugin`.
+- `name`: plugin name
+- `version`: plugin version
+- `description`: short description of what the plugin does
+- `author`: maintainer or owning team
+- `url`: repo or documentation URL
+- `required_remote_apis`: APIs this plugin depends on
 
-For example:
+`required_remote_apis` can contain:
 
-```
-@on_register()
-class EchoPlugin(BasePlugin):
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        # Initialize lightweight resources here (e.g., clients, caches)
+- HTTP paths such as `/api/v1/echo`
+- function API names such as `echo.EchoPlugin.confess`
 
-    async def on_start(self) -> None:
-        # Initialize heavy/async resources here (e.g., DB connections, pools)
-        # Called by the runtime when the plugin is starting.
-        ...
+This metadata is used for plugin discovery, dependency resolution, and runtime registration.
 
-```
+## Register the Plugin Class
 
-Notes:
+A plugin class is registered with `@on_register()` and usually inherits from `BasePlugin`.
 
-- Use `__init__` for fast, synchronous setup. (Initialization of parameter values)
-- Use `on_start` for asynchronous or heavy initialization (DB, message queues, engines).
+Example:
 
-## 3) Exposing APIs with `@on_request(...)`
+```python
+from typing import Any
 
-Annotate **methods on your plugin class** with `@on_request(...)` to expose them as callable endpoints.
-
-Parameters:
-
-- `path`:
-  - For `ApiType.HTTP`: the URL path (e.g. `"/echo"` or `"/v1/echo"`).
-  - For `ApiType.FUNC`: the symbolic name of the function. If omitted, the **method name** is used.
-- `methods`: HTTP methods (e.g. `["GET"]`, `["POST"]`). For function calls, leave it as `None`.
-- `call_type`: One of `ApiType.HTTP` or `ApiType.FUNC`.
-- `stream`: Whether the endpoint is streaming. If `True`, the handler should be an async generator or follow the framework’s streaming contract.
-
-### ApiType Explained
-
-- **`ApiType.HTTP`**
-
-  - Exposes the plugin method as an HTTP endpoint.
-  - Can be consumed by external clients (e.g., web backends, mobile apps, or third-party services).
-  - Can also be used for plugin-to-plugin communication.
-  - Offers broader accessibility and is automatically documented under `/docs` (Swagger/OpenAPI).
-  - Recommended when you want to share functionality beyond the plugin boundary.
-
-- **`ApiType.FUNC`**
-
-  - Exposes the plugin method as an **internal remote function**.
-  - Only callable from **within the FrameX plugin ecosystem**.
-  - Provides stricter scoping and reduced exposure surface.
-  - Recommended for internal-only calls, utility helpers, or private APIs that should not be published externally.
-
-### 3.1 HTTP example (non-stream)
-
-```
-__plugin_meta__ = PluginMetadata(
-    name="echo",
-    version=VERSION,
-    description="原神会重复你说的话",
-    author="原神",
-    url="https://github.com/touale/FrameX-kit",
-    required_remote_apis=[],
-)
-
-
-class EchoModel(BaseModel):
-    id: int
-    name: str = "原神"
+from framex.plugin import BasePlugin, on_register
 
 
 @on_register()
-class EchoPlugin(BasePlugin):
+class FooPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-
-    @on_request("/echo", methods=["GET"])
-    async def echo(self, message: str) -> str:
-        return message
 ```
 
-### 3.2 HTTP example (streaming)
+### Lifecycle guidance
 
-```
-...
+- use `__init__` for lightweight synchronous setup
+- use `on_start` for heavier or async initialization when needed
+
+Example:
+
+```python
 @on_register()
-class EchoPlugin(BasePlugin):
+class FooPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
-    @on_request(path="/echo_stream", methods=["GET"], call_type=ApiType.HTTP, stream=True)
-    async def echo_stream(self, message: str):
-        # yield chunked events/messages
-        for ch in f"Streaming: {message}":
-            yield {"type": "chunk", "data": ch}
-        yield {"type": "finish"}
+    async def on_start(self) -> None: ...
 ```
 
-### 3.3 Function call example
+## Expose APIs with `@on_request(...)`
 
+Use `@on_request(...)` on plugin methods to expose them as callable APIs.
+
+Typical modes are:
+
+- HTTP API: provide a route path
+- function API: use `call_type=ApiType.FUNC`
+- both: use `call_type=ApiType.ALL`
+
+### HTTP API example
+
+```python
+@on_request("/echo", methods=["GET"])
+async def echo(self, message: str) -> str:
+    return message
 ```
-...
-@on_register()
-class EchoPlugin(BasePlugin):
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
 
-    @on_request(call_type=ApiType.FUNC)
-    async def add(self, a: int, b: int) -> int:
-        return a + b
+A path like `"/echo"` is exposed through the normal FrameX HTTP surface, typically as `/api/v1/echo`.
+
+### HTTP API with request body
+
+```python
+from pydantic import BaseModel
+
+
+class EchoBody(BaseModel):
+    text: str
+
+
+@on_request("/echo_model", methods=["POST"])
+async def echo_model(self, model: EchoBody) -> dict[str, str]:
+    return {"text": model.text}
 ```
 
-## 4) End-to-End Example
+### Function API example
 
+```python
+from framex.plugin.model import ApiType
+
+
+@on_request(call_type=ApiType.FUNC)
+async def confess(self, message: str) -> str:
+    return f"received: {message}"
 ```
-# src/__init__.py
 
-import asyncio
+This creates an internal callable API. A typical function API name looks like:
+
+```text
+echo.EchoPlugin.confess
+```
+
+### Expose both HTTP and function access
+
+```python
+@on_request("/echo", methods=["GET"], call_type=ApiType.ALL)
+async def echo(self, message: str) -> str:
+    return message
+```
+
+Use this when the same capability should be reachable both as an HTTP route and as an internal callable API.
+
+## Important Implementation Notes
+
+The current implementation has a few rules worth knowing:
+
+- a handler may declare at most one `BaseModel` parameter
+- `stream=True` creates a streaming endpoint
+- `raw_response=True` bypasses the default response wrapper
+
+### Streaming example
+
+```python
 from collections.abc import AsyncGenerator
+
+
+@on_request("/echo_stream", methods=["GET"], stream=True)
+async def echo_stream(self, message: str) -> AsyncGenerator[str, None]:
+    for chunk in [message, "done"]:
+        yield chunk
+```
+
+### Raw response example
+
+```python
+@on_request("/healthz", methods=["GET"], raw_response=True)
+async def healthz(self) -> dict[str, str]:
+    return {"status": "ok"}
+```
+
+Without `raw_response=True`, normal non-streaming HTTP responses are wrapped by FrameX into the standard response envelope.
+
+## Minimal End-to-End Example
+
+```python
 from typing import Any
 
 from pydantic import BaseModel
@@ -158,25 +180,23 @@ from pydantic import BaseModel
 from framex.consts import VERSION
 from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
 from framex.plugin.model import ApiType
-from framex.utils import StreamEnventType, make_stream_event
 
 __plugin_meta__ = PluginMetadata(
-    name="echo",
+    name="foo",
     version=VERSION,
-    description="原神会重复你说的话",
-    author="原神",
+    description="A minimal example plugin",
+    author="you",
     url="https://github.com/touale/FrameX-kit",
     required_remote_apis=[],
 )
 
 
-class EchoModel(BaseModel):
-    id: int
-    name: str = "原神"
+class EchoBody(BaseModel):
+    text: str
 
 
 @on_register()
-class EchoPlugin(BasePlugin):
+class FooPlugin(BasePlugin):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
@@ -185,18 +205,26 @@ class EchoPlugin(BasePlugin):
         return message
 
     @on_request("/echo_model", methods=["POST"])
-    async def echo_model(self, message: str, model: EchoModel) -> str:
-        return f"{message},{model.model_dump()}"
-
-    @on_request("/api/v1/echo_stream", methods=["GET"], stream=True)
-    async def echo_stream(self, message: str) -> AsyncGenerator[str, None]:
-        for char in f"原神真好玩呀, {message}":
-            yield make_stream_event(StreamEnventType.MESSAGE_CHUNK, char)
-            await asyncio.sleep(0.1)
-        yield make_stream_event(StreamEnventType.FINISH)
+    async def echo_model(self, model: EchoBody) -> dict[str, str]:
+        return {"text": model.text}
 
     @on_request(call_type=ApiType.FUNC)
     async def confess(self, message: str) -> str:
-        return f"我是原神哟! 收到您的消息{message}"
-
+        return f"received: {message}"
 ```
+
+This plugin exposes:
+
+- HTTP `GET /api/v1/echo`
+- HTTP `POST /api/v1/echo_model`
+- function API `foo.FooPlugin.confess`
+
+## Rule of Thumb
+
+Keep this mental model:
+
+- `PluginMetadata` describes the capability
+- `@on_register()` makes the class a runtime plugin
+- `@on_request(...)` turns methods into FrameX APIs
+
+That is the core contract for building plugins in FrameX.

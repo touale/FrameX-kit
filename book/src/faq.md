@@ -1,46 +1,73 @@
 # FAQ & Troubleshooting
 
-## 1. Virtual environment not auto-activated after `uv sync --dev`
+## `uv sync --dev` created `.venv`, but the shell is not activated
 
-**Issue**:\
-After running `uv sync --dev`, the virtual environment (`.venv`) is created but not automatically activated.
+`uv sync` installs the environment, but it does not automatically source it.
 
-**Solution**:\
-Manually activate the environment:
+Activate it manually:
 
 ```bash
 source .venv/bin/activate
 ```
 
-## 2. mypy reports missing type stubs for third-party libraries
+## `framex run` starts, but my plugin is not loaded
 
-```
-$ poe lint
-Poe => ruff check . --fix
-All checks passed!
-Poe => mypy .
-src/find_policy/__init__.py:7: error: Skipping analyzing "xxxxxx": module is installed, but missing library stubs or py.typed marker  [import-untyped]
-src/find_policy/__init__.py:7: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
-Found 1 error in 1 file (checked 12 source files)
-Error: Sequence aborted after failed subtask '_lint'
+Make sure you pass the correct load option.
+
+Use `--load-builtin-plugins` for built-in plugins, or `--load-plugins` for your own plugin packages. Both options can be repeated.
+
+```bash
+framex run --load-builtin-plugins echo
+framex run --load-plugins my_plugin --load-plugins another_plugin
 ```
 
-### Solutions:
+## `pre-commit.ci` reports `files were modified by this hook`
 
-(1). (Not recommended) Tell mypy to ignore missing stubs by adding to `mypy.ini` or pyproject.toml:
+That means the hook reformatted files in CI.
 
-For example `mindforge`:
+Run the same formatter locally, commit the updated files, and push again:
 
+```bash
+pre-commit run --all-files
 ```
+
+If the repo uses `pre-commit.ci`, the auto-fix only applies to writable pull request branches. It does not create a new pull request for you.
+
+## `mypy` complains about missing stubs
+
+This usually means a third-party dependency does not ship type information.
+
+There are two practical solutions.
+
+### Solution 1: Ignore That Dependency In Mypy
+
+This is not the recommended option, but it is acceptable when no stub package exists.
+
+Add a targeted ignore rule in `mypy.ini` or `pyproject.toml`.
+
+For example, for `mindforge`:
+
+```ini
 [mypy-mindforge.*]
 ignore_missing_imports = True
 ```
 
-(2). (Recommended) Install the corresponding type stub package if available.
+Avoid disabling missing-import checks globally. Keep the ignore rule scoped to the specific dependency.
 
-For example `pytz` `pyyaml`:
+### Solution 2: Install The Stub Package
 
+This is the recommended option when a matching type stub package exists.
+
+For example:
+
+```bash
+uv add types-pytz --dev
+uv add types-pyyaml --dev
 ```
-uv add types-pytz --dev     # for pytz
-uv add types-pyyaml --dev   # for pyyaml
-```
+
+Use this path for libraries such as:
+
+- `pytz` -> `types-pytz`
+- `pyyaml` -> `types-pyyaml`
+
+If a stub package exists, prefer installing it over adding an ignore rule.

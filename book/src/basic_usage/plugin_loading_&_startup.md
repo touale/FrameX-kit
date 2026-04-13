@@ -1,78 +1,142 @@
 # Plugin Loading & Startup
 
-FrameX supports two ways to load plugins:
+This chapter explains how FrameX loads plugins and starts the runtime.
 
-1. **Programmatically** (in code)
-1. **Declaratively** via **configuration** (`config.toml` or other supported formats)
+## Loading Methods
 
-Both approaches end with starting the runtime using `framex.run()`.
+FrameX supports two loading methods:
 
-______________________________________________________________________
+1. load plugins in Python code
+1. declare plugins in configuration
 
-## 1) Programmatic Loading
+In both cases, startup ends with `framex.run()`.
 
-Import `framex` in your application entrypoint and load plugins explicitly.
+## Load Plugins in Python Code
+
+Use `load_builtin_plugins(...)` for built-in plugins and `load_plugins(...)` for your own plugins.
 
 ```python
+import framex
+
+
 def main() -> None:
-    import framex
+    framex.load_builtin_plugins("echo")
+    framex.load_plugins("your_project.plugins.foo")
+    framex.run()
 
-    # 1) Load built-in plugins (shipped with FrameX)
-    framex.load_builtin_plugins("echo")  # system/built-in plugin
 
-    # 2) Load a single plugin (module or package)
-    # framex.load_plugins("your_project.plugins.plugin_name")
-    # ✅ Example:
-    # framex.load_plugins("demo_project.plugins.hello_world")
+if __name__ == "__main__":
+    main()
+```
 
-    # 3) Load multiple plugins at once
-    # framex.load_plugins("xxx.plugin_a", "xxx.plugin_b")
-    # ✅ Example:
-    # framex.load_plugins(
-    #     "demo_project.plugins.hello_world",
-    #     "demo_project.plugins.play_games",
-    # )
+### Multiple Plugins
 
-    # 4) Load an entire plugins package (recommended)
-    #    This recursively discovers all valid plugins under the `plugins/` directory.
-    #    Every discovered module/package must define `__plugin_meta__`.
-    # framex.load_plugins("your_project.plugins")
-    # framex.load_plugins("your_project")
+```python
+import framex
 
-    # Finally, start the runtime
+
+def main() -> None:
+    framex.load_builtin_plugins("echo", "proxy")
+    framex.load_plugins(
+        "your_project.plugins.foo",
+        "your_project.plugins.bar",
+    )
     framex.run()
 ```
 
-Notes:
+### Package Path
 
-- Each discovered module/package must declare __plugin_meta__ = PluginMetadata(...).
+You can also load a package path:
 
-## 2) Configuration-Based Loading
-
-You can specify which plugins to load from your config (e.g., config.toml). This is the simplest way to manage environments and deployments.
-
-```
-# Built-in plugins (shipped with FrameX)
-load_builtin_plugins = ["proxy"]
-
-# Third-party or app plugins (python import paths)
-load_plugins = ["someone.plugins"]
+```python
+framex.load_plugins("your_project.plugins")
 ```
 
-At startup, FrameX reads the config (see Plugin Configuration section for formats and precedence), automatically loads the declared plugins, and then starts the service with framex.run().
+Use a module path when you want one plugin:
 
-What these fields mean
+- `your_project.plugins.foo`
 
-- load_builtin_plugins — a list of built-in (platform) plugins to enable (e.g., "proxy").
-- load_plugins — a list of user/application plugin import paths:
-- Single module plugin: "demo_project.plugins.hello_world"
-- Package plugin (folder): "demo_project.plugins"
-- Multiple entries allowed.
+Use a package path when you want FrameX to search under that package:
 
-______________________________________________________________________
+- `your_project.plugins`
 
-## 3) Discovery Rules & Requirements
+Every loaded plugin module or package must define:
 
-- Metadata: Every plugin module/package must define __plugin_meta__ = PluginMetadata(...).
-- Layout: Both single-file (plugins/foo.py) and folder-based plugins (plugins/bar/) are supported.
-- Errors: If a plugin fails validation, FrameX will log a clear error and skip it.
+```python
+__plugin_meta__ = PluginMetadata(...)
+```
+
+## Load Plugins from Configuration
+
+You can declare the startup plugin list in `config.toml`:
+
+```toml
+load_builtin_plugins = ["echo", "proxy"]
+load_plugins = [
+  "your_project.plugins.foo",
+  "your_project.plugins.bar",
+]
+```
+
+Then start FrameX normally:
+
+```python
+import framex
+
+framex.run()
+```
+
+This is useful when different environments need different plugin sets without changing code.
+
+## Load Plugins from CLI
+
+The CLI exposes the same loading model.
+
+```bash
+framex run --load-builtin-plugins echo --load-plugins your_project.plugins.foo
+```
+
+Both options are repeatable:
+
+```bash
+framex run \
+  --load-builtin-plugins echo \
+  --load-builtin-plugins proxy \
+  --load-plugins your_project.plugins.foo \
+  --load-plugins your_project.plugins.bar
+```
+
+Do not pass them as comma-separated strings.
+
+## Built-In Plugins vs Your Plugins
+
+- `load_builtin_plugins(...)` loads built-in plugins such as `echo` and `proxy`
+- `load_plugins(...)` loads your own plugin import paths
+
+Example:
+
+```python
+framex.load_builtin_plugins("proxy")
+framex.load_plugins("your_project.plugins.foo")
+```
+
+## Startup Order
+
+The normal startup sequence is:
+
+1. load built-in plugins if needed
+1. load your own plugins
+1. call `framex.run()`
+
+If you are using configuration-based loading, `framex.run()` reads the configured plugin lists and starts the runtime.
+
+## Rule of Thumb
+
+Use this simple rule:
+
+- one plugin module: `your_project.plugins.foo`
+- multiple plugin modules: repeat `load_plugins(...)`
+- one plugin package tree: `your_project.plugins`
+- built-in plugin: `load_builtin_plugins(...)`
+
+Keep plugin paths explicit and stable. That makes startup behavior easier to understand and debug.

@@ -1,58 +1,46 @@
 # Basic Usage Overview
 
-This section introduces the **basic concepts and workflow** for using FrameX as a plugin-based algorithm framework.\
-It is designed for developers who are starting with FrameX and want to quickly understand how to:
+This section covers the day-to-day programming model of FrameX.
 
-- Organize their project
-- Register plugins and expose APIs
-- Configure plugins
-- Load and run plugins
-- Debug and test their implementations
+The goal is to help you build service capabilities as plugins, expose them through a consistent API surface, and organize a codebase that can scale across people, teams, and execution modes.
 
-______________________________________________________________________
+## What You Will Learn
 
-## 1) What you will learn
+After this section, you will understand how to:
 
-After reading this section, you will be able to:
+1. organize a FrameX project and place plugin modules clearly
+1. define plugin metadata and register runtime units with `@on_register()`
+1. expose HTTP APIs and internal callable APIs with `@on_request(...)`
+1. declare dependencies with `required_remote_apis` and call capabilities with `call_plugin_api(...)`
+1. configure plugins and runtime settings cleanly
+1. load plugins and start the service through CLI or configuration
+1. debug and test plugins in local, non-Ray mode
 
-1. **Understand the project structure**\
-   Learn how to organize your project files and keep plugins under the `plugins/` directory.
+## Section Roadmap
 
-1. **Register and expose plugin APIs**\
-   Use `__plugin_meta__ = PluginMetadata(...)` and `@on_request(...)` to define plugin metadata and expose endpoints.
+- [Project Structure](./project_structure.md)
+  Understand how to organize a FrameX project and where plugin modules usually live.
 
-1. **Cross-plugin communication**\
-   Call APIs from other plugins using `_call_remote_api(...)`, and handle synchronous, streaming, and function-style calls.
+- [Plugin Register & API Expose](./plugin_register_&_api_expose.md)
+  Learn how plugin metadata, `@on_register()`, and `@on_request(...)` define the service surface.
 
-1. **Manage plugin configuration**\
-   Define plugin-specific configuration with `pydantic.BaseModel` and inject it via `config_class`.
+- [Cross-Plugin Access](./cross_plugin_access.md)
+  Learn how one capability calls another through `required_remote_apis` and `call_plugin_api(...)`.
 
-1. **Load and start plugins**\
-   Load plugins via configuration (`config.toml`) or dynamically from code, and run the FrameX runtime with `framex.run()`.
+- [Plugin Configuration](./plugin_configreation.md)
+  Define plugin-specific configuration and load it through FrameX settings.
 
-1. **Debug and test plugins**\
-   Use FrameX in non-Ray mode for debugging, and leverage FastAPI’s `TestClient` for writing automated tests.
+- [Plugin Loading & Startup](./plugin_loading_&_startup.md)
+  Start FrameX with the right plugin set through CLI options and configuration files.
 
-## 2) Roadmap of this Section
+- [Plugin Debugging & Testing](./plugin_debugging_&_testing.md)
+  Debug plugins locally and test them with normal FastAPI-compatible tooling.
 
-- [Project Structure](./project_structure.md)\
-  How to organize your project and where to place your plugins.
+## What This Section Is For
 
-- [Plugin Register & API Expose](./plugin_register_&_api_expose.md)\
-  How to define plugin metadata and expose APIs.
+Use this section when you are:
 
-- [Cross-Plugin Access](./cross_plugin_access.md)\
-  How to call APIs provided by other plugins.
-
-- [Plugin Configuration](./plugin_configreation.md)\
-  How to define and load plugin configurations.
-
-- [Plugin Loading & Startup](./plugin_loading_&_startup.md)\
-  How to load and run plugins from configuration or code.
-
-- [Plugin Debugging & Testing](./plugin_debugging_&_testing.md)\
-  How to debug your plugins and write automated tests.
-
-______________________________________________________________________
-
-👉 With these basics, you will be ready to build modular, extensible, and testable algorithmic systems with **FrameX**.
+- building your first real plugin
+- turning a growing service into modular capabilities
+- standardizing how teams expose and consume service interfaces
+- preparing for later use of proxy mode or Ray without changing the basic development model

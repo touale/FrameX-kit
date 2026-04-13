@@ -1,86 +1,92 @@
 # Plugin Debugging & Testing
 
-Debugging FrameX plugins is straightforward. When **Ray is disabled** (`[server].use_ray = false`), your plugin code runs in a standard FastAPI app, so you can set breakpoints and debug just like any regular Python service.
+This chapter covers two practical tasks:
 
-______________________________________________________________________
+1. debugging plugins locally
+1. testing plugins with `pytest`
 
-## 1) Debugging
+## Debug Plugins Locally
 
-1. Disable Ray in your config.toml:
+For local debugging, keep Ray disabled.
+
+`config.toml`:
 
 ```toml
 [server]
 use_ray = false
 ```
 
-2. Start the app normally (e.g., framex.run()).
-1. Use your IDE’s debugger to set breakpoints anywhere in your plugin handlers (@on_request) or lifecycle hooks (__init__, on_start).
+In this mode, FrameX runs as a normal FastAPI application, so you can debug it like any other Python web service.
 
-> With Ray disabled, there’s no difference from debugging a standard FastAPI application.
+## Keep Ray Off During Normal Debugging
 
-## 2) Testing
+If you are still changing plugin logic, keep `use_ray = false` until the behavior is stable.
 
-FrameX integrates naturally with pytest and fastapi.testclient. You can run the app in test mode and exercise your plugin’s HTTP endpoints and streaming behavior.
+Use Ray only when you specifically need to debug distributed execution behavior.
 
-### Pytest Fixtures(`consts.py`)
+## Build a Test App
 
-```
+For tests, start FrameX in test mode and return the FastAPI app.
+
+```python
 import pytest
-from typing import Generator
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+
 import framex
 
-@pytest.fixture(scope="session", autouse=True)
-def test_app() -> FastAPI:
-    # Boot the FrameX app in test mode (no Ray, in-memory app)
-    return framex.run(test_mode=True)  # type: ignore[return-value]
 
 @pytest.fixture(scope="session")
-def client(test_app: FastAPI) -> Generator[TestClient, None, None]:
-    with TestClient(test_app) as c:
-        yield c
+def test_app() -> FastAPI:
+    framex.load_builtin_plugins("echo")
+    framex.load_plugins("your_project.plugins.foo")
+    return framex.run(test_mode=True)  # type: ignore[return-value]
 ```
 
-### Example Tests
+## Use `TestClient`
 
-```
-import json
+Wrap the test app with `TestClient`:
+
+```python
+from typing import Generator
+
+import pytest
 from fastapi.testclient import TestClient
-from framex.consts import API_STR
 
-def test_echo(client: TestClient):
-    params = {"message": "hello world"}
-    res = client.get(f"{API_STR}/echo", params=params).json()
-    assert res["status"] == 200
-    assert res["data"] == params["message"]
 
-def test_echo_model(client: TestClient):
-    params = {"message": "hello world"}
-    data = {"id": 1, "name": "原神"}
-    res = client.post(f"{API_STR}/echo_model", params=params, json=data).json()
-    assert res["status"] == 200
-    assert res["data"] == "hello world,{'id': 1, 'name': '原神'}"
-
-def test_echo_stream(client: TestClient):
-    params = {"message": "hello world"}
-    # Server-Sent Events (SSE) style stream
-    with client.stream("GET", f"{API_STR}/echo_stream", params=params) as res:
-        assert res.status_code == 200
-        chunks = []
-        events = set()
-
-        for line in res.iter_lines():
-            if not line:
-                continue
-            if line.startswith("event: "):
-                events.add(line.removeprefix("event: "))
-            elif line.startswith("data: "):
-                js = json.loads(line.removeprefix("data: "))
-                content = js.get("content")
-                if content:
-                    chunks.append(content)
-
-        assert events == {"finish", "message_chunk"}
-        assert "".join(chunks) == f"原神真好玩呀, {params['message']}"
+@pytest.fixture(scope="session")
+def client(test_app) -> Generator[TestClient, None, None]:
+    with TestClient(test_app) as test_client:
+        yield test_client
 ```
+
+## Example HTTP Test
+
+```python
+from fastapi.testclient import TestClient
+
+
+def test_echo(client: TestClient) -> None:
+    response = client.get("/api/v1/echo", params={"message": "hello"})
+    assert response.status_code == 200
+    assert response.json()["data"] == "hello"
+```
+
+## Test Streaming APIs
+
+If a plugin exposes a streaming endpoint, test it with `client.stream(...)`.
+
+```python
+def test_stream(client: TestClient) -> None:
+    with client.stream(
+        "GET", "/api/v1/echo_stream", params={"message": "hello"}
+    ) as response:
+        assert response.status_code == 200
+```
+
+## Rule of Thumb
+
+Use this simple workflow:
+
+- debug in local mode with Ray off
+- test through HTTP with `framex.run(test_mode=True)`
+- turn Ray on only for dedicated integration coverage

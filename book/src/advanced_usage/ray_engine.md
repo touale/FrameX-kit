@@ -1,54 +1,92 @@
 # Integrating Ray Engine
 
-FrameX supports **multiple execution backends**. To switch to **Ray** for distributed execution, you **don’t need to change any code** — simply turn it on in the configuration.
+Ray is the optional distributed execution backend in FrameX.
 
-> **Recommendation:**
->
-> - Keep `use_ray = false` during day-to-day development and local debugging.
-> - Enable Ray **only in production** (or staging) where distributed execution improves throughput and tail latency.
+Its role is to move the runtime from local process execution to Ray-backed execution, while keeping the same plugin model and API surface.
 
-______________________________________________________________________
+## Core Role
 
-## Quick Start
+When Ray is enabled, FrameX keeps the same plugin structure but changes the execution backend.
 
-Enable Ray in your `config.toml`:
+That means:
+
+- plugin deployments run through Ray Serve
+- the main FastAPI ingress is mounted through Ray Serve
+- plugin code does not need to be rewritten just because the backend changes
+
+In other words, Ray changes how the system runs, not how plugins are written.
+
+## Install Ray Support
+
+Ray support is optional:
+
+```bash
+pip install "framex-kit[ray]"
+```
+
+If Ray is not installed and you enable `use_ray = true`, startup fails.
+
+## Enable Ray
+
+Turn it on in configuration:
 
 ```toml
 [server]
-use_ray = true             # ← toggle on Ray
+use_ray = true
+dashboard_host = "127.0.0.1"
+dashboard_port = 8260
 ```
 
-No code changes are required. Your existing plugins, @on_request(...) handlers, and cross-plugin calls will continue to work.
-FrameX will place plugin deployments on Ray actors and route requests accordingly.
+You can also set the same values through CLI options or environment variables.
 
-## What’s Ray?
+## What Changes After Enabling Ray
 
-Ray simplifies distributed computing by providing:
+When `server.use_ray = true`:
 
-- **Scalable compute primitives**: Tasks and actors for painless parallel programming
-- **Specialized AI libraries**: Tools for common ML workloads like data processing, model training, hyperparameter tuning, and model serving
-- **Unified resource management**: Seamless scaling from laptop to cloud with automatic resource handling
+- FrameX switches from the local adapter to `RayAdapter`
+- plugin deployments become Ray Serve deployments
+- the main ingress is mounted through Ray Serve
 
-## When to Use Ray
+What does not change:
 
-- High concurrency / throughput workloads
-- CPU/GPU intensive algorithms
-- Horizontal scaling across multiple nodes
-- Background or non-blocking long-running tasks (see Distributed Remote Calls)
+- `PluginMetadata`
+- `@on_register()`
+- `@on_request(...)`
+- `call_plugin_api(...)`
+- plugin import paths and loading model
 
-**Keep it disabled for:**
+## Example Config
 
-- Rapid iteration, local debugging, or stepping through code (simpler without Ray)
-- Unit testing (use framex.run(test_mode=true))
+```toml
+load_builtin_plugins = ["echo"]
+load_plugins = ["your_project.plugins.foo"]
 
-## Why Ray?
+[server]
+host = "127.0.0.1"
+port = 8080
+use_ray = true
+dashboard_host = "127.0.0.1"
+dashboard_port = 8260
+```
 
-Enabling Ray gives FrameX the ability to:
+## Ray Dashboard
 
-- 🚀 **Boost performance** with **high concurrency** and **high throughput** distributed computation.
-- 🧩 **Isolate blocking plugins** so that if one plugin experiences latency or heavy computation, it won’t block other plugins from responding.
-- 📦 **Distribute heavy workloads** (e.g., model inference, batch computation) across multiple nodes, avoiding single-node bottlenecks.
-- 🔄 **Offload blocking tasks** to Ray’s distributed task scheduler, preventing API endpoints from hanging and improving responsiveness.
-- ⚖️ **Scale elastically** — add more Ray workers to handle increasing workloads without code changes.
+When Ray is enabled, the dashboard is available at the configured dashboard host and port.
 
-This makes Ray especially suitable for **production environments** running large-scale algorithmic systems.
+Example:
+
+```toml
+[server]
+dashboard_host = "127.0.0.1"
+dashboard_port = 8260
+```
+
+## Constraints
+
+If your codebase uses `@remote()`, enabling Ray changes how those calls execute at runtime. The detailed behavior is covered in [Advanced Remote Calls & Non-Blocking Execution](./remote_calls.md).
+
+## Rule Of Thumb
+
+Use Ray when you need the same plugin model with a different execution backend.
+
+Keep local mode when you are developing, debugging, or running lightweight tests.

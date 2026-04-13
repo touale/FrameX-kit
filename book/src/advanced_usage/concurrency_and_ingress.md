@@ -1,144 +1,126 @@
 # Concurrency & Ingress Configuration
 
-This chapter introduces how to configure **concurrency, scaling, and ingress behavior** in FrameX using **Ray**.\
-By tuning these parameters, you can control instance count, request concurrency, and overall throughput.
+This chapter explains where ingress and concurrency settings are configured in FrameX.
 
-______________________________________________________________________
+The important part is that FrameX has more than one config path, and they do not all affect the same deployment.
 
-## 1) Overview
+## What To Configure
 
-FrameX supports additional **Ray Serve ingress configurations** to improve:
+In the current codebase, ingress-related settings are configured in three places:
 
-- Maximum concurrent requests
-- Request queueing behavior
-- Instance-level load control
+- `base_ingress_config`
+- `server.ingress_config`
+- plugin-level kwargs passed to `@on_register(...)`
 
-These configurations are applied through `ingress_config` and can be defined at different levels with clear inheritance rules.
+These settings are forwarded through the adapter layer.
 
-This chapter uses `max_ongoing_requests` as an example.
+In practice, the most common field is `max_ongoing_requests`.
 
-______________________________________________________________________
+## `base_ingress_config`: Global Default
 
-## 2) Base Ingress Configuration
-
-FrameX provides a global base configuration:
+`base_ingress_config` is the global default used when FrameX builds deployments.
 
 ```toml
-base_ingress_config = {"max_ongoing_requests" = 10}
+base_ingress_config = { max_ongoing_requests = 10 }
 ```
 
-**Behavior**
+This value is the starting point for both:
 
-- Acts as the **default ingress configuration**
-- Automatically inherited by:
-  - Server
-  - All plugins
-- Can be overridden at lower levels
+- the main API ingress
+- plugin deployments
 
-______________________________________________________________________
+## `server.ingress_config`: Main API Ingress Override
 
-## 3) Server-Level Ingress Configuration
+`server.ingress_config` applies only to the main `APIIngress` deployment.
 
-You can override the base configuration at the **server level**:
+If you leave it empty, FrameX now computes a default automatically from the number of loaded HTTP deployments.
+
+The current rule is:
+
+- start from `base_ingress_config.max_ongoing_requests`
+- multiply it by the number of loaded HTTP deployments
+- keep a floor of `base * 6`
+
+So with:
+
+```toml
+base_ingress_config = { max_ongoing_requests = 10 }
+```
+
+and about 30 loaded plugin deployments, the main API ingress default becomes `300`.
+
+If you want to override that behavior explicitly, set `server.ingress_config` yourself:
 
 ```toml
 [server]
-ingress_config = {"max_ongoing_requests" = 60}
+ingress_config = { max_ongoing_requests = 120 }
 ```
 
-**Behavior**
+That explicit value wins over the adaptive default.
 
-- Applies to server-level ingress
-- Overrides `base_ingress_config`
+## Plugin Ingress Settings
 
-______________________________________________________________________
+If a plugin needs its own ingress settings, pass them directly into `@on_register(...)`.
 
-## 4) Plugin-Level Ingress Configuration
+```python
+from framex.plugin import BasePlugin, on_register
 
-Plugins can define their own ingress configuration.
 
-Example for the **proxy plugin**:
+@on_register(max_ongoing_requests=20)
+class MyPlugin(BasePlugin):
+    pass
+```
+
+The built-in `proxy` plugin uses exactly this pattern, but its values come from plugin config:
 
 ```toml
 [plugins.proxy]
-ingress_config = {"max_ongoing_requests" = 60}
+ingress_config = { max_ongoing_requests = 60 }
 ```
 
-### Behavior
-
-- Takes precedence over both:
-  - `server.ingress_config`
-  - `base_ingress_config`
-- Only applies to the specific plugin
-
-______________________________________________________________________
-
-## 5) Plugin Development: Custom Ingress Configuration
-
-If a plugin requires a custom `max_ongoing_requests` or other Ray Serve parameters, follow these steps.
-
-### 1. Add ingress_config to Plugin Config
-
-```python
-from pydantic import BaseModel
-from typing import Any
-
-
-class ExamplePluginConfig(BaseModel):
-    ingress_config: dict[str, Any] = {"max_ongoing_requests": 60}
-```
-
-______________________________________________________________________
-
-### 2. Apply ingress_config During Registration
-
-Use the `on_register` decorator to inject ingress parameters:
+And then inside the plugin:
 
 ```python
 @on_register(**settings.ingress_config)
-class ExamplePlugin(BasePlugin):
-    def __init__(self, **kwargs: Any) -> None: ...
+class ProxyPlugin(BasePlugin): ...
 ```
 
-### Behavior
+So if you want per-plugin concurrency control, configure it at the plugin level.
 
-- `settings.ingress_config` is passed directly to Ray Serve
-- Allows fine-grained control per plugin
-- Fully compatible with Ray Serve autoscaling and concurrency features
+## Using It With Ray
 
-______________________________________________________________________
+If you run FrameX with `server.use_ray = true`, ingress settings become worth tuning.
 
-## 6) Configuration Inheritance Rules
+This is the mode where values like `max_ongoing_requests` matter most for the main API ingress and for plugin deployments.
 
-Ingress configuration follows a **top-down inheritance model**:
+A practical starting point is:
 
-1. `base_ingress_config`
-1. `plugins.<plugin_name>.ingress_config`
-
-If a plugin does not define `ingress_config`, it automatically inherits from the nearest parent level.
-
-**Complete Example: config.toml**
+- leave `server.ingress_config` empty and let FrameX size the main API ingress automatically
+- only add plugin-level ingress settings for plugins that are clearly hotter or heavier than the rest
+- adjust `num_cpus` separately if the whole Ray runtime needs more CPU capacity
 
 ```toml
-base_ingress_config = {"max_ongoing_requests" = 10}
-
 [server]
-ingress_config = {"max_ongoing_requests" = 60}
-
-[plugins.proxy]
-ingress_config = {"max_ongoing_requests" = 60}
+use_ray = true
+num_cpus = 4
 ```
 
-______________________________________________________________________
+If you are still developing locally and not pushing concurrency yet, you usually do not need to tune these values first.
 
-## 7) Supported Ray Serve Parameters
+## Using It In Local Mode
 
-In addition to `max_ongoing_requests`, Ray Serve supports many advanced parameters such as:
+In local development, keep this simple.
 
-- Autoscaling behavior
-- Replica scaling limits
-- Request queue management
+Start with the defaults, and only add ingress settings after you have a concrete reason such as a hot plugin or a busy Ray deployment target later.
 
-For the complete and up-to-date list, refer to the official Ray Serve documentation:
+For most local debugging and feature work, these settings are not the first thing to optimize.
 
-https://docs.rayai.org.cn/en/latest/serve/advanced-guides/advanced-autoscaling.html
+## Rule Of Thumb
+
+Use `base_ingress_config` for global defaults.
+
+Leave `server.ingress_config` empty if you want FrameX to size the main API ingress automatically.
+
+Set `server.ingress_config` explicitly when you want a fixed ingress limit for the whole service.
+
+Use plugin-level `@on_register(...)` kwargs, or plugin config forwarded into `@on_register(...)`, when one plugin needs different ingress behavior from the rest of the service.

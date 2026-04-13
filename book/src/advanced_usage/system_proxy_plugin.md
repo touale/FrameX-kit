@@ -1,19 +1,20 @@
-# System Proxy Plugin: API Compatibility with Regular FastAPI Projects and Other FrameX Instances
+# System Proxy Plugin
 
-Its goal is to support progressive adoption of FrameX — allowing any unmigrated or legacy algorithms to be automatically forwarded to external services or other FrameX instances during the transition, ensuring compatibility and service stability.
+The built-in `proxy` plugin has two core roles in FrameX, plus one more advanced extension point.
 
-In addition, the proxy can forward cross-plugin requests across different FrameX instances, including remote instances, enabling distributed execution and transparent inter-instance communication within the same unified API interface.
+## Core Role 1: Add Upstream Services To Your Own API Surface
 
-______________________________________________________________________
+If you already have an upstream FastAPI service or another FrameX service, the `proxy` plugin can pull that service into the current FrameX API surface.
 
-## Why use the Proxy?
+That means callers can keep using the current FrameX service, while some capabilities are actually forwarded to another service behind the scenes.
 
-- **Gradual migration** — Maintain legacy services while progressively adopting FrameX.
-- **API compatibility** — Expose existing endpoints through FrameX with minimal integration effort.
-- **Zero code intrusion** — Invoke remote or legacy APIs using the same `_call_remote_api(...)` interface.
-- **Streaming support** — Enable selective streaming behavior via `force_stream_apis`.
+Typical uses:
 
-**`config.toml`**
+- keep an existing FastAPI service while introducing FrameX gradually
+- aggregate multiple services behind one FrameX boundary
+- expose upstream APIs through the same `/api/v1/...` style surface as local plugins
+
+### Minimal Config
 
 ```toml
 load_builtin_plugins = ["proxy"]
@@ -22,78 +23,147 @@ load_builtin_plugins = ["proxy"]
 enable_proxy = true
 
 [plugins.proxy]
-proxy_urls = ["http://127.0.0.1:80"]
-force_stream_apis = ["/api/v1/chat"]
+white_list = ["/*"]
+force_stream_apis = ["/api/v1/chat/stream"]
+timeout = 600
+
+[plugins.proxy.proxy_urls."http://127.0.0.1:9000"]
+enable = ["/api/v1/*"]
+disable = []
 ```
 
-The proxy automatically **discovers available APIs** (for example, through OpenAPI introspection) and dynamically **maps them to corresponding call signatures** within FrameX.
+This `proxy_urls` mapping is the current full config form in the codebase.
 
-For any **streaming endpoints** defined in `force_stream_apis`, the proxy automatically handles responses as **Server-Sent Events (SSE)** or **chunked data streams**, depending on the endpoint’s behavior.
+The older list form still exists in the type definition, but if you want per-upstream control, use the dict form shown above.
 
-## Calling Legacy APIs from FrameX
+### How It Works
 
-You can easily invoke legacy APIs (e.g., from existing FastAPI services or other FrameX instances) through the System Proxy Plugin.
-Simply declare the remote APIs in your plugin metadata, and call them using the \_call_remote_api(...) helper.
-Basic types can be passed directly, while Pydantic models should be converted to dict form.
+At startup, the `proxy` plugin reads the upstream `/api/v1/openapi.json` document, filters routes through the configured allow rules, and registers matching forwarding routes locally.
 
-```
+The current implementation supports:
+
+- query parameters
+- JSON request bodies
+- `multipart/form-data`
+- file uploads
+- explicitly marked streaming APIs
+
+## Core Role 2: Preserve Privacy And Isolation In Multi-Plugin Collaboration
+
+The second role is more important in larger systems.
+
+In a multi-plugin or multi-team setup, one team may need to call another team's capability without having that plugin code locally.
+
+In that case, the caller only depends on the API contract, not on the other team's implementation.
+
+This gives you two benefits:
+
+- implementation privacy: the upstream plugin code does not need to be shared locally
+- codebase isolation: one team does not need to understand or import another team's plugin package
+
+### What This Looks Like
+
+A plugin declares the API it depends on:
+
+```python
 __plugin_meta__ = PluginMetadata(
     name="invoker",
     version=VERSION,
-    description="Invoke external APIs via the system proxy",
-    author="touale",
+    description="Calls another capability through a stable API",
+    author="you",
     url="https://github.com/touale/FrameX-kit",
-    required_remote_apis=[
-        "/api/v1/base/match", # Define your dependent APIs here
-    ],
-)
-
-# Simple call (non-streaming)
-remote_version = await self._call_remote_api("/api/v1/base/version")
-
-# Call with body payload (Pydantic -> dict)
-match_result = await self._call_remote_api(
-    "/api/v1/base/match",
-    model={
-        "name": "test",
-    },
+    required_remote_apis=["/api/v1/base/version"],
 )
 ```
 
-That’s it — the proxy automatically forwards your call to the corresponding service, adapts the request/response formats when necessary, and returns the result to your plugin seamlessly.
+Then it calls that API through the normal public interface:
 
-## Streaming Endpoints
+```python
+from framex import call_plugin_api
 
-Add any streaming paths to force_stream_apis so the proxy treats them as **streaming**:
-
+version = await call_plugin_api("/api/v1/base/version")
 ```
+
+If that API exists locally, FrameX uses the local plugin.
+
+If it does not exist locally and proxy mode is enabled, the HTTP path can fall back to the `proxy` plugin and be forwarded to an upstream service.
+
+That is the key point: the calling side does not need to change just because the real implementation lives somewhere else.
+
+## Proxy URL Rules
+
+The proxy plugin supports two rule levels:
+
+- global rules through `white_list`
+- per-upstream rules through `proxy_urls.<base_url>.enable` and `proxy_urls.<base_url>.disable`
+
+Example:
+
+```toml
 [plugins.proxy]
-proxy_urls = ["http://127.0.0.1:80"]
-force_stream_apis = ["/api/v1/chat", "/api/v1/echo_stream"]
+white_list = ["/api/v1/*"]
+
+[plugins.proxy.proxy_urls."http://127.0.0.1:9000"]
+enable = ["/api/v1/*"]
+disable = ["/api/v1/internal/*"]
 ```
 
-Then, when you call those endpoints via \_call_remote_api(...), you’ll receive an async iterable (or SSE lines) that you can consume incrementally in v3.
+Rule order in the code is:
 
-## Configuration Reference
+1. per-URL `disable`
+1. per-URL `enable`
+1. global `white_list`
 
-```
-[server]
-enable_proxy = true      # Enable the proxy bridge
+## Streaming APIs
 
+If an upstream route should stay on the streaming path, add it to `force_stream_apis`:
+
+```toml
 [plugins.proxy]
-proxy_urls = ["http://<host>:<port>", "..."]   # One or more upstream API endpoints (supports load balancing)
-force_stream_apis = ["/api/v1/chat"]           # Endpoints treated as streaming
-
-# Optional filters:
-# white_list = ["/api/v1/*"]                   # Whitelisted API paths (restricts to these only)
+force_stream_apis = ["/api/v1/chat/stream"]
 ```
 
-## Transparent Migration (Zero-Code Changes)
+Those paths stay on the streaming code path instead of being handled as normal JSON responses.
 
-One of the key advantages of the **Proxy Plugin** design is its support for **transparent migration**:
+## Authentication
 
-- Once an API is declared in `required_remote_apis` and invoked through `_call_remote_api(...)`, it **does not matter** where the actual implementation resides — whether in a legacy service or another FrameX instance.
-- When that implementation is later migrated into the current FrameX environment as a native plugin, the framework will **automatically route** calls to the new local version.
-- Your plugin code **remains completely unchanged** — no modification to call sites or configuration is required.
+If the upstream service is another FrameX service and it has enabled `auth.rules`, you need to configure matching keys in `plugins.proxy.auth.rules` so the proxy plugin can call it successfully.
 
-This ensures a smooth transition path where business logic and integrations stay stable while the backend evolves naturally.
+The proxy plugin uses these rules in two places:
+
+- when fetching the upstream `/api/v1/openapi.json`
+- when forwarding requests to protected upstream API paths
+
+Example:
+
+```toml
+[plugins.proxy.auth]
+rules = {
+  "/api/v1/openapi.json" = ["docs-key"],
+  "/api/v1/base/version" = ["service-key"],
+  "/api/v1/base/*" = ["service-key"]
+}
+```
+
+That means:
+
+- the proxy plugin uses `docs-key` to read the upstream OpenAPI document
+- it uses `service-key` when forwarding protected API calls to `/api/v1/base/version` or `/api/v1/base/*`
+
+So if a cloud FrameX service protects its routes with `auth.rules`, the local service must mirror the needed upstream path rules in `plugins.proxy.auth.rules` and provide the corresponding keys.
+
+For the full auth model and rule behavior on the upstream service itself, see [Security & Authorization](./authentication.md).
+
+## Advanced Use Cases
+
+The `proxy` plugin also supports more advanced usage patterns beyond plain HTTP route forwarding.
+
+One of them is function-style proxying and remote invocation. That topic is covered separately in [Proxy Function & Remote Invocation](./proxy_function.md).
+
+## Rule Of Thumb
+
+Use the `proxy` plugin when you need one of these outcomes:
+
+- expose an upstream FastAPI or FrameX service through your current FrameX API surface
+- let one plugin call another team's capability without importing or shipping that plugin locally
+- keep API names stable while the real implementation moves between local and remote services

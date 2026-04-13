@@ -1,35 +1,41 @@
 # Advanced Usage
 
-This section covers **advanced features of FrameX** that go beyond the basic plugin lifecycle.\
-While the basic usage allows you to register, configure, and run plugins easily, advanced usage focuses on **scalability, compatibility, and resilience** in production systems.
+This section covers the parts of FrameX that matter once basic plugin registration is already working.
 
-______________________________________________________________________
+Use it when your service needs upstream API integration, distributed execution, tighter access control, or more operational tuning than the basic usage section provides.
 
 ## Topics
 
-- **[System Proxy Plugin (v2 API Compatibility)](./system_proxy_plugin.md)**\
-  Learn how to use the built-in **proxy plugin** to forward requests to legacy v2 APIs.\
-  This ensures **smooth migration** from v2 to v3 without breaking compatibility, and provides a zero-code-change transition once an algorithm is upgraded.
+- [Proxy Mode](./system_proxy_plugin.md)
+  Bridge upstream HTTP services into the same FrameX surface with the built-in `proxy` plugin.
 
-- **[Integrating Ray Engine](./ray_engine.md)**\
-  Switch the execution backend to **Ray** with a single configuration change.\
-  Gain **distributed execution**, **high concurrency**, and **fault isolation**, ideal for production workloads.
+- [Integrating Ray Engine](./ray_engine.md)
+  Run plugin deployments with Ray Serve when you need distributed execution.
 
-- **[Advanced Remote Calls & Non-Blocking Execution](./remote_calls.md)**\
-  Mark blocking functions with `@remote` to offload them into **distributed, non-blocking execution**.\
-  Prevent plugin-level blocking while keeping your code simple and async-friendly.
+- [Advanced Remote Calls & Non-Blocking Execution](./remote_calls.md)
+  Use `@remote()` for portable local or Ray-backed remote calls.
 
-- **[Monitoring & Tracing](./monitor.md)**\
-  Integrate with **Sentry** to capture errors, monitor performance, and trace requests across plugins.\
-  Provides full observability for both development and production environments.
+- [Security & Authorization](./authentication.md)
+  Control access to routes, docs, and APIs with FrameX authentication rules.
 
-______________________________________________________________________
+- [Concurrency & Ingress Configuration](./concurrency_and_ingress.md)
+  Tune ingress and execution behavior for higher traffic or lower latency requirements.
 
-## Why Advanced Usage Matters?
+- [Proxy Function & Remote Invocation](./proxy_function.md)
+  Use function-style proxying and remote invocation in the plugin model.
 
-- 🔄 **Compatibility**: Seamlessly migrate from v2 APIs.
-- ⚡ **Performance**: Handle large-scale workloads with Ray.
-- 🛡️ **Resilience**: Avoid blocking with distributed remote calls.
-- 📊 **Observability**: Gain insights into runtime behavior with tracing and monitoring.
+- [Simulating Network Communication (For Tests)](./advanced_test.md)
+  Test network-facing behavior without depending on real remote services.
 
-These features are optional for development but **essential for production** environments where scalability and stability are critical.
+- [Monitoring & Tracing](./monitor.md)
+  Add observability so request paths and plugin execution are easier to debug.
+
+## When To Read This Section
+
+- after you can register and load basic plugins
+- when plugins need to call each other through stable interfaces
+- when upstream HTTP services should look like part of the same application
+- when local execution is no longer enough and you want to move selected workloads to Ray
+- when the service is growing and needs clearer operational boundaries
+
+If you are still learning the basic runtime model, finish the basic usage section first.

@@ -1,32 +1,56 @@
-## Prerequisites
+# Quick Start
 
-- Python 3.11+
+This chapter shows the shortest path to running FrameX locally.
 
-______________________________________________________________________
+By the end, you will:
 
-## Quick Demo
+- install FrameX
+- create one minimal plugin
+- start the service
+- call the plugin over HTTP
+- understand what to read next
 
-Create foo.py file
+## Requirements
 
+- Python `>=3.11`
+
+## Install FrameX
+
+Install the base package:
+
+```bash
+pip install framex-kit
 ```
+
+If you plan to use Ray later, install the optional extra:
+
+```bash
+pip install "framex-kit[ray]"
+```
+
+## Create a Minimal Plugin
+
+Create a file named `foo.py`:
+
+```python
 from typing import Any
+
 from pydantic import BaseModel
 
 from framex.consts import VERSION
 from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request
 
-
 __plugin_meta__ = PluginMetadata(
     name="foo",
     version=VERSION,
-    description="A simple Foo plugin example",
-    author="touale",
+    description="A minimal example plugin",
+    author="you",
     url="https://github.com/touale/FrameX-kit",
 )
 
 
-class FooModel(BaseModel):
-    text: str = "Hello Foo"
+class EchoBody(BaseModel):
+    text: str
 
 
 @on_register()
@@ -35,265 +59,101 @@ class FooPlugin(BasePlugin):
         super().__init__(**kwargs)
 
     @on_request("/foo", methods=["GET"])
-    async def foo(self, message: str) -> str:
-        return f"Foo says: {message}"
+    async def echo(self, message: str) -> str:
+        return f"foo: {message}"
 
     @on_request("/foo_model", methods=["POST"])
-    async def foo_model(self, model: FooModel) -> str:
-        return f"Foo received model: {model.text}"#   
+    async def echo_model(self, model: EchoBody) -> dict[str, str]:
+        return {"text": model.text}
 ```
 
-Run the following command to start the project creation process:
+This example exposes two plugin APIs:
 
-```
-$ PYTHONPATH=. framex run --load-plugins foo
-🚀 Starting FrameX with configuration:
-{
-  "host": "127.0.0.1",
-  "port": 8080,
-  "dashboard_host": "127.0.0.1",
-  "dashboard_port": 8260,
-  "use_ray": false,
-  "enable_proxy": false,
-  "num_cpus": 8,
-  "excluded_log_paths": []
-}
-11-05 16:01:13 [SUCCESS] framex.plugin.manage | Succeeded to load plugin "foo" from foo
-11-05 16:01:13 [INFO] framex | Start initializing all DeploymentHandle...
-11-05 16:01:13 [SUCCESS] framex.plugin.manage | Found plugin HTTP API "['/api/v1/foo', '/api/v1/foo_model']" from plugin(foo)
-11-05 16:01:13 [SUCCESS] framex.driver.ingress | Succeeded to register api(['GET']): /api/v1/foo from foo.FooPlugin
-11-05 16:01:13 [SUCCESS] framex.driver.ingress | Succeeded to register api(['POST']): /api/v1/foo_model from foo.FooPlugin
-INFO:     Started server process [59373]
-INFO:     Waiting for application startup.
-11-05 16:01:13 [INFO] framex.driver.application | Starting FastAPI application...
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+- `GET /api/v1/foo`
+- `POST /api/v1/foo_model`
+
+FrameX discovers the plugin module, registers the plugin class, and mounts its APIs into one FastAPI service surface.
+
+## Run the Service
+
+Start FrameX from the same directory:
+
+```bash
+PYTHONPATH=. framex run --load-plugins foo
 ```
 
-## Project demo
+Important:
 
-### Install cookiecutter
+- `--load-plugins` is a repeatable option
+- it is not a comma-separated list
+- `PYTHONPATH=.` lets Python import the local `foo.py` module
 
-Make sure you have Python 3.11 or above installed, then execute the following command in the command line:
+You can also start with the built-in example plugin:
 
-```
-pip install cookiecutter
-```
-
-Cookiecutter is a CLI tool (Command Line Interface) to create an application boilerplate from a template. It uses a templating system — Jinja2 — to replace or customize folder and file names, as well as file content. it can help you quickly create a plugin.
-
-Run the following command to start the project creation process:
-
-```
-cookiecutter https://github.com/yourusername/framex-plugin-project-template.git
+```bash
+framex run --load-builtin-plugins echo
 ```
 
-### Project Type
+## Call the API
 
-```
-[1/17] Select type
-  1 - project
-  2 - plugin
-  Choose from [1/2] (1): 
-```
+Call the GET endpoint:
 
-Select **2** for plugin and press Enter to continue.
-
-______________________________________________________________________
-
-### Group Name
-
-```
-[2/17] group_name: 
+```bash
+curl "http://127.0.0.1:8080/api/v1/foo?message=hello"
 ```
 
-This will default based on your selected type.\
-You can usually just press **Enter** to accept the default.
+Expected response:
 
-______________________________________________________________________
-
-### Project Name
-
-```
-[3/17] project_name (Demo Project): 
+```json
+"foo: hello"
 ```
 
-Here you enter the name of your project.\
-For example: demo_project.
+Call the POST endpoint:
 
-______________________________________________________________________
-
-### Repository Name
-
-```
-[4/17] repo_name (demo_project): 
+```bash
+curl -X POST "http://127.0.0.1:8080/api/v1/foo_model" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"hello from post"}'
 ```
 
-This defaults to the same value as your project name.\
-Press **Enter** to accept unless you want a different repo name.
+Expected response:
 
-______________________________________________________________________
-
-### CI Tag
-
-```
-[5/17] ci_tag (k8s_runner_persionnel_matching): 
+```json
+{"text":"hello from post"}
 ```
 
-Generated automatically. Leave as default by pressing **Enter**.
+## Open the API Docs
 
-______________________________________________________________________
+FrameX exposes standard FastAPI docs:
 
-### Project URL
+- `http://127.0.0.1:8080/docs`
+- `http://127.0.0.1:8080/redoc`
+- `http://127.0.0.1:8080/api/v1/openapi.json`
 
-```
-[6/17] project_url (): 
-```
+## What Just Happened
 
-Generated automatically. Press **Enter** to accept.
+In this quick start, FrameX handled four things for you:
 
-______________________________________________________________________
+- plugin discovery from the module you loaded
+- plugin registration through `@on_register()`
+- HTTP API exposure through `@on_request(...)`
+- unified service routing through one FastAPI ingress
 
-### Author
+That is the core development model: package a capability as a plugin, expose stable APIs, and let FrameX assemble them into one service.
 
-```
-[7/17] author (touale): 
-```
+## Next Steps
 
-Enter the author name.\
-For example: zhangsan.
+Read the next chapters in this order:
 
-______________________________________________________________________
+1. `Basic Usage / Overview`
+1. `Project Structure`
+1. `Plugin Register & API Expose`
+1. `Cross-Plugin Access`
+1. `Plugin Loading & Startup`
 
-### Email
+If you are evaluating FrameX for a larger system, focus on:
 
-```
-[8/17] email (zhangsan@example.com): 
-```
-
-Enter the author’s email.\
-For example: zhangsan@local.com.
-
-______________________________________________________________________
-
-### Short Description
-
-```
-[9/17] short_description (Behold My Awesome Project!): 
-```
-
-Press **Enter** to keep the default or type your own description.
-
-______________________________________________________________________
-
-### Version
-
-```
-[10/17] version (0.0.0): 
-```
-
-Default is fine, press **Enter**.
-
-______________________________________________________________________
-
-### Python Version
-
-```
-[11/17] python_version (3.11): 
-```
-
-Press **Enter** to use 3.11.
-
-______________________________________________________________________
-
-### Nexus & Other Sources
-
-For the following prompts, press **Enter** to use defaults unless you need custom values:
-
-```
-[12/17] nexus_source (https://pypi.org): 
-[13/17] primary_pip_source (https://pypi.org/simple): 
-[14/17] release_pip_source (https://upload.pypi.org/legacy/): 
-[15/17] apt_source (https://mirrors.aliyun.com/): 
-[16/17] dockerhub_url (docker.io): 
-[17/17] build_image: docker.io/yourusername/demoproject
-```
-
-After completing the above operations, you will get the complete project structure:
-
-```
-$ tree demo_project 
-demo_project
-|-- Dockerfile
-|-- LICENSE
-|-- README.md
-|-- data
-|   `-- demo@f738
-|-- mypy.ini
-|-- poe_tasks.toml
-|-- pyproject.toml
-|-- releaserc.toml
-|-- ruff.toml
-|-- src
-|   `-- demo_project
-|       |-- __init__.py
-|       |-- __main__.py
-|       |-- consts.py
-|       |-- log.py
-|       `-- plugins
-|           |-- __init__.py
-|           `-- demo.py
-|-- tests
-|   |-- __init__.py
-|   `-- test_add.py
-`-- uv.lock
-
-8 directories, 21 files
-```
-
-## Initialize the plugin
-
-After the plugin is created, the initialization template will automatically create a plugin example for you and open interfaces such as `/api/v1/demo_get`, `/api/v1/demo_post`, `/api/v1/demo_stream`.
-
-You can install dependencies using the following command in the project directory. Note that you need to be in the touale intranet:
-
-```
-uv sync --dev
-```
-
-## Run the plugin
-
-Use the following command to run the plugin:
-
-```
-poe server
-```
-
-Note that this will start the interface opened by the plugin under src/plugins, and you will see the log as follows:
-
-```
-$ poe server
-Poe => demo_project
-09-03 19:20:02 [SUCCESS] framex.plugin.manage | Succeeded to load plugin "demo" from demo_project.plugins.demo
-09-03 19:20:02 [INFO] framex | Start initializing all DeploymentHandle...
-09-03 19:20:02 [SUCCESS] framex.plugin.manage | Found plugin HTTP API "/api/v1/demo_get" from plugin(demo)
-09-03 19:20:02 [SUCCESS] framex.plugin.manage | Found plugin HTTP API "/api/v1/demo_post" from plugin(demo)
-09-03 19:20:02 [SUCCESS] framex.plugin.manage | Found plugin HTTP API "/api/v1/demo_stream" from plugin(demo)
-09-03 19:20:02 [SUCCESS] framex.driver.ingress | Succeeded to register api(['GET']): /api/v1/demo_get from demo.DemoPlugin
-09-03 19:20:02 [SUCCESS] framex.driver.ingress | Succeeded to register api(['POST']): /api/v1/demo_post from demo.DemoPlugin
-09-03 19:20:02 [SUCCESS] framex.driver.ingress | Succeeded to register api(['GET']): /api/v1/demo_stream from demo.DemoPlugin
-INFO:     Started server process [10859]
-INFO:     Waiting for application startup.
-09-03 19:20:02 [INFO] framex.driver.application | Starting FastAPI application...
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
-```
-
-______________________________________________________________________
-
-Visit http://127.0.0.1:8080/docs in your browser and you will see the online documentation
-after the framework loads your plugin.
-
-<p align="center">
-  <img src="image.png" alt="demo" style="width:90%;">
-</p>
+- plugin boundaries
+- `call_plugin_api(...)`
+- proxy-based upstream integration
+- local vs Ray execution

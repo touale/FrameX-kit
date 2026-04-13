@@ -1,88 +1,138 @@
 # Advanced Remote Calls & Non-Blocking Execution
 
-Even though enabling **Ray** ensures that one plugin’s heavy workload will not block **other plugins**, it does not prevent **blocking inside a single plugin** itself.
+The `@remote()` decorator has one core role in FrameX: move execution-heavy work behind a separate execution boundary while keeping the call site stable.
 
-If some part of your plugin code performs a blocking operation (e.g., `time.sleep`, long-running computation, or a non-async library call), the entire plugin instance may become unresponsive.
+## Core Role
 
-FrameX provides the `@remote` decorator to solve this issue:
+A plugin route can be lightweight at the API layer, while the work behind it is not.
 
-- it offloads the decorated function to **distributed execution** (via Ray when enabled, or a fallback mechanism otherwise), making it **non-blocking** by design.
+That work may involve:
 
-______________________________________________________________________
+- blocking synchronous libraries
+- long-running computation
+- legacy code that is not fully async
+- logic that should keep the same call form in local mode and Ray mode
 
-## 1) How It Works
+If that work stays inline inside the plugin handler, the plugin becomes harder to isolate and harder to move across execution backends later.
 
-- Add `@remote()` to a method (sync or async).
-- Call it with `.remote(...)` instead of normal invocation.
-- FrameX automatically executes the method in a separate worker (via Ray when available).
-- Your plugin remains responsive, even if the method blocks.
+Even though enabling **Ray** ensures that one plugin's heavy workload will not block **other plugins**, it does not prevent **blocking inside a single plugin** itself.
 
-## 2) Supported Function Types
+If some part of your plugin code performs a blocking operation, such as `time.sleep`, long-running computation, or a non-async library call, the entire plugin instance may become unresponsive.
 
-The @remote decorator is fully compatible with:
+`@remote()` gives that work a stable execution boundary without changing the surrounding plugin API.
 
-- Regular (synchronous) functions
-- Asynchronous (async) functions
-- Instance methods (with self)
-- Static methods and class methods
+If you are defining a plugin API, use `@on_request(...)`. If you are defining execution work behind that API, use `@remote()`.
 
-## 3) Example Highlights
+## Typical Uses
 
-### 1. Add `@remote()` to a method.
+Use `@remote()` when you want one of these outcomes:
 
-(a). Blocking synchronous function
+- keep blocking or heavy work out of the main plugin handler path
+- keep the same call form in both local mode and Ray mode
+- isolate execution-heavy logic without changing the plugin API surface
+- prepare code that runs locally today but may run through Ray later
+
+## What This Looks Like
+
+A plugin handler stays focused on request handling:
 
 ```python
+from framex.plugin import on_request, remote
+
+
 @remote()
-def remote_sleep():
-    time.sleep(0.1)
-    return "remote_sleep"
+def heavy_job(x: int) -> int:
+    return x * 2
+
+
+@on_request("/api/v1/demo/run")
+async def run_job(x: int):
+    return await heavy_job.remote(x)
 ```
 
-(b). Asynchronous function
+That is the main pattern: keep the API-facing handler small, and move execution-heavy work behind `@remote()`.
+
+## Supported Shapes
+
+The current implementation supports:
+
+- plain functions
+- instance methods
+- class methods
+
+The stable call form is:
 
 ```python
-@remote()
-async def remote_func_async_with_params(a: int, b: str):
-    return f"{a}, {b}"
+await func.remote(...)
 ```
 
-(c). Class instance method
+## Execution Behavior
+
+The same `.remote(...)` call uses different execution paths depending on the active adapter.
+
+In local mode:
+
+- async functions are awaited directly
+- sync functions run through `asyncio.to_thread(...)`
+
+In Ray mode:
+
+- the callable is wrapped through `ray.remote(...)`
+- `.remote(...)` executes through Ray
+
+That is the key point: the call interface stays stable while the backend changes.
+
+Ray backend setup is covered in [Integrating Ray Engine](./ray_engine.md).
+
+## More Examples
+
+### Plain Function
 
 ```python
+from framex.plugin import remote
+
+
+@remote()
+def heavy_job(x: int) -> int:
+    return x * 2
+
+
+result = await heavy_job.remote(21)
+```
+
+### Instance Method
+
+```python
+from framex.plugin import remote
+
+
 class Worker:
     @remote()
-    def heavy_compute(self, n: int):
-        return sum(i * i for i in range(n))
+    def total(self, values: list[int]) -> int:
+        return sum(values)
+
+
+count = await Worker().total.remote([1, 2, 3])
 ```
 
-(d). Static method
+### Class Method
 
 ```python
-class Utils:
+from framex.plugin import remote
+
+
+class Worker:
+    @classmethod
     @remote()
-    @staticmethod
-    def convert(data: str) -> str:
-        time.sleep(1)
-        return data.upper()
+    def scale(cls, x: int) -> int:
+        return x * 10
+
+
+value = await Worker.scale.remote(2)
 ```
 
-### 2. Call it with `.remote(...)` instead of normal invocation.
+## Rule Of Thumb
 
-```
-results = [
-    await remote_sleep.remote(),
-    await remote_func_async_with_params.remote(123, "abc"),
-    await Worker().heavy_compute.remote(10000),
-    await Utils.convert.remote("framex"),
-]
-```
+Use `@remote()` when you need one callable interface with backend-dependent execution.
 
-## 3) Key Benefits
-
-- ✅ Prevents plugin self-blocking.
-- ✅ Works with both sync and async methods.
-- ✅ Transparent: **no code changes needed when Ray is disabled/enabled.**
-- ✅ Simple syntax: .remote(...) for non-blocking execution.
-
-With @remote, you can safely use blocking libraries, legacy synchronous code, or heavy computations inside FrameX plugins, while still keeping your APIs responsive and scalable.
+Use `@on_request(...)` for APIs. Use `@remote()` for the work those APIs call behind the scenes.

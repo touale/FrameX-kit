@@ -1,103 +1,178 @@
 # Plugin Configuration
 
-FrameX supports **TOML**, and **ENV** (including `.env`) configuration formats and allows **nested Pydantic models** for strongly-typed settings.
+FrameX configuration has two layers:
 
-We **recommend TOML** for multi-level configuration, as it is cleanly hierarchical and scales well when new plugin options are added.
+1. runtime configuration for the whole service
+1. plugin-specific configuration under `plugins.<plugin_name>`
 
-## 1) System Config (Overview)
+This chapter focuses on the settings you are most likely to use in real projects.
 
-The runtime loads a top-level `Settings` model that typically includes:
+## Where Configuration Comes From
 
-- `server: ServerConfig` — host/port, dashboard, `use_ray`, `enable_proxy`
-- `log: LogConfig` — log formatting and prefixes to ignore
-- `sentry: SentryConfig` — Sentry toggles, DSN, env (`local|dev|prod`), lifecycle
-- `test: TestConfig` — test switches
-- `plugins: dict[str, Any]` — plugin-specific raw config
-- `load_builtin_plugins: list[str]` — which **built-in** plugins to load (e.g. `"proxy"`)
-- `load_plugins: list[str]` — which **third-party** plugins to load
+FrameX loads settings from these sources:
 
-The only configurations you need to focus on are server, load_plugins, load_builtin_plugins, and plugins. FrameX automatically manages everything else.
+- environment variables
+- `.env`
+- `.env.prod`
+- `config.toml`
+- `[tool.framex]` in `pyproject.toml`
 
-### Example
+In the current implementation, environment variables take highest priority. `config.toml` and `[tool.framex]` are useful project-level defaults.
 
-By default, the runtime reads from **`config.toml`** at the project root.
-**`config.toml`**
+CLI options are then applied before startup, so flags such as `--port`, `--load-plugins`, and `--load-builtin-plugins` can override configuration at runtime.
+
+## Minimal `config.toml`
+
+For most projects, `config.toml` is the clearest place to start.
+
+Example:
 
 ```toml
-# Load built-in and third-party plugins
-load_builtin_plugins = ["proxy", "echo"]
-load_plugins = ["your plugin"]
+load_builtin_plugins = ["echo"]
+load_plugins = ["your_project.plugins.foo"]
 
 [server]
-use_ray = false
-enable_proxy = false
 host = "127.0.0.1"
 port = 8080
-```
-
-## 2) Plugin Config (typed)
-
-Each plugin can define a dedicated typed config model and have it injected automatically at registration time.
-
-### 1. Define a config model
-
-```
-class ProxyPluginConfig(BaseModel):
-    proxy_urls: list[str] = []
-    force_stream_apis: list[str] = []
-    white_list: list[str] = []
-```
-
-### 2. Get it by `get_plugin_config`
-
-```
-from framex.plugin import get_plugin_config
-settings = get_plugin_config({PLUGIN_NAME}, ProxyPluginConfig)
-```
-
-## 3) Where to Put Plugin Config
-
-There are two supported locations. Choose one per plugin:
-
-### Plan A) (Recommended) Inline in the root config.toml
-
-Add a sub-table under [plugins.\<plugin_name>] in `config.toml`:
-
-```
-load_builtin_plugins = ["proxy"]
-
-[server]
 use_ray = false
-enable_proxy = true
+enable_proxy = false
 
-[plugins.proxy]
-proxy_urls = ["http://127.0.0.1:8080"]
-force_stream_apis = ["/api/v1/chat"]
+[plugins.foo]
+debug = true
 ```
 
-### Plan B) Make it in .env or env environment
+The most common top-level fields are:
 
-For example in .env:
+- `load_builtin_plugins`
+- `load_plugins`
+- `server`
+- `plugins`
+- `auth`
 
+## Most Common Runtime Settings
+
+In normal usage, the most important settings are:
+
+- `server.host`
+- `server.port`
+- `server.use_ray`
+- `server.enable_proxy`
+- `load_builtin_plugins`
+- `load_plugins`
+- `plugins.<plugin_name>`
+- `auth.rules`
+
+You do not need to understand every field in the global `Settings` model before using FrameX productively. Most projects only touch a small subset.
+
+## Plugin-Specific Configuration
+
+Plugin-specific settings live under:
+
+```toml
+[plugins.<plugin_name>]
 ```
-server__use_ray=false
-server__enable_proxy=true
-plugins__proxy__proxy_urls=["http://127.0.0.1:8080"]
-plugins__proxy__force_stream_apis=["/api/v1/chat"]
+
+Example:
+
+```toml
+[plugins.foo]
+debug = true
+timeout = 30
 ```
 
-Note:
+This keeps plugin settings separate from global runtime settings.
 
-- Nested keys are flattened using double underscores (\_\_).
-- Configuration keys should be written in lowercase. Uppercase keys (e.g. server\_\_USE_RAY) will not be recognized by Pydantic in this setup.
+## Typed Plugin Configuration
 
-## 4) Supported Formats & Loading Order
+If a plugin wants typed configuration, it can declare a Pydantic model and attach it through `config_class` in `PluginMetadata`.
 
-Supported sources (from highest to lowest precedence):
+### Define a config model
 
-1. **ENV settings** (process environment variables)
-1. **dotenv** file (e.g., `.env`)
-1. Project root `config.toml` (global TOML)
-1. `pyproject.toml` (project-level fallback)
+```python
+from pydantic import BaseModel
 
-> **Recommendation:** Prefer **TOML** for hierarchical configuration. It is expressive, diff-friendly, and scales well as plugins evolve.
+
+class FooConfig(BaseModel):
+    debug: bool = False
+    timeout: int = 30
+```
+
+### Attach it to plugin metadata
+
+```python
+__plugin_meta__ = PluginMetadata(
+    name="foo",
+    version=VERSION,
+    description="A minimal example plugin",
+    author="you",
+    url="https://github.com/touale/FrameX-kit",
+    required_remote_apis=[],
+    config_class=FooConfig,
+)
+```
+
+### Read it inside the plugin
+
+```python
+from framex.plugin import get_plugin_config
+
+settings = get_plugin_config("foo", FooConfig)
+```
+
+If no config is provided for that plugin, FrameX returns the config model with its default values and logs a warning.
+
+## Example: Plugin Config in `config.toml`
+
+If the plugin is named `foo`, the matching config block looks like this:
+
+```toml
+[plugins.foo]
+debug = true
+timeout = 30
+```
+
+That block is what `get_plugin_config("foo", FooConfig)` reads.
+
+## Environment Variables
+
+Nested settings can also be provided through environment variables with `__` as the separator.
+
+Examples:
+
+```bash
+export SERVER__PORT=9000
+export SERVER__ENABLE_PROXY=true
+export PLUGINS__FOO__DEBUG=true
+```
+
+Because the current settings model uses `case_sensitive=False`, you do not need to rely on lowercase-only keys.
+
+## When to Use Which Format
+
+Use `config.toml` when:
+
+- you want readable project defaults
+- the configuration is hierarchical
+- you want plugin settings grouped clearly in version control
+
+Use environment variables when:
+
+- deployment environments need different overrides
+- secrets or environment-specific values should not live in the repo
+- CI, containers, or runtime platforms inject settings dynamically
+
+A practical pattern is:
+
+- keep stable defaults in `config.toml`
+- use environment variables for deployment-specific overrides
+
+## Rule of Thumb
+
+Keep this mental model:
+
+- `server.*` configures the runtime
+- `load_plugins` and `load_builtin_plugins` control what gets loaded
+- `plugins.<plugin_name>` configures one plugin
+- `config_class` + `get_plugin_config(...)` gives that plugin typed settings
+
+That is enough for most real FrameX projects.
