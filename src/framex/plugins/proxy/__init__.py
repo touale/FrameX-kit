@@ -174,6 +174,7 @@ class ProxyPlugin(BasePlugin):
                     f"v{__plugin_meta__.version}",
                     __plugin_meta__.description,
                     __plugin_meta__.url,
+                    __plugin_meta__.name,
                 )
                 await adapter.call_func(
                     plugin_api,

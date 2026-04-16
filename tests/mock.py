@@ -106,3 +106,14 @@ async def mock_request(_, method: str, url: str, **kwargs: Any):
         raise AssertionError(f"Unexpected request: {method} {url}")
 
     return resp
+
+
+def mock_repository_fetch_json(url: str, headers: dict[str, str] | None = None):
+    headers = headers or {}
+    if url.endswith("/releases/latest") and "api.github.com/repos/" in url:
+        return {"tag_name": "v9.9.9"}
+    if url.endswith("/releases/permalink/latest") and "/api/v4/projects/" in url:
+        if headers.get("PRIVATE-TOKEN") == "gitlab-private-token":
+            return {"tag_name": "v8.8.8"}
+        return None
+    raise AssertionError(f"Unexpected repository metadata request: {url}")

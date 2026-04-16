@@ -1,4 +1,5 @@
 import base64
+import html
 import importlib
 import inspect
 import json
@@ -10,6 +11,7 @@ from enum import Enum, StrEnum
 from itertools import cycle
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -240,7 +242,6 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             box-shadow: var(--fx-shadow);
         }}
 
-        /* 外层三列: tag | description | arrow */
         .swagger-ui .opblock-tag {{
             display: grid !important;
             grid-template-columns: 420px minmax(0, 1fr) 28px;
@@ -256,7 +257,6 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             background: #fafbfc;
         }}
 
-        /* tag 标题 */
         .swagger-ui .opblock-tag .nostyle {{
             grid-column: 1;
             min-width: 0;
@@ -270,7 +270,6 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             color: var(--fx-text) !important;
         }}
 
-        /* description 容器 */
         .swagger-ui .opblock-tag small {{
             grid-column: 2;
             display: block !important;
@@ -293,7 +292,6 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             padding: 0 !important;
         }}
 
-        /* 第一行 description */
         .swagger-ui .opblock-tag small .markdown p:first-child {{
             margin-bottom: 3px !important;
             color: var(--fx-text) !important;
@@ -308,14 +306,12 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             color: var(--fx-text) !important;
         }}
 
-        /* 第二行: 作者、版本、Repo */
         .swagger-ui .opblock-tag small .markdown p:last-child {{
             color: var(--fx-text-soft) !important;
             font-size: 12px !important;
             line-height: 1.4 !important;
         }}
 
-        /* Repo 链接 */
         .swagger-ui .opblock-tag small a {{
             color: var(--fx-link);
             text-decoration: none;
@@ -327,7 +323,6 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             text-decoration: underline;
         }}
 
-        /* 右侧展开箭头 */
         .swagger-ui .opblock-tag > button {{
             grid-column: 3 !important;
             justify-self: end !important;
@@ -370,7 +365,6 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             word-break: break-word;
         }}
 
-        /* 新增: 按钮容器, 放在第一个 tag 上方 */
         .swagger-ui .tag-toolbar {{
             display: flex;
             justify-content: flex-end;
@@ -392,6 +386,10 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
 
         .swagger-ui .tag-toolbar button:hover {{
             background: #f9fafb;
+        }}
+
+        .swagger-ui .opblock-tag small a[href*="/docs/plugin-config?payload="] {{
+            font-weight: 600;
         }}
 
         @media (max-width: 1400px) {{
@@ -495,6 +493,61 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             syncToolbarText();
         }}
 
+        function getTagDescriptionLink(target) {{
+            const link = target.closest(".swagger-ui .opblock-tag small a");
+            return link instanceof HTMLAnchorElement ? link : null;
+        }}
+
+        function hydrateLatestReleaseLinks() {{
+            const releaseLinks = document.querySelectorAll('.swagger-ui .opblock-tag small a[href*="/docs/plugin-release?plugin="]');
+            releaseLinks.forEach((link) => {{
+                if (!(link instanceof HTMLAnchorElement) || link.dataset.releaseHydrated === "true") {{
+                    return;
+                }}
+
+                link.dataset.releaseHydrated = "true";
+                fetch(link.href, {{ credentials: "same-origin" }})
+                    .then((response) => response.ok ? response.json() : null)
+                    .then((data) => {{
+                        if (!data || !data.has_update || !data.latest_version) {{
+                            link.remove();
+                            return;
+                        }}
+
+                        link.textContent = "⬆️ " + data.latest_version;
+                        if (data.repo_url) {{
+                            link.href = data.repo_url;
+                        }}
+                    }})
+                    .catch(() => {{
+                        link.remove();
+                    }});
+            }});
+        }}
+
+        document.addEventListener("pointerdown", (event) => {{
+            const link = getTagDescriptionLink(event.target);
+            if (!link) return;
+
+            event.stopPropagation();
+            if (link.href.includes("/docs/plugin-config?plugin=")) {{
+                event.preventDefault();
+            }}
+        }}, true);
+
+        document.addEventListener("click", (event) => {{
+            const link = getTagDescriptionLink(event.target);
+            if (!link) return;
+
+            event.stopPropagation();
+            if (!link.href.includes("/docs/plugin-config?plugin=")) {{
+                return;
+            }}
+
+            event.preventDefault();
+            window.open(link.href, "_blank", "noopener,noreferrer");
+        }}, true);
+
         window.ui = SwaggerUIBundle({{
             url: "{openapi_url}",
             dom_id: "#swagger-ui",
@@ -509,11 +562,13 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             layout: "BaseLayout",
             onComplete: function() {{
                 insertToolbar();
+                hydrateLatestReleaseLinks();
             }}
         }});
 
         const observer = new MutationObserver(() => {{
             insertToolbar();
+            hydrateLatestReleaseLinks();
         }});
 
         observer.observe(document.body, {{
@@ -527,10 +582,156 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
     )  # roqa
 
 
+def _format_toml_key(key: str) -> str:
+    if re.fullmatch(r"[A-Za-z0-9_-]+", key):
+        return key
+    return json.dumps(key, ensure_ascii=False)
+
+
+def _format_toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, int | float):
+        return str(value)
+    if value is None:
+        return '""'
+    if isinstance(value, list):
+        return f"[{', '.join(_format_toml_value(item) for item in value)}]"
+    if isinstance(value, dict):
+        items = ", ".join(f"{_format_toml_key(str(key))} = {_format_toml_value(item)}" for key, item in value.items())
+        return f"{{ {items} }}"
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _dump_toml_table(data: dict[str, Any], prefix: tuple[str, ...] = ()) -> list[str]:
+    lines: list[str] = []
+    nested_items: list[tuple[str, Any]] = []
+
+    for key, value in data.items():
+        if isinstance(value, dict):
+            nested_items.append((key, value))
+            continue
+        if isinstance(value, list) and value and all(isinstance(item, dict) for item in value):
+            nested_items.append((key, value))
+            continue
+        lines.append(f"{_format_toml_key(str(key))} = {_format_toml_value(value)}")
+
+    for key, value in nested_items:
+        section_name = ".".join([*prefix, _format_toml_key(str(key))])
+        if isinstance(value, dict):
+            if lines:
+                lines.append("")
+            lines.append(f"[{section_name}]")
+            lines.extend(_dump_toml_table(value, (*prefix, _format_toml_key(str(key)))))
+            continue
+
+        for item in value:
+            if lines:
+                lines.append("")
+            lines.append(f"[[{section_name}]]")
+            lines.extend(_dump_toml_table(item, (*prefix, _format_toml_key(str(key)))))
+
+    return lines
+
+
+def _format_plugin_config_toml(config_data: Any) -> str:
+    payload = config_data
+    if not isinstance(payload, dict):
+        return _format_toml_value(payload)
+    return "\n".join(_dump_toml_table(payload))
+
+
+def build_plugin_config_html(config_data: Any) -> HTMLResponse:
+    escaped_toml = html.escape(_format_plugin_config_toml(config_data))
+    return HTMLResponse(
+        f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin Config</title>
+    <style>
+        body {{
+            margin: 0;
+            padding: 24px;
+            background: #f8fafc;
+            color: #0f172a;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }}
+
+        .config-shell {{
+            max-width: 960px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+        }}
+
+        .config-header {{
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #ffffff;
+        }}
+
+        .config-title {{
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+        }}
+
+        .config-body {{
+            margin: 0;
+            padding: 20px;
+            background: #ffffff;
+            color: #0f172a;
+            font-size: 13px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow: auto;
+        }}
+    </style>
+</head>
+<body>
+    <section class="config-shell">
+        <header class="config-header">
+            <h1 class="config-title">Plugin Config (TOML)</h1>
+        </header>
+        <pre class="config-body">{escaped_toml}</pre>
+    </section>
+</body>
+</html>
+        """
+    )
+
+
+def _format_plugin_release_view(plugin_name: str | None = None) -> str:
+    if not plugin_name:
+        return ""
+
+    plugin_query = quote(plugin_name)
+    return f" [](/docs/plugin-release?plugin={plugin_query})"
+
+
+def _format_plugin_config_view(plugin_name: str | None = None) -> str:
+    if not plugin_name:
+        return ""
+
+    plugin_query = quote(plugin_name)
+    return f"[⚙️ View Config](/docs/plugin-config?plugin={plugin_query})"
+
+
 def build_plugin_description(
     author: str,
     version: str,
     description: str,
     repo: str,
+    plugin_name: str | None = None,
 ) -> str:
-    return f"**{description}**\n\n\n👤 {author} · 🧩 {version} · [🔗 Repo]({repo})"
+    latest_release = _format_plugin_release_view(plugin_name)
+    config_view = _format_plugin_config_view(plugin_name)
+    return f"**{description}**{latest_release}\n\n\n👤 {author} · 🧩 {version} · [🔗 Repo]({repo}) · {config_view}"

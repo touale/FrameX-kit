@@ -84,6 +84,65 @@ class OauthConfig(BaseModel):
             self.jwt_secret = secrets.token_urlsafe(32)
 
 
+class RepositoryProviderAuthConfig(BaseModel):
+    token: str = ""
+    token_header: str = "Authorization"  # noqa
+    token_scheme: str = "Bearer"  # noqa
+
+    def build_headers(self) -> dict[str, str]:
+        if not self.token:
+            return {}
+        if self.token_scheme:
+            return {self.token_header: f"{self.token_scheme} {self.token}"}
+        return {self.token_header: self.token}
+
+
+class GitLabRepositoryAuthEndpointConfig(RepositoryProviderAuthConfig):
+    host: str
+    path_prefix: str = ""
+    token_header: str = "PRIVATE-TOKEN"  # noqa
+    token_scheme: str = ""
+
+    def matches(self, host: str, path: str) -> bool:
+        normalized_prefix = self.normalized_path_prefix
+        return self.host.lower() == host.lower() and (not normalized_prefix or path.startswith(normalized_prefix))
+
+    @property
+    def normalized_path_prefix(self) -> str:
+        if not self.path_prefix:
+            return ""
+        return self.path_prefix if self.path_prefix.startswith("/") else f"/{self.path_prefix}"
+
+
+class GitLabRepositoryAuthConfig(RepositoryProviderAuthConfig):
+    token_header: str = "PRIVATE-TOKEN"  # noqa
+    token_scheme: str = ""
+    endpoints: list[GitLabRepositoryAuthEndpointConfig] = Field(default_factory=list)
+
+    def configured_hosts(self) -> set[str]:
+        return {endpoint.host.lower() for endpoint in self.endpoints}
+
+    def build_headers_for_url(self, host: str, path: str) -> dict[str, str]:
+        if endpoint := self.resolve_endpoint(host, path):
+            return endpoint.build_headers()
+        return self.build_headers()
+
+    def resolve_endpoint(self, host: str, path: str) -> GitLabRepositoryAuthEndpointConfig | None:
+        matches = [endpoint for endpoint in self.endpoints if endpoint.matches(host, path)]
+        if not matches:
+            return None
+        return max(matches, key=lambda endpoint: len(endpoint.normalized_path_prefix))
+
+
+class RepositoryAuthConfig(BaseModel):
+    github: RepositoryProviderAuthConfig = Field(default_factory=RepositoryProviderAuthConfig)
+    gitlab: GitLabRepositoryAuthConfig = Field(default_factory=GitLabRepositoryAuthConfig)
+
+
+class RepositoryConfig(BaseModel):
+    auth: RepositoryAuthConfig = Field(default_factory=RepositoryAuthConfig)
+
+
 class AuthConfig(BaseModel):
     oauth: OauthConfig | None = Field(default=None)
     rules: dict[str, list[str]] = Field(default_factory=dict)
@@ -133,6 +192,7 @@ class Settings(BaseSettings):
     test: TestConfig = Field(default_factory=TestConfig)
     sentry: SentryConfig = Field(default_factory=SentryConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
+    repository: RepositoryConfig = Field(default_factory=RepositoryConfig)
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

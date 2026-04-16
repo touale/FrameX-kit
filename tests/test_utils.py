@@ -1,3 +1,5 @@
+import html
+import importlib
 import json
 from datetime import datetime, timedelta
 from typing import Any
@@ -5,9 +7,12 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from framex.config import AuthConfig
+from framex.config import AuthConfig, GitLabRepositoryAuthEndpointConfig, settings
+from framex.repository import get_latest_repository_version, has_newer_release_version
 from framex.utils import (
     StreamEnventType,
+    build_plugin_config_html,
+    build_plugin_description,
     cache_decode,
     cache_encode,
     format_uptime,
@@ -181,3 +186,181 @@ def test_safe_error_message_fallback():
     e = Exception()
     e.args = ()
     assert safe_error_message(e) == "Internal Server Error"
+
+
+def test_build_plugin_description_shows_lazy_release_view():
+    description = build_plugin_description(
+        author="tester",
+        version="v0.3.4",
+        description="demo plugin",
+        repo="https://github.com/example/repo",
+        plugin_name="demo",
+    )
+
+    assert "/docs/plugin-release?plugin=demo" in description
+
+
+def test_build_plugin_description_shows_config_view():
+    class DemoConfig(BaseModel):
+        enabled: bool = True
+        name: str = "demo"
+
+    description = build_plugin_description(
+        author="tester",
+        version="v0.3.4",
+        description="demo plugin",
+        repo="https://github.com/example/repo",
+        plugin_name="demo",
+    )
+
+    assert "View Config" in description
+    assert "/docs/plugin-config?plugin=demo" in description
+
+
+def test_build_plugin_config_html_uses_toml_format():
+    response = build_plugin_config_html(
+        {
+            "enabled": True,
+            "name": "demo",
+            "proxy_urls": ["https://example.com"],
+            "nested": {"timeout": 30},
+            "endpoints": [{"host": "gitlab.example.com", "token": "demo-token"}],
+        }
+    )
+
+    body = html.unescape(response.body.decode())  # type: ignore
+    assert "Plugin Config (TOML)" in body
+    assert "enabled = true" in body
+    assert 'name = "demo"' in body
+    assert 'proxy_urls = ["https://example.com"]' in body
+    assert "[nested]" in body
+    assert "timeout = 30" in body
+    assert "[[endpoints]]" in body
+    assert 'host = "gitlab.example.com"' in body
+
+
+def test_build_plugin_description_skips_lazy_release_view_without_plugin_name():
+    description = build_plugin_description(
+        author="tester",
+        version="v0.3.4",
+        description="demo plugin",
+        repo="https://github.com/example/repo",
+    )
+
+    assert "/docs/plugin-release?plugin=" not in description
+    assert "⬆️" not in description
+
+
+def test_has_newer_release_version():
+    assert has_newer_release_version("v0.3.4", "v0.3.5")
+    assert not has_newer_release_version("v0.3.4", "v0.3.4")
+    assert not has_newer_release_version("v0.3.4", "invalid")
+
+
+def test_get_latest_repository_version_uses_github_auth_token(monkeypatch):
+    get_latest_repository_version.cache_clear()
+    monkeypatch.setattr(settings.repository.auth.github, "token", "gh-private-token")
+
+    captured_headers: dict[str, str | None] = {}
+
+    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+        captured_headers["authorization"] = (headers or {}).get("Authorization")
+        return {"tag_name": "v1.2.3"}
+
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.fetch_json",
+        staticmethod(fake_fetch_json),
+    )
+
+    version = get_latest_repository_version("https://github.com/example/private-repo")
+
+    assert version == "v1.2.3"
+    assert captured_headers["authorization"] == "Bearer gh-private-token"
+    get_latest_repository_version.cache_clear()
+
+
+def test_get_latest_repository_version_uses_gitlab_private_token(monkeypatch):
+    get_latest_repository_version.cache_clear()
+    monkeypatch.setattr(settings.repository.auth.gitlab, "token", "gitlab-private-token")
+
+    captured_headers: dict[str, str | None] = {}
+
+    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+        captured_headers["private_token"] = (headers or {}).get("PRIVATE-TOKEN")
+        return {"tag_name": "v2.0.0"}
+
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.fetch_json",
+        staticmethod(fake_fetch_json),
+    )
+
+    version = get_latest_repository_version("https://gitlab.com/example/private-repo")
+
+    assert version == "v2.0.0"
+    assert captured_headers["private_token"] == "gitlab-private-token"  # noqa
+    get_latest_repository_version.cache_clear()
+
+
+def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
+    get_latest_repository_version.cache_clear()
+    monkeypatch.setattr(
+        settings.repository.auth.gitlab,
+        "endpoints",
+        [
+            GitLabRepositoryAuthEndpointConfig(
+                host="gitlab.company.internal",
+                path_prefix="/team-a",
+                token="team-a-token",  # noqa
+            )
+        ],
+    )
+
+    captured_headers: dict[str, str | None] = {}
+
+    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+        captured_headers["private_token"] = (headers or {}).get("PRIVATE-TOKEN")
+        return {"tag_name": "v3.0.0"}
+
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.fetch_json",
+        staticmethod(fake_fetch_json),
+    )
+
+    version = get_latest_repository_version("https://gitlab.company.internal/team-a/private-repo")
+
+    assert version == "v3.0.0"
+    assert captured_headers["private_token"] == "team-a-token"  # noqa
+    get_latest_repository_version.cache_clear()
+
+
+def test_repository_fetch_json_follows_redirects(monkeypatch):
+    import framex.repository.providers.base as base_module
+
+    base_module = importlib.reload(base_module)
+    captured: dict[str, bool] = {}
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def get(self, url: str, follow_redirects: bool = False):  # noqa
+            captured["follow_redirects"] = follow_redirects
+            response = type("Response", (), {})()
+            response.status_code = 200
+            response.json = lambda: {"tag_name": "v0.0.15"}
+            return response
+
+    monkeypatch.setattr(base_module.httpx, "Client", FakeClient)
+
+    payload = base_module.RepositoryVersionProvider.fetch_json(
+        "https://gitlab.company.internal/api/v4/projects/184/releases/permalink/latest"
+    )
+
+    assert payload == {"tag_name": "v0.0.15"}
+    assert captured["follow_redirects"] is True

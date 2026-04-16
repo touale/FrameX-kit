@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 import framex
 from framex.config import settings
-from tests.mock import mock_get, mock_request
+from tests.mock import mock_get, mock_repository_fetch_json, mock_request
 
 
 @pytest.fixture(autouse=True)
@@ -58,13 +58,16 @@ def before_record_response(response):
 
 @pytest.fixture(scope="session", autouse=True)
 def test_app() -> Generator:
-    plugins = framex.load_plugins(str(Path(__file__).parent / "plugins"))
-    assert len(plugins) == len(["invoker", "export", "alias_model"])
-
     with (
+        patch(
+            "framex.repository.providers.base.RepositoryVersionProvider.fetch_json",
+            new=staticmethod(mock_repository_fetch_json),
+        ),
         patch("httpx.AsyncClient.get", new=mock_get),
         patch("httpx.AsyncClient.request", new=mock_request),
     ):
+        plugins = framex.load_plugins(str(Path(__file__).parent / "plugins"))
+        assert len(plugins) == len(["invoker", "export", "alias_model"])
         yield framex.run(test_mode=True)  # type: ignore[return-value]
 
 

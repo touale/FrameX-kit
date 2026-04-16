@@ -60,6 +60,42 @@ def test_get_proxy_upload(client: TestClient):
     }
 
 
+def test_openapi_tag_description_shows_lazy_release_view(client: TestClient):
+    data = client.get("/api/v1/openapi.json").json()
+
+    descriptions = [tag.get("description") or "" for tag in data.get("tags", [])]
+    assert any("/docs/plugin-release?plugin=proxy" in description for description in descriptions)
+
+
+def test_openapi_tag_description_shows_plugin_config(client: TestClient):
+    data = client.get("/api/v1/openapi.json").json()
+
+    descriptions = [tag.get("description") or "" for tag in data.get("tags", [])]
+    assert any("View Config" in description for description in descriptions)
+    assert any("/docs/plugin-config?plugin=proxy" in description for description in descriptions)
+
+
+def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
+    monkeypatch.setattr("framex.driver.application.get_latest_repository_version", lambda _: "v9.9.9")
+
+    response = client.get("/docs/plugin-release", params={"plugin": "proxy"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "has_update": True,
+        "latest_version": "v9.9.9",
+        "repo_url": "https://github.com/touale/FrameX-kit",
+    }
+
+
+def test_get_plugin_config_documentation(client: TestClient):
+    response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
+
+    assert response.status_code == 200
+    assert "Plugin Config (TOML)" in response.text
+    assert "proxy_urls" in response.text
+
+
 def test_get_proxy_upload_openapi(client: TestClient):
     data = client.get("/api/v1/openapi.json").json()
     post = data["paths"]["/proxy/mock/upload"]["post"]

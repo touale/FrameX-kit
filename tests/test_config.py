@@ -1,4 +1,4 @@
-from framex.config import OauthConfig
+from framex.config import OauthConfig, RepositoryConfig
 
 
 def test_config():
@@ -60,3 +60,59 @@ def test_proxy_config():
     assert not proxy_config.is_white_url("http://localhost:10000", "/health")
     assert proxy_config.is_white_url("http://localhost:10000", "/echo")
     assert proxy_config.is_white_url("http://localhost:10001", "/health")
+
+
+def test_repository_auth_config_default_headers():
+    cfg = RepositoryConfig()
+
+    assert cfg.auth.github.build_headers() == {}
+    assert cfg.auth.gitlab.build_headers() == {}
+
+
+def test_repository_auth_config_builds_provider_headers():
+    cfg = RepositoryConfig(
+        auth={
+            "github": {"token": "gh-secret"},
+            "gitlab": {"token": "gl-secret"},
+        }
+    )
+
+    assert cfg.auth.github.build_headers() == {"Authorization": "Bearer gh-secret"}
+    assert cfg.auth.gitlab.build_headers() == {"PRIVATE-TOKEN": "gl-secret"}
+
+
+def test_gitlab_repository_auth_config_uses_matching_endpoint_headers():
+    cfg = RepositoryConfig(
+        auth={
+            "gitlab": {
+                "endpoints": [
+                    {"host": "gitlab.company.internal", "token": "team-a-token", "path_prefix": "/team-a"},
+                    {"host": "gitlab.company.internal", "token": "team-b-token", "path_prefix": "/team-b"},
+                ]
+            }
+        }
+    )
+
+    assert cfg.auth.gitlab.build_headers_for_url("gitlab.company.internal", "/team-a/repo") == {
+        "PRIVATE-TOKEN": "team-a-token"
+    }
+    assert cfg.auth.gitlab.build_headers_for_url("gitlab.company.internal", "/team-b/repo") == {
+        "PRIVATE-TOKEN": "team-b-token"
+    }
+
+
+def test_gitlab_repository_auth_config_prefers_longest_path_prefix():
+    cfg = RepositoryConfig(
+        auth={
+            "gitlab": {
+                "endpoints": [
+                    {"host": "gitlab.company.internal", "token": "group-token", "path_prefix": "/team"},
+                    {"host": "gitlab.company.internal", "token": "project-token", "path_prefix": "/team/project"},
+                ]
+            }
+        }
+    )
+
+    assert cfg.auth.gitlab.build_headers_for_url("gitlab.company.internal", "/team/project/repo") == {
+        "PRIVATE-TOKEN": "project-token"
+    }
