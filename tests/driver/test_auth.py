@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import jwt
 import pytest
@@ -13,7 +13,13 @@ from starlette.requests import Request
 from framex.config import AuthConfig
 from framex.consts import AUTH_COOKIE_NAME, DOCS_URL
 from framex.driver.application import create_fastapi_application
-from framex.driver.auth import auth_jwt, authenticate, create_jwt, oauth_callback
+from framex.driver.auth import (
+    auth_jwt,
+    authenticate,
+    create_jwt,
+    decode_auth_token,
+    oauth_callback,
+)
 
 JWT_SECRET = uuid.uuid4().hex
 
@@ -24,6 +30,7 @@ JWT_SECRET = uuid.uuid4().hex
 
 def fake_oauth(**overrides):
     data = dict(  # noqa: C408
+        provider="gitlab",
         authorization_url="https://oauth.example.com/authorize",
         token_url="https://oauth.example.com/token",  # noqa: S106
         user_info_url="https://oauth.example.com/user",
@@ -83,16 +90,7 @@ class TestAuthJWT:
             mock_oauth.jwt_secret = JWT_SECRET
             mock_oauth.jwt_algorithm = "HS256"
 
-            now = datetime.now(UTC)
-            token = jwt.encode(
-                {
-                    "username": "test",
-                    "iat": int(now.timestamp()),
-                    "exp": int((now + timedelta(hours=1)).timestamp()),
-                },
-                JWT_SECRET,
-                algorithm="HS256",
-            )
+            token = create_jwt({"username": "test"})
 
             req = Mock(spec=Request)
             req.cookies.get.return_value = token
@@ -183,7 +181,16 @@ class TestOAuthCallback:
             res = await oauth_callback(code="abc")
             assert res.status_code == status.HTTP_302_FOUND
             assert res.headers["location"] == DOCS_URL
-            assert f"{AUTH_COOKIE_NAME}=" in res.headers.get("set-cookie", "")
+            cookie_header = res.headers.get("set-cookie", "")
+            assert f"{AUTH_COOKIE_NAME}=" in cookie_header
+            token = cookie_header.split(f"{AUTH_COOKIE_NAME}=", 1)[1].split(";", 1)[0]
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            assert payload["oauth_provider"] == "gitlab"
+            assert payload["session_id"]
+            assert "oauth_access_token" not in payload
+            decoded_payload = decode_auth_token(token)
+            assert decoded_payload is not None
+            assert decoded_payload["oauth_access_token"] == "oauth-token"  # noqa
 
 
 # =========================================================
@@ -203,22 +210,14 @@ class TestAuthenticationIntegration:
             location = resp.headers["location"]
             parsed = urlparse(location)
             assert parsed.hostname == "oauth.example.com"
+            assert parse_qs(parsed.query)["scope"] == ["read_user read_api api ai_features"]
 
     def test_docs_accessible_with_valid_jwt(self):
         with patch("framex.config.settings.auth.oauth", fake_oauth()):
             app = create_fastapi_application()
             client = TestClient(app)
 
-            now = datetime.now(UTC)
-            token = jwt.encode(
-                {
-                    "username": "test",
-                    "iat": int(now.timestamp()),
-                    "exp": int((now + timedelta(hours=1)).timestamp()),
-                },
-                JWT_SECRET,
-                algorithm="HS256",
-            )
+            token = create_jwt({"username": "test"})
             client.cookies.set(AUTH_COOKIE_NAME, token)
             resp = client.get("/docs", follow_redirects=False)
             assert resp.status_code == status.HTTP_200_OK

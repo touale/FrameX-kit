@@ -22,6 +22,16 @@ class RepositoryVersionProvider(ABC):
     def get_latest_version(self, parsed_url: ParseResult) -> str | None:
         """Return the latest published version for the repository URL."""
 
+    def has_repository_access(self, parsed_url: ParseResult, access_token: str) -> bool:
+        """Return whether the given user token can access the repository URL."""
+
+        raise NotImplementedError("RepositoryVersionProvider does not implement access checking")
+
+    def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
+        """Return whether the repository is publicly accessible without authentication."""
+
+        raise NotImplementedError("RepositoryVersionProvider does not implement public repository checking")
+
     @staticmethod
     def extract_repository_parts(parsed_url: ParseResult) -> list[str]:
         """Split a repository path into normalized URL parts."""
@@ -50,6 +60,23 @@ class RepositoryVersionProvider(ABC):
             return None
 
         return payload if isinstance(payload, dict) else None
+
+    @staticmethod
+    def can_fetch(
+        url: str,
+        headers: dict[str, str] | None = None,
+        *,
+        follow_redirects: bool = True,
+    ) -> bool:
+        """Return whether the resource can be fetched successfully."""
+
+        try:
+            with httpx.Client(timeout=DEFAULT_HTTP_TIMEOUT, headers=headers) as client:
+                response = client.get(url, follow_redirects=follow_redirects)
+        except httpx.HTTPError:
+            return False
+
+        return response.status_code == 200
 
     @staticmethod
     def extract_version(payload: dict[str, Any] | None) -> str | None:

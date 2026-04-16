@@ -55,6 +55,7 @@ class TestConfig(BaseModel):
 
 
 class OauthConfig(BaseModel):
+    provider: str = ""
     client_id: str = ""
     client_secret: str = ""
     authorization_url: str = ""

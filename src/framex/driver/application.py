@@ -24,9 +24,14 @@ from starlette.responses import JSONResponse
 
 from framex.config import settings
 from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
-from framex.driver.auth import authenticate, oauth_callback
+from framex.driver.auth import authenticate, get_auth_payload, oauth_callback
 from framex.plugin import get_plugin
-from framex.repository import get_latest_repository_version, has_newer_release_version
+from framex.repository import (
+    can_access_repository,
+    get_latest_repository_version,
+    has_newer_release_version,
+    is_private_repository,
+)
 from framex.utils import (
     build_plugin_config_html,
     build_swagger_ui_html,
@@ -120,11 +125,34 @@ def create_fastapi_application() -> FastAPI:
 
     @application.get("/docs/plugin-config", include_in_schema=False)
     async def get_plugin_config_documentation(
+        request: Request,
         plugin: str,
         _: Annotated[str, Depends(authenticate)],
     ) -> HTMLResponse:
         loaded_plugin = get_plugin(plugin)
+        auth_payload = get_auth_payload(request)
         if loaded_plugin is not None and loaded_plugin.config is not None:
+            if settings.auth.oauth and auth_payload is not None:
+                repo_url = loaded_plugin.metadata.url if loaded_plugin.metadata is not None else ""
+                if not repo_url:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}"
+                    )
+
+                repository_is_private = is_private_repository(repo_url)
+                if repository_is_private is False:
+                    pass
+                else:
+                    access_result = can_access_repository(
+                        repo_url,
+                        auth_payload.get("oauth_provider"),
+                        auth_payload.get("oauth_access_token"),
+                    )
+                    if access_result is not True:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}"
+                        )
+
             config_data = loaded_plugin.config.model_dump()
             return build_plugin_config_html(
                 config_data,

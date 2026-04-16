@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from framex.consts import API_STR
+from framex.driver.auth import create_auth_session, create_jwt
 from framex.utils import cache_decode, cache_encode
 from tests.test_plugins import ExchangeModel, SubModel
 
@@ -60,14 +61,20 @@ def test_get_proxy_upload(client: TestClient):
     }
 
 
-def test_openapi_tag_description_shows_lazy_release_view(client: TestClient):
+def test_openapi_tag_description_shows_lazy_release_view(client: TestClient, monkeypatch):
+    from framex.config import settings
+
+    monkeypatch.setattr(settings.auth, "oauth", None)
     data = client.get("/api/v1/openapi.json").json()
 
     descriptions = [tag.get("description") or "" for tag in data.get("tags", [])]
     assert any("/docs/plugin-release?plugin=proxy" in description for description in descriptions)
 
 
-def test_openapi_tag_description_shows_plugin_config(client: TestClient):
+def test_openapi_tag_description_shows_plugin_config(client: TestClient, monkeypatch):
+    from framex.config import settings
+
+    monkeypatch.setattr(settings.auth, "oauth", None)
     data = client.get("/api/v1/openapi.json").json()
 
     descriptions = [tag.get("description") or "" for tag in data.get("tags", [])]
@@ -89,12 +96,13 @@ def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
 
 
 def test_get_plugin_config_documentation_shows_embedded_config_file(client: TestClient, tmp_path, monkeypatch):
+    from framex.config import settings
+
+    monkeypatch.setattr(settings.auth, "oauth", None)
     yaml_path = tmp_path / "proxy-extra.yaml"
     yaml_path.write_text(
         "token: embedded-secret\nnested:\n  client_secret: inner-secret\nname: proxy\n", encoding="utf-8"
     )
-    from framex.config import settings
-
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(settings.docs, "embedded_config_file_whitelist", ["proxy-extra.yaml"])
     monkeypatch.setitem(
@@ -122,10 +130,11 @@ def test_get_plugin_config_documentation_shows_embedded_config_file(client: Test
 def test_get_plugin_config_documentation_skips_embedded_config_file_without_whitelist(
     client: TestClient, tmp_path, monkeypatch
 ):
-    yaml_path = tmp_path / "proxy-extra.yaml"
-    yaml_path.write_text("name: proxy\n", encoding="utf-8")
     from framex.config import settings
 
+    monkeypatch.setattr(settings.auth, "oauth", None)
+    yaml_path = tmp_path / "proxy-extra.yaml"
+    yaml_path.write_text("name: proxy\n", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(settings.docs, "embedded_config_file_whitelist", [])
     monkeypatch.setitem(
@@ -140,12 +149,148 @@ def test_get_plugin_config_documentation_skips_embedded_config_file_without_whit
     assert "Referenced Config:" not in response.text
 
 
-def test_get_plugin_config_documentation(client: TestClient):
+def test_get_plugin_config_documentation(client: TestClient, monkeypatch):
+    from framex.config import settings
+
+    monkeypatch.setattr(settings.auth, "oauth", None)
     response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
 
     assert response.status_code == 200
     assert "Plugin Config (TOML)" in response.text
     assert "proxy_urls" in response.text
+
+
+def test_get_plugin_config_documentation_requires_repository_access(client: TestClient, monkeypatch):
+    from framex.config import settings
+
+    oauth = type(
+        "OAuthConfig",
+        (),
+        {
+            "provider": "gitlab",
+            "jwt_secret": "test-secret-test-secret-test-secret",
+            "jwt_algorithm": "HS256",
+            "authorization_url": "https://oauth.example.com/authorize",
+            "client_id": "client",
+            "call_back_url": "http://test/callback",
+        },
+    )()
+    monkeypatch.setattr(settings.auth, "oauth", oauth)
+    monkeypatch.setattr("framex.driver.application.is_private_repository", lambda *_: True)
+    monkeypatch.setattr("framex.driver.application.can_access_repository", lambda *_: False)
+
+    session_id = create_auth_session(
+        {
+            "username": "tester",
+            "oauth_provider": "gitlab",
+            "oauth_access_token": "oauth-token",
+        }
+    )
+    token = create_jwt(
+        {
+            "username": "tester",
+            "oauth_provider": "gitlab",
+            "session_id": session_id,
+        }
+    )
+    client.cookies.set("framex_token", token)
+
+    response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
+
+    assert response.status_code == 403
+    assert response.json()["message"] == "Repository access denied: proxy"
+
+
+def test_get_plugin_config_documentation_checks_public_probe_before_token(client: TestClient, monkeypatch):
+    from framex.config import settings
+
+    oauth = type(
+        "OAuthConfig",
+        (),
+        {
+            "provider": "gitlab",
+            "jwt_secret": "test-secret-test-secret-test-secret",
+            "jwt_algorithm": "HS256",
+            "authorization_url": "https://oauth.example.com/authorize",
+            "client_id": "client",
+            "call_back_url": "http://test/callback",
+        },
+    )()
+    monkeypatch.setattr(settings.auth, "oauth", oauth)
+
+    called = {"can_access": 0, "is_private": 0}
+
+    def fake_can_access(*_args):
+        called["can_access"] += 1
+        return True
+
+    def fake_is_private(*_args):
+        called["is_private"] += 1
+        return False
+
+    monkeypatch.setattr("framex.driver.application.can_access_repository", fake_can_access)
+    monkeypatch.setattr("framex.driver.application.is_private_repository", fake_is_private)
+
+    session_id = create_auth_session(
+        {
+            "username": "tester",
+            "oauth_provider": "gitlab",
+            "oauth_access_token": "oauth-token",
+        }
+    )
+    token = create_jwt(
+        {
+            "username": "tester",
+            "oauth_provider": "gitlab",
+            "session_id": session_id,
+        }
+    )
+    client.cookies.set("framex_token", token)
+
+    response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
+
+    assert response.status_code == 200
+    assert called == {"can_access": 0, "is_private": 1}
+
+
+def test_get_plugin_config_documentation_skips_repository_check_for_public_repo(client: TestClient, monkeypatch):
+    from framex.config import settings
+
+    oauth = type(
+        "OAuthConfig",
+        (),
+        {
+            "provider": "gitlab",
+            "jwt_secret": "test-secret-test-secret-test-secret",
+            "jwt_algorithm": "HS256",
+            "authorization_url": "https://oauth.example.com/authorize",
+            "client_id": "client",
+            "call_back_url": "http://test/callback",
+        },
+    )()
+    monkeypatch.setattr(settings.auth, "oauth", oauth)
+    monkeypatch.setattr("framex.driver.application.is_private_repository", lambda *_: False)
+
+    session_id = create_auth_session(
+        {
+            "username": "tester",
+            "oauth_provider": "gitlab",
+            "oauth_access_token": "oauth-token",
+        }
+    )
+    token = create_jwt(
+        {
+            "username": "tester",
+            "oauth_provider": "gitlab",
+            "session_id": session_id,
+        }
+    )
+    client.cookies.set("framex_token", token)
+
+    response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
+
+    assert response.status_code == 200
+    assert "Plugin Config (TOML)" in response.text
 
 
 def test_get_proxy_upload_openapi(client: TestClient):

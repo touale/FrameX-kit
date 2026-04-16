@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel
 
 from framex.config import AuthConfig, GitLabRepositoryAuthEndpointConfig, settings
-from framex.repository import get_latest_repository_version, has_newer_release_version
+from framex.repository import can_access_repository, get_latest_repository_version, has_newer_release_version
 from framex.utils import (
     StreamEnventType,
     build_plugin_config_html,
@@ -391,6 +391,11 @@ def test_get_latest_repository_version_uses_github_auth_token(monkeypatch):
 def test_get_latest_repository_version_uses_gitlab_private_token(monkeypatch):
     get_latest_repository_version.cache_clear()
     monkeypatch.setattr(settings.repository.auth.gitlab, "token", "gitlab-private-token")
+    monkeypatch.setattr(
+        settings.repository.auth.gitlab,
+        "endpoints",
+        [GitLabRepositoryAuthEndpointConfig(host="gitlab.example.test", token="gitlab-private-token")],  # noqa
+    )
 
     captured_headers: dict[str, str | None] = {}
 
@@ -417,7 +422,7 @@ def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
         "endpoints",
         [
             GitLabRepositoryAuthEndpointConfig(
-                host="gitlab.company.internal",
+                host="gitlab.internal.test",
                 path_prefix="/team-a",
                 token="team-a-token",  # noqa
             )
@@ -435,11 +440,120 @@ def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
         staticmethod(fake_fetch_json),
     )
 
-    version = get_latest_repository_version("https://gitlab.company.internal/team-a/private-repo")
+    version = get_latest_repository_version("https://gitlab.internal.test/team-a/private-repo")
 
     assert version == "v3.0.0"
     assert captured_headers["private_token"] == "team-a-token"  # noqa
     get_latest_repository_version.cache_clear()
+
+
+def test_get_latest_repository_version_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
+    get_latest_repository_version.cache_clear()
+    monkeypatch.setattr(settings.repository.auth.gitlab, "token", "gitlab-private-token")
+    monkeypatch.setattr(
+        settings.repository.auth.gitlab,
+        "endpoints",
+        [GitLabRepositoryAuthEndpointConfig(host="gitlab.example.test", token="gitlab-private-token")],  # noqa
+    )
+
+    captured_urls: list[str] = []
+
+    def fake_can_fetch(url: str, headers: dict[str, str] | None = None):
+        captured_urls.append(url)
+        return url.endswith("/api/v4/projects/example-group%2Fexample-repo")
+
+    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+        captured_urls.append(url)
+        return {"tag_name": "v4.0.0"}
+
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.can_fetch",
+        staticmethod(fake_can_fetch),
+    )
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.fetch_json",
+        staticmethod(fake_fetch_json),
+    )
+
+    version = get_latest_repository_version(
+        "https://gitlab.example.test/example-group/example-repo/plugins/example-plugin"
+    )
+
+    assert version == "v4.0.0"
+    assert any(url.endswith("/api/v4/projects/example-group%2Fexample-repo") for url in captured_urls)
+    assert any(
+        url.endswith("/api/v4/projects/example-group%2Fexample-repo/releases/permalink/latest")
+        for url in captured_urls
+    )
+    get_latest_repository_version.cache_clear()
+
+
+def test_can_access_repository_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
+    monkeypatch.setattr(
+        settings.repository.auth.gitlab,
+        "endpoints",
+        [GitLabRepositoryAuthEndpointConfig(host="gitlab.example.test", token="gitlab-private-token")],  # noqa
+    )
+    captured: dict[str, object] = {"urls": []}
+
+    def fake_can_fetch(
+        url: str,
+        headers: dict[str, str] | None = None,
+        *,
+        follow_redirects: bool = True,
+    ):
+        captured["urls"].append(url)  # type: ignore
+        captured["authorization"] = (headers or {}).get("Authorization")  # type: ignore
+        return url.endswith("/api/v4/projects/example-group%2Fexample-repo")
+
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.can_fetch",
+        staticmethod(fake_can_fetch),
+    )
+
+    has_access = can_access_repository(
+        "https://gitlab.example.test/example-group/example-repo/plugins/example-plugin",
+        "gitlab",
+        "oauth-token",
+    )
+
+    assert has_access is True
+    assert any(
+        url.endswith("/api/v4/projects/example-group%2Fexample-repo")
+        for url in captured["urls"]  # type: ignore
+    )
+    assert captured["authorization"] == "Bearer oauth-token"
+
+
+def test_gitlab_public_repository_probe_disables_redirects(monkeypatch):
+    from urllib.parse import urlparse
+
+    from framex.repository.providers.gitlab import GitLabRepositoryVersionProvider
+
+    captured: dict[str, object] = {}
+
+    def fake_can_fetch(
+        url: str,
+        headers: dict[str, str] | None = None,
+        *,
+        follow_redirects: bool = True,
+    ) -> bool:
+        captured["url"] = url
+        captured["follow_redirects"] = follow_redirects
+        return False
+
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.can_fetch",
+        staticmethod(fake_can_fetch),
+    )
+
+    provider = GitLabRepositoryVersionProvider()
+    provider.is_public_repository(
+        urlparse("https://gitlab.example.test/example-group/example-repo/plugins/example-plugin")
+    )
+
+    assert captured["url"] == ("https://gitlab.example.test/example-group/example-repo/plugins/example-plugin")
+    assert captured["follow_redirects"] is False
 
 
 def test_repository_fetch_json_follows_redirects(monkeypatch):
@@ -468,7 +582,7 @@ def test_repository_fetch_json_follows_redirects(monkeypatch):
     monkeypatch.setattr(base_module.httpx, "Client", FakeClient)
 
     payload = base_module.RepositoryVersionProvider.fetch_json(
-        "https://gitlab.company.internal/api/v4/projects/184/releases/permalink/latest"
+        "https://gitlab.internal.test/api/v4/projects/184/releases/permalink/latest"
     )
 
     assert payload == {"tag_name": "v0.0.15"}

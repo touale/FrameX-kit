@@ -32,6 +32,25 @@ class GitHubRepositoryVersionProvider(RepositoryVersionProvider):
         payload = self.fetch_json(api_url, headers=headers)
         return self.extract_version(payload)
 
+    def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
+        repository = self._extract_owner_and_repository(parsed_url)
+        if repository is None:
+            return None
+
+        owner, repo = repository
+        api_url = f"https://api.github.com/repos/{owner}/{repo}"
+        return self.can_fetch(api_url, headers=GITHUB_API_HEADERS)
+
+    def has_repository_access(self, parsed_url: ParseResult, access_token: str) -> bool:
+        repository = self._extract_owner_and_repository(parsed_url)
+        if repository is None or not access_token:
+            return False
+
+        owner, repo = repository
+        api_url = f"https://api.github.com/repos/{owner}/{repo}"
+        headers = {**GITHUB_API_HEADERS, "Authorization": f"Bearer {access_token}"}
+        return self.can_fetch(api_url, headers=headers)
+
     def _extract_owner_and_repository(self, parsed_url: ParseResult) -> tuple[str, str] | None:
         parts = self.extract_repository_parts(parsed_url)
         if len(parts) < 2:

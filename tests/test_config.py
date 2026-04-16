@@ -86,17 +86,17 @@ def test_gitlab_repository_auth_config_uses_matching_endpoint_headers():
         auth={
             "gitlab": {
                 "endpoints": [
-                    {"host": "gitlab.company.internal", "token": "team-a-token", "path_prefix": "/team-a"},
-                    {"host": "gitlab.company.internal", "token": "team-b-token", "path_prefix": "/team-b"},
+                    {"host": "gitlab.internal.test", "token": "team-a-token", "path_prefix": "/team-a"},
+                    {"host": "gitlab.internal.test", "token": "team-b-token", "path_prefix": "/team-b"},
                 ]
             }
         }
     )
 
-    assert cfg.auth.gitlab.build_headers_for_url("gitlab.company.internal", "/team-a/repo") == {
+    assert cfg.auth.gitlab.build_headers_for_url("gitlab.internal.test", "/team-a/repo") == {
         "PRIVATE-TOKEN": "team-a-token"
     }
-    assert cfg.auth.gitlab.build_headers_for_url("gitlab.company.internal", "/team-b/repo") == {
+    assert cfg.auth.gitlab.build_headers_for_url("gitlab.internal.test", "/team-b/repo") == {
         "PRIVATE-TOKEN": "team-b-token"
     }
 
@@ -106,13 +106,13 @@ def test_gitlab_repository_auth_config_prefers_longest_path_prefix():
         auth={
             "gitlab": {
                 "endpoints": [
-                    {"host": "gitlab.company.internal", "token": "group-token", "path_prefix": "/team"},
-                    {"host": "gitlab.company.internal", "token": "project-token", "path_prefix": "/team/project"},
+                    {"host": "gitlab.internal.test", "token": "group-token", "path_prefix": "/team"},
+                    {"host": "gitlab.internal.test", "token": "project-token", "path_prefix": "/team/project"},
                 ]
             }
         }
     )
 
-    assert cfg.auth.gitlab.build_headers_for_url("gitlab.company.internal", "/team/project/repo") == {
+    assert cfg.auth.gitlab.build_headers_for_url("gitlab.internal.test", "/team/project/repo") == {
         "PRIVATE-TOKEN": "project-token"
     }
