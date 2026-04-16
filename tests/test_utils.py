@@ -204,23 +204,6 @@ def test_build_plugin_description_shows_lazy_release_view():
     assert "/docs/plugin-release?plugin=demo" in description
 
 
-def test_build_plugin_description_shows_config_view():
-    class DemoConfig(BaseModel):
-        enabled: bool = True
-        name: str = "demo"
-
-    description = build_plugin_description(
-        author="tester",
-        version="v0.3.4",
-        description="demo plugin",
-        repo="https://github.com/example/repo",
-        plugin_name="demo",
-    )
-
-    assert "View Config" in description
-    assert "/docs/plugin-config?plugin=demo" in description
-
-
 def test_collect_embedded_config_files_reads_yaml_and_toml(tmp_path):
     yaml_path = tmp_path / "demo.yaml"
     yaml_path.write_text("name: demo\n", encoding="utf-8")

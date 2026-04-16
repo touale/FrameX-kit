@@ -129,29 +129,36 @@ def create_fastapi_application() -> FastAPI:
         plugin: str,
         _: Annotated[str, Depends(authenticate)],
     ) -> HTMLResponse:
+        if not settings.auth.oauth:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Plugin config documentation requires auth"
+            )
+
         loaded_plugin = get_plugin(plugin)
         auth_payload = get_auth_payload(request)
         if loaded_plugin is not None and loaded_plugin.config is not None:
-            if settings.auth.oauth and auth_payload is not None:
-                repo_url = loaded_plugin.metadata.url if loaded_plugin.metadata is not None else ""
-                if not repo_url:
+            repo_url = loaded_plugin.metadata.url if loaded_plugin.metadata is not None else ""
+            if not repo_url:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}"
+                )
+
+            if auth_payload is None:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}"
+                )
+
+            repository_is_private = is_private_repository(repo_url)
+            if repository_is_private is not False:
+                access_result = can_access_repository(
+                    repo_url,
+                    auth_payload.get("oauth_provider"),
+                    auth_payload.get("oauth_access_token"),
+                )
+                if access_result is not True:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}"
                     )
-
-                repository_is_private = is_private_repository(repo_url)
-                if repository_is_private is False:
-                    pass
-                else:
-                    access_result = can_access_repository(
-                        repo_url,
-                        auth_payload.get("oauth_provider"),
-                        auth_payload.get("oauth_access_token"),
-                    )
-                    if access_result is not True:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}"
-                        )
 
             config_data = loaded_plugin.config.model_dump()
             return build_plugin_config_html(

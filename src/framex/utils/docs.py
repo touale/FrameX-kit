@@ -2,6 +2,8 @@ from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse
 
+from framex.config import settings
+
 
 def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
     return HTMLResponse(
@@ -419,15 +421,13 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
 def _format_plugin_release_view(plugin_name: str | None = None) -> str:
     if not plugin_name:
         return ""
-
     plugin_query = quote(plugin_name)
     return f" [](/docs/plugin-release?plugin={plugin_query})"
 
 
 def _format_plugin_config_view(plugin_name: str | None = None) -> str:
-    if not plugin_name:
+    if not plugin_name or not settings.auth.oauth:
         return ""
-
     plugin_query = quote(plugin_name)
     return f"[⚙️ View Config](/docs/plugin-config?plugin={plugin_query})"
 
@@ -439,6 +439,8 @@ def build_plugin_description(
     repo: str,
     plugin_name: str | None = None,
 ) -> str:
+
     latest_release = _format_plugin_release_view(plugin_name)
     config_view = _format_plugin_config_view(plugin_name)
-    return f"**{description}**{latest_release}\n\n\n👤 {author} · 🧩 {version} · [🔗 Repo]({repo}) · {config_view}"
+    config_suffix = f" · {config_view}" if config_view else ""
+    return f"**{description}**{latest_release}\n\n\n👤 {author} · 🧩 {version} · [🔗 Repo]({repo}){config_suffix}"
