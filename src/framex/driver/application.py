@@ -5,6 +5,7 @@ import os
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
@@ -26,7 +27,13 @@ from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDO
 from framex.driver.auth import authenticate, oauth_callback
 from framex.plugin import get_plugin
 from framex.repository import get_latest_repository_version, has_newer_release_version
-from framex.utils import build_plugin_config_html, build_swagger_ui_html, format_uptime, safe_error_message
+from framex.utils import (
+    build_plugin_config_html,
+    build_swagger_ui_html,
+    collect_embedded_config_files,
+    format_uptime,
+    safe_error_message,
+)
 
 FRAME_START_TIME = datetime.now(tz=UTC)
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
@@ -118,10 +125,25 @@ def create_fastapi_application() -> FastAPI:
     ) -> HTMLResponse:
         loaded_plugin = get_plugin(plugin)
         if loaded_plugin is not None and loaded_plugin.config is not None:
-            return build_plugin_config_html(loaded_plugin.config.model_dump())
+            config_data = loaded_plugin.config.model_dump()
+            return build_plugin_config_html(
+                config_data,
+                collect_embedded_config_files(
+                    config_data,
+                    workspace_root=Path.cwd().resolve(),
+                    whitelist=settings.docs.embedded_config_file_whitelist,
+                ),
+            )
 
-        if config_data := settings.plugins.get(plugin):
-            return build_plugin_config_html(config_data)
+        if config_data := settings.plugins.get(plugin):  # type: ignore
+            return build_plugin_config_html(
+                config_data,
+                collect_embedded_config_files(
+                    config_data,
+                    workspace_root=Path.cwd().resolve(),
+                    whitelist=settings.docs.embedded_config_file_whitelist,
+                ),
+            )
 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plugin config not found: {plugin}")
 

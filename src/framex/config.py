@@ -143,6 +143,10 @@ class RepositoryConfig(BaseModel):
     auth: RepositoryAuthConfig = Field(default_factory=RepositoryAuthConfig)
 
 
+class DocsConfig(BaseModel):
+    embedded_config_file_whitelist: list[str] = Field(default_factory=list)
+
+
 class AuthConfig(BaseModel):
     oauth: OauthConfig | None = Field(default=None)
     rules: dict[str, list[str]] = Field(default_factory=dict)
@@ -190,6 +194,7 @@ class Settings(BaseSettings):
     load_builtin_plugins: list[str] = Field(default_factory=list)
 
     test: TestConfig = Field(default_factory=TestConfig)
+    docs: DocsConfig = Field(default_factory=DocsConfig)
     sentry: SentryConfig = Field(default_factory=SentryConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
     repository: RepositoryConfig = Field(default_factory=RepositoryConfig)

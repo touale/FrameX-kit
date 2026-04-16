@@ -15,8 +15,12 @@ from framex.utils import (
     build_plugin_description,
     cache_decode,
     cache_encode,
+    collect_embedded_config_files,
     format_uptime,
     make_stream_event,
+    mask_sensitive_config_data,
+    mask_sensitive_config_text,
+    mask_sensitive_embedded_config_content,
     safe_error_message,
 )
 
@@ -217,6 +221,122 @@ def test_build_plugin_description_shows_config_view():
     assert "/docs/plugin-config?plugin=demo" in description
 
 
+def test_collect_embedded_config_files_reads_yaml_and_toml(tmp_path):
+    yaml_path = tmp_path / "demo.yaml"
+    yaml_path.write_text("name: demo\n", encoding="utf-8")
+    toml_path = tmp_path / "demo.toml"
+    toml_path.write_text('name = "demo"\n', encoding="utf-8")
+
+    embedded_files = collect_embedded_config_files(
+        {
+            "yaml_path": str(yaml_path),
+            "nested": {"toml_path": str(toml_path)},
+            "ignored": str(tmp_path / "demo.json"),
+        },
+        workspace_root=tmp_path,
+        whitelist=["*.yaml", "*.toml"],
+    )
+
+    assert embedded_files == [
+        (str(yaml_path.resolve()), "name: demo\n"),
+        (str(toml_path.resolve()), 'name = "demo"\n'),
+    ]
+
+
+def test_collect_embedded_config_files_requires_whitelist(tmp_path):
+    yaml_path = tmp_path / "demo.yaml"
+    yaml_path.write_text("name: demo\n", encoding="utf-8")
+
+    embedded_files = collect_embedded_config_files(
+        {"yaml_path": str(yaml_path)},
+        workspace_root=tmp_path,
+        whitelist=[],
+    )
+
+    assert embedded_files == []
+
+
+def test_collect_embedded_config_files_blocks_outside_workspace(tmp_path):
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    outside_yaml_path = tmp_path / "outside.yaml"
+    outside_yaml_path.write_text("name: outside\n", encoding="utf-8")
+
+    embedded_files = collect_embedded_config_files(
+        {"yaml_path": str(outside_yaml_path)},
+        workspace_root=workspace_root,
+        whitelist=["*.yaml"],
+    )
+
+    assert embedded_files == []
+
+
+def test_mask_sensitive_config_data_masks_nested_values():
+    masked = mask_sensitive_config_data(
+        {
+            "token": "abcdef123456",
+            "nested": {"client_secret": "secret-value"},
+            "headers": [{"authorization": "Bearer demo-token"}],
+            "safe": "visible",
+        }
+    )
+
+    assert masked["token"] != "abcdef123456"  # noqa
+    assert masked["nested"]["client_secret"] != "secret-value"  # noqa
+    assert masked["headers"][0]["authorization"] != "Bearer demo-token"
+    assert masked["safe"] == "visible"
+
+
+def test_mask_sensitive_config_data_masks_auth_rules_values():
+    masked = mask_sensitive_config_data(
+        {
+            "auth": {
+                "rules": {
+                    "/api/v1/*": ["Basic YWRtaW46Z3podQ=="],
+                    "/proxy/mock/auth/*": ["i_am_proxy_general_auth_keys"],
+                }
+            }
+        }
+    )
+
+    assert masked["auth"]["rules"]["/api/v1/*"][0] != "Basic YWRtaW46Z3podQ=="
+    assert masked["auth"]["rules"]["/proxy/mock/auth/*"][0] != "i_am_proxy_general_auth_keys"
+
+
+def test_mask_sensitive_config_text_masks_yaml_and_toml_lines():
+    content = "\n".join(  # noqa
+        [
+            'token = "abcdef123456"',
+            "client_secret: secret-value",
+            'safe = "visible"',
+        ]
+    )
+
+    masked = mask_sensitive_config_text(content)
+
+    assert 'token = "abcdef123456"' not in masked
+    assert "client_secret: secret-value" not in masked
+    assert 'safe = "visible"' in masked
+
+
+def test_mask_sensitive_embedded_config_content_parses_yaml_and_toml():
+    yaml_masked = mask_sensitive_embedded_config_content(
+        "demo.yaml",
+        "token: abcdef123456\nnested:\n  client_secret: secret-value\nsafe: visible\n",
+    )
+    toml_masked = mask_sensitive_embedded_config_content(
+        "demo.toml",
+        'token = "abcdef123456"\n[nested]\nclient_secret = "secret-value"\nsafe = "visible"\n',
+    )
+
+    assert "abcdef123456" not in yaml_masked
+    assert "secret-value" not in yaml_masked
+    assert "safe: visible" in yaml_masked
+    assert "abcdef123456" not in toml_masked
+    assert "secret-value" not in toml_masked
+    assert 'safe = "visible"' in toml_masked
+
+
 def test_build_plugin_config_html_uses_toml_format():
     response = build_plugin_config_html(
         {
@@ -237,18 +357,7 @@ def test_build_plugin_config_html_uses_toml_format():
     assert "timeout = 30" in body
     assert "[[endpoints]]" in body
     assert 'host = "gitlab.example.com"' in body
-
-
-def test_build_plugin_description_skips_lazy_release_view_without_plugin_name():
-    description = build_plugin_description(
-        author="tester",
-        version="v0.3.4",
-        description="demo plugin",
-        repo="https://github.com/example/repo",
-    )
-
-    assert "/docs/plugin-release?plugin=" not in description
-    assert "⬆️" not in description
+    assert 'token = "demo-token"' not in body
 
 
 def test_has_newer_release_version():

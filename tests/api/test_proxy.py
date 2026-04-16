@@ -88,6 +88,58 @@ def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
     }
 
 
+def test_get_plugin_config_documentation_shows_embedded_config_file(client: TestClient, tmp_path, monkeypatch):
+    yaml_path = tmp_path / "proxy-extra.yaml"
+    yaml_path.write_text(
+        "token: embedded-secret\nnested:\n  client_secret: inner-secret\nname: proxy\n", encoding="utf-8"
+    )
+    from framex.config import settings
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(settings.docs, "embedded_config_file_whitelist", ["proxy-extra.yaml"])
+    monkeypatch.setitem(
+        settings.plugins,
+        "embedded_demo",
+        {
+            "extra_config_path": str(yaml_path),
+            "enabled": True,
+            "api_key": "demo-api-key",
+        },
+    )
+
+    response = client.get("/docs/plugin-config", params={"plugin": "embedded_demo"})
+
+    assert response.status_code == 200
+    assert "Referenced Config:" in response.text
+    assert "proxy-extra.yaml" in response.text
+    assert str(yaml_path.resolve()) not in response.text
+    assert "name: proxy" in response.text
+    assert "embedded-secret" not in response.text
+    assert "inner-secret" not in response.text
+    assert "demo-api-key" not in response.text
+
+
+def test_get_plugin_config_documentation_skips_embedded_config_file_without_whitelist(
+    client: TestClient, tmp_path, monkeypatch
+):
+    yaml_path = tmp_path / "proxy-extra.yaml"
+    yaml_path.write_text("name: proxy\n", encoding="utf-8")
+    from framex.config import settings
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(settings.docs, "embedded_config_file_whitelist", [])
+    monkeypatch.setitem(
+        settings.plugins,
+        "embedded_demo_without_whitelist",
+        {"extra_config_path": str(yaml_path), "enabled": True},
+    )
+
+    response = client.get("/docs/plugin-config", params={"plugin": "embedded_demo_without_whitelist"})
+
+    assert response.status_code == 200
+    assert "Referenced Config:" not in response.text
+
+
 def test_get_plugin_config_documentation(client: TestClient):
     response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
 
