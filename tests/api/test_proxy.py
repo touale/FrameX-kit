@@ -134,6 +134,24 @@ def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
     }
 
 
+def test_get_plugin_release_documentation_uses_runtime_plugin_info_when_registry_missing(
+    client: TestClient, monkeypatch
+):
+    async def fake_get_latest_repository_version(_: str) -> str:
+        return "v9.9.9"
+
+    monkeypatch.setattr("framex.driver.application.get_latest_repository_version", fake_get_latest_repository_version)
+
+    response = client.get("/docs/plugin-release", params={"plugin": "proxy"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "has_update": True,
+        "latest_version": "v9.9.9",
+        "repo_url": "https://github.com/touale/FrameX-kit",
+    }
+
+
 def test_get_plugin_config_documentation_requires_auth(client: TestClient, monkeypatch):
     from framex.config import settings
 
@@ -198,6 +216,22 @@ def test_get_plugin_config_documentation(client: TestClient, monkeypatch):
 
     monkeypatch.setattr("framex.driver.application.is_private_repository", fake_is_private_repository)
     _set_oauth_session(client, monkeypatch)
+    response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
+
+    assert response.status_code == 200
+    assert "Plugin Config (TOML)" in response.text
+    assert "proxy_urls" in response.text
+
+
+def test_get_plugin_config_documentation_uses_runtime_plugin_info_when_registry_missing(
+    client: TestClient, monkeypatch
+):
+    async def fake_is_private_repository(*_args) -> bool:
+        return False
+
+    monkeypatch.setattr("framex.driver.application.is_private_repository", fake_is_private_repository)
+    _set_oauth_session(client, monkeypatch)
+
     response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
 
     assert response.status_code == 200

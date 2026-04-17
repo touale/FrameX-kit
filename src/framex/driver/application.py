@@ -25,7 +25,6 @@ from starlette.responses import JSONResponse
 from framex.config import settings
 from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
 from framex.driver.auth import authenticate, get_auth_payload, oauth_callback
-from framex.plugin import get_plugin
 from framex.repository import (
     can_access_repository,
     get_latest_repository_version,
@@ -119,6 +118,12 @@ def create_fastapi_application() -> FastAPI:
             include_in_schema=False,
         )
 
+    def _get_runtime_plugin_info(plugin_id: str) -> Any | None:
+        plugin_info_map = getattr(application.state, "plugin_info_map", None)
+        if isinstance(plugin_info_map, dict) and plugin_id in plugin_info_map:
+            return plugin_info_map[plugin_id]
+        return None
+
     @application.get(DOCS_URL, include_in_schema=False)
     async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
         return build_swagger_ui_html(openapi_url=OPENAPI_URL, title="FrameX Docs")
@@ -134,10 +139,10 @@ def create_fastapi_application() -> FastAPI:
                 status_code=status.HTTP_403_FORBIDDEN, detail="Plugin config documentation requires auth"
             )
 
-        loaded_plugin = get_plugin(plugin)
+        runtime_plugin_info = _get_runtime_plugin_info(plugin)
         auth_payload = get_auth_payload(request)
         repo_url = (
-            loaded_plugin.metadata.url if loaded_plugin is not None and loaded_plugin.metadata is not None else ""
+            runtime_plugin_info.repo_url if runtime_plugin_info is not None and runtime_plugin_info.repo_url else ""
         )
 
         if not repo_url or auth_payload is None:
@@ -155,10 +160,9 @@ def create_fastapi_application() -> FastAPI:
                     status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}"
                 )
 
-        loaded_config = loaded_plugin.config.model_dump() if loaded_plugin and loaded_plugin.config else None
-        config_data = loaded_config or settings.plugins.get(plugin)
-        if config_data is None and loaded_plugin and loaded_plugin.metadata:
-            config_data = settings.plugins.get(loaded_plugin.metadata.name)
+        config_data = settings.plugins.get(plugin)
+        if config_data is None and runtime_plugin_info is not None and runtime_plugin_info.metadata_name:
+            config_data = settings.plugins.get(runtime_plugin_info.metadata_name)
         if config_data is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plugin config not found: {plugin}")
 
@@ -176,13 +180,16 @@ def create_fastapi_application() -> FastAPI:
         plugin: str,
         _: Annotated[str, Depends(authenticate)],
     ) -> dict[str, Any]:
-        loaded_plugin = get_plugin(plugin)
-        if loaded_plugin is None or loaded_plugin.metadata is None:
+        runtime_plugin_info = _get_runtime_plugin_info(plugin)
+        if runtime_plugin_info is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plugin not found: {plugin}")
 
-        current_version = loaded_plugin.metadata.version
+        current_version = runtime_plugin_info.version
+        repo_url = runtime_plugin_info.repo_url or ""
+        if not current_version or not repo_url:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plugin not found: {plugin}")
+
         current_version = current_version if current_version.startswith("v") else f"v{current_version}"
-        repo_url = loaded_plugin.metadata.url
         latest_version = await get_latest_repository_version(repo_url)
         if not latest_version or not has_newer_release_version(current_version, latest_version):
             return {"has_update": False, "latest_version": None, "repo_url": repo_url}

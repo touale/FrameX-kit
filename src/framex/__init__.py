@@ -162,10 +162,11 @@ def run(
     auto_load_plugins(builtin_plugins, external_plugins, enable_proxy)
 
     logger.info("Start initializing all DeploymentHandle...")
-    from framex.plugin import get_http_plugin_apis, init_all_deployments
+    from framex.plugin import get_http_plugin_apis, get_runtime_plugin_infos, init_all_deployments
 
     deployments = init_all_deployments(enable_proxy=enable_proxy)
     http_apis = get_http_plugin_apis()
+    runtime_plugin_infos = get_runtime_plugin_infos()
     _ensure_server_ingress_config(http_apis)
 
     if use_ray:
@@ -193,7 +194,11 @@ def run(
         )
         from framex.driver.ingress import APIIngress
 
-        api_ingress = APIIngress.bind(deployments=deployments, plugin_apis=http_apis)  # type: ignore
+        api_ingress = APIIngress.bind(  # type: ignore
+            deployments=deployments,
+            plugin_apis=http_apis,
+            plugin_infos=runtime_plugin_infos,
+        )
 
         serve.run(
             api_ingress,  # type: ignore
@@ -206,7 +211,11 @@ def run(
 
         from framex.driver.ingress import APIIngress, app
 
-        api_ingress = APIIngress(deployments=deployments, plugin_apis=http_apis)
+        api_ingress = APIIngress(
+            deployments=deployments,
+            plugin_apis=http_apis,
+            plugin_infos=runtime_plugin_infos,
+        )
 
         if test_mode:
             return app

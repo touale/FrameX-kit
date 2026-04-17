@@ -40,6 +40,13 @@ class PluginApi(BaseModel):
     extend_kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
+class RuntimePluginInfo(BaseModel):
+    plugin_id: str
+    metadata_name: str | None = None
+    version: str | None = None
+    repo_url: str | None = None
+
+
 @dataclass(eq=False)
 class PluginDeployment:
     deployment: type[Any]  # type: ignore

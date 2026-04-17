@@ -15,7 +15,7 @@ from framex.driver.application import create_fastapi_application
 from framex.driver.auth import api_key_header, auth_jwt
 from framex.driver.decorator import api_ingress
 from framex.log import setup_logger
-from framex.plugin.model import ApiType, PluginApi
+from framex.plugin.model import ApiType, PluginApi, RuntimePluginInfo
 from framex.utils import escape_tag, shorten_str
 
 app = create_fastapi_application()
@@ -36,11 +36,17 @@ async def version() -> str:
 
 @api_ingress(app=app, name=BACKEND_NAME)
 class APIIngress:
-    def __init__(self, deployments: list[Any], plugin_apis: list["PluginApi"]) -> None:
+    def __init__(
+        self,
+        deployments: list[Any],
+        plugin_apis: list["PluginApi"],
+        plugin_infos: dict[str, RuntimePluginInfo] | None = None,
+    ) -> None:
         setup_logger()
         app.state.ingress = self
         self.deployments_dict = {dep.deployment_name: dep for dep in deployments}
         app.state.deployments_dict = self.deployments_dict
+        app.state.plugin_info_map = plugin_infos or {}
         for plugin_api in plugin_apis:
             if (
                 plugin_api.api

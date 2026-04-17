@@ -150,15 +150,29 @@ def get_http_plugin_apis() -> list["PluginApi"]:
     return _manager.http_plugin_apis
 
 
+def get_runtime_plugin_infos() -> dict[str, "RuntimePluginInfo"]:
+    return {
+        plugin.name: RuntimePluginInfo(
+            plugin_id=plugin.name,
+            metadata_name=plugin.metadata.name if plugin.metadata else None,
+            version=plugin.metadata.version if plugin.metadata else None,
+            repo_url=plugin.metadata.url if plugin.metadata else None,
+        )
+        for plugin in get_loaded_plugins()
+    }
+
+
 from .base import BasePlugin
 from .load import load_builtin_plugins, load_plugins, register_proxy_func
-from .model import ApiType, PluginMetadata
+from .model import ApiType, PluginMetadata, RuntimePluginInfo
 from .on import on_proxy, on_register, on_request, remote
 
 __all__ = [
     "ApiType",
     "BasePlugin",
     "PluginMetadata",
+    "RuntimePluginInfo",
+    "get_runtime_plugin_infos",
     "load_builtin_plugins",
     "load_plugins",
     "on_proxy",
