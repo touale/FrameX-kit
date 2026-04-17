@@ -28,6 +28,7 @@ SENSITIVE_CONFIG_KEYWORDS = (
     "cookie",
     "session",
     "credential",
+    "mysql",
 )
 
 
