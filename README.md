@@ -5,7 +5,7 @@
 <h1 align="center">FrameX</h1>
 
 <p align="center">
-  Build modular Python services with plug-and-play plugins, clear team boundaries, and transparent API integration.
+  🚀 Build scalable Python services with plugins — like FastAPI + Ray, but modular by design.
 </p>
 
 <p align="center">

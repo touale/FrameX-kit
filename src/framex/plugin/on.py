@@ -57,6 +57,7 @@ def on_register(**kwargs: Any) -> Callable[[type], type]:
                         version,
                         plugin.module.__plugin_meta__.description,
                         plugin.module.__plugin_meta__.url,
+                        plugin.name,
                     )
 
                     plugin_apis.append(
