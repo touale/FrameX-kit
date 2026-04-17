@@ -10,6 +10,8 @@ from typing import Any
 import yaml
 from fastapi.responses import HTMLResponse
 
+from framex.config import settings
+
 SUPPORTED_EMBEDDED_CONFIG_SUFFIXES = (".yaml", ".yml", ".toml")
 
 SENSITIVE_CONFIG_KEYWORDS = (
@@ -227,25 +229,50 @@ def _format_plugin_config_toml(config_data: Any) -> str:
     return "\n".join(_dump_toml_table(config_data))
 
 
-def _normalize_display_config_paths(config_data: Any, workspace_root: Path | None = None) -> Any:
+def _normalize_display_config_paths(
+    config_data: Any,
+    workspace_root: Path | None = None,
+    whitelist: Sequence[str] = (),
+) -> Any:
     resolved_workspace_root = (workspace_root or Path.cwd()).resolve()
     if isinstance(config_data, dict):
         return {
-            key: _normalize_display_config_paths(value, workspace_root=resolved_workspace_root)
+            key: _normalize_display_config_paths(
+                value,
+                workspace_root=resolved_workspace_root,
+                whitelist=whitelist,
+            )
             for key, value in config_data.items()
         }
     if isinstance(config_data, list):
-        return [_normalize_display_config_paths(item, workspace_root=resolved_workspace_root) for item in config_data]
+        return [
+            _normalize_display_config_paths(
+                item,
+                workspace_root=resolved_workspace_root,
+                whitelist=whitelist,
+            )
+            for item in config_data
+        ]
     if isinstance(config_data, str):
+        resolved_path = _resolve_embedded_config_path(
+            config_data,
+            resolved_workspace_root,
+            whitelist,
+        )
+        if resolved_path is not None:
+            return _to_display_embedded_config_path(str(resolved_path), workspace_root=resolved_workspace_root)
+
         candidate = Path(config_data).expanduser()
-        if candidate.suffix.lower() not in SUPPORTED_EMBEDDED_CONFIG_SUFFIXES:
+        try:
+            if not candidate.is_absolute():
+                candidate = (resolved_workspace_root / candidate).resolve()
+            else:
+                candidate = candidate.resolve()
+        except OSError:
             return config_data
-        if not candidate.is_absolute():
-            candidate = (resolved_workspace_root / candidate).resolve()
-        else:
-            candidate = candidate.resolve()
-        if candidate.is_file():
-            return _to_display_embedded_config_path(str(candidate), workspace_root=resolved_workspace_root)
+
+        if candidate.suffix.lower() in SUPPORTED_EMBEDDED_CONFIG_SUFFIXES and candidate.is_file():
+            return "[restricted config path]"
     return config_data
 
 
@@ -276,9 +303,15 @@ def _to_display_embedded_config_path(file_path: str, workspace_root: Path | None
 
 
 def build_plugin_config_html(config_data: Any, embedded_files: list[tuple[str, str]] | None = None) -> HTMLResponse:
-    normalized_config_data = _normalize_display_config_paths(config_data)
+    workspace_root = Path.cwd().resolve()
+    embedded_path_whitelist = tuple(settings.docs.embedded_config_file_whitelist or [])
+    normalized_config_data = _normalize_display_config_paths(
+        config_data,
+        workspace_root=workspace_root,
+        whitelist=embedded_path_whitelist,
+    )
     masked_config_data = mask_sensitive_config_data(normalized_config_data)
-    escaped_toml = html.escape(_format_plugin_config_toml(masked_config_data))
+    escaped_toml: str = html.escape(_format_plugin_config_toml(masked_config_data))
     masked_embedded_files = [
         (
             _to_display_embedded_config_path(file_path),

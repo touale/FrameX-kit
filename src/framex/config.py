@@ -106,7 +106,11 @@ class GitLabRepositoryAuthEndpointConfig(RepositoryProviderAuthConfig):
 
     def matches(self, host: str, path: str) -> bool:
         normalized_prefix = self.normalized_path_prefix
-        return self.host.lower() == host.lower() and (not normalized_prefix or path.startswith(normalized_prefix))
+        if self.host.lower() != host.lower():
+            return False
+        if not normalized_prefix:
+            return True
+        return path == normalized_prefix or path.startswith(f"{normalized_prefix}/")
 
     @property
     def normalized_path_prefix(self) -> str:

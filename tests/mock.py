@@ -87,7 +87,7 @@ async def mock_request(_, method: str, url: str, **kwargs: Any):
                 "params": params,
             }
     elif url.endswith("/proxy/remote") and method == "POST":
-        if headers.get("Authorization") != "i_am_proxy_func_auth_keys":
+        if headers.get("Authorization") not in {"i_am_local_proxy_auth_keys", "i_am_proxy_func_auth_keys"}:
             resp.json.return_value = {
                 "status": 401,
                 "message": f"Invalid API Key({headers.get('Authorization')}) for API(/api/v1/proxy/mock/auth/get)",

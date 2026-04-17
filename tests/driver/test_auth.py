@@ -16,6 +16,7 @@ from framex.driver.application import create_fastapi_application
 from framex.driver.auth import (
     auth_jwt,
     authenticate,
+    create_auth_session,
     create_jwt,
     decode_auth_token,
     oauth_callback,
@@ -90,7 +91,8 @@ class TestAuthJWT:
             mock_oauth.jwt_secret = JWT_SECRET
             mock_oauth.jwt_algorithm = "HS256"
 
-            token = create_jwt({"username": "test"})
+            session_id = create_auth_session({"username": "test"})
+            token = create_jwt({"username": "test", "session_id": session_id})
 
             req = Mock(spec=Request)
             req.cookies.get.return_value = token
@@ -217,7 +219,8 @@ class TestAuthenticationIntegration:
             app = create_fastapi_application()
             client = TestClient(app)
 
-            token = create_jwt({"username": "test"})
+            session_id = create_auth_session({"username": "test"})
+            token = create_jwt({"username": "test", "session_id": session_id})
             client.cookies.set(AUTH_COOKIE_NAME, token)
             resp = client.get("/docs", follow_redirects=False)
             assert resp.status_code == status.HTTP_200_OK

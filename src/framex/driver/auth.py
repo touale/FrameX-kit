@@ -73,7 +73,7 @@ def decode_auth_token(token: str | None) -> dict[str, Any] | None:
 
     session_id = payload.get("session_id")
     if not isinstance(session_id, str) or not session_id:
-        return payload
+        return None
 
     now_utc = _now_utc()
     _purge_expired_sessions(now_utc)

@@ -1,10 +1,12 @@
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
 
 from framex.consts import API_STR
 from framex.driver.auth import create_auth_session, create_jwt
 from framex.utils import cache_decode, cache_encode
-from tests.test_plugins import ExchangeModel, SubModel
+from tests.test_plugins import ExchangeModel, SubModel, local_exchange_key_value
 
 
 def _set_oauth_session(client: TestClient, monkeypatch) -> None:
@@ -139,7 +141,7 @@ def test_get_plugin_config_documentation_requires_auth(client: TestClient, monke
     assert response.json()["message"] == "Plugin config documentation requires auth"
 
 
-def test_get_plugin_config_documentation_shows_embedded_config_file(client: TestClient, tmp_path, monkeypatch):
+def test_get_plugin_config_documentation_rejects_settings_only_config(client: TestClient, tmp_path, monkeypatch):
     from framex.config import settings
 
     _set_oauth_session(client, monkeypatch)
@@ -161,17 +163,11 @@ def test_get_plugin_config_documentation_shows_embedded_config_file(client: Test
 
     response = client.get("/docs/plugin-config", params={"plugin": "embedded_demo"})
 
-    assert response.status_code == 200
-    assert "Referenced Config:" in response.text
-    assert "proxy-extra.yaml" in response.text
-    assert str(yaml_path.resolve()) not in response.text
-    assert "name: proxy" in response.text
-    assert "embedded-secret" not in response.text
-    assert "inner-secret" not in response.text
-    assert "demo-api-key" not in response.text
+    assert response.status_code == 403
+    assert response.json()["message"] == "Repository access denied: embedded_demo"
 
 
-def test_get_plugin_config_documentation_skips_embedded_config_file_without_whitelist(
+def test_get_plugin_config_documentation_rejects_settings_only_config_without_whitelist(
     client: TestClient, tmp_path, monkeypatch
 ):
     from framex.config import settings
@@ -189,8 +185,8 @@ def test_get_plugin_config_documentation_skips_embedded_config_file_without_whit
 
     response = client.get("/docs/plugin-config", params={"plugin": "embedded_demo_without_whitelist"})
 
-    assert response.status_code == 200
-    assert "Referenced Config:" not in response.text
+    assert response.status_code == 403
+    assert response.json()["message"] == "Repository access denied: embedded_demo_without_whitelist"
 
 
 def test_get_plugin_config_documentation(client: TestClient, monkeypatch):
@@ -273,6 +269,9 @@ def test_get_proxy_auth_sget(client: TestClient):
 
 @pytest.mark.order(2)
 def test_call_proxy_func(client: TestClient):
+    from framex.plugin.load import register_proxy_func
+
+    asyncio.run(register_proxy_func(local_exchange_key_value))
     func = cache_encode("tests.test_plugins.local_exchange_key_value")
     data = cache_encode(
         {

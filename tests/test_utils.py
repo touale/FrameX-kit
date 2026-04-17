@@ -343,6 +343,32 @@ def test_build_plugin_config_html_uses_toml_format():
     assert 'token = "demo-token"' not in body
 
 
+def test_build_plugin_config_html_hides_restricted_embedded_paths(tmp_path, monkeypatch):
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir()
+    allowed_path = workspace_root / "configs" / "allowed.yaml"
+    allowed_path.parent.mkdir()
+    allowed_path.write_text("name: demo\n", encoding="utf-8")
+
+    outside_path = tmp_path / "secret.yaml"
+    outside_path.write_text("token: secret\n", encoding="utf-8")
+
+    monkeypatch.chdir(workspace_root)
+    monkeypatch.setattr(settings.docs, "embedded_config_file_whitelist", ["configs/*.yaml"])
+
+    response = build_plugin_config_html(
+        {
+            "allowed_config": str(allowed_path),
+            "blocked_config": str(outside_path),
+        }
+    )
+
+    body = html.unescape(response.body.decode())  # type: ignore
+    assert 'allowed_config = "configs/allowed.yaml"' in body
+    assert 'blocked_config = "[restricted config path]"' in body
+    assert str(outside_path) not in body
+
+
 def test_has_newer_release_version():
     assert has_newer_release_version("v0.3.4", "v0.3.5")
     assert not has_newer_release_version("v0.3.4", "v0.3.4")
