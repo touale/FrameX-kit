@@ -212,7 +212,7 @@ class TestAuthenticationIntegration:
             location = resp.headers["location"]
             parsed = urlparse(location)
             assert parsed.hostname == "oauth.example.com"
-            assert parse_qs(parsed.query)["scope"] == ["read_user read_api api ai_features"]
+            assert parse_qs(parsed.query)["scope"] == ["read_user read_api"]
 
     def test_docs_accessible_with_valid_jwt(self):
         with patch("framex.config.settings.auth.oauth", fake_oauth()):

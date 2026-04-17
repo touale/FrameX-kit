@@ -116,7 +116,7 @@ def authenticate(request: Request, api_key: str | None = Depends(api_key_header)
                     f"?client_id={settings.auth.oauth.client_id}"
                     "&response_type=code"
                     f"&redirect_uri={settings.auth.oauth.call_back_url}"
-                    "&scope=read_user%20read_api%20api%20ai_features"
+                    "&scope=read_user%20read_api"
                 )
             },
         )
