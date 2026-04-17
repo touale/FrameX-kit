@@ -143,9 +143,9 @@ def create_fastapi_application() -> FastAPI:
         if not repo_url or auth_payload is None:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Repository access denied: {plugin}")
 
-        repository_is_private = is_private_repository(repo_url)
+        repository_is_private = await is_private_repository(repo_url)
         if repository_is_private is not False:
-            access_result = can_access_repository(
+            access_result = await can_access_repository(
                 repo_url,
                 auth_payload.get("oauth_provider"),
                 auth_payload.get("oauth_access_token"),
@@ -181,7 +181,7 @@ def create_fastapi_application() -> FastAPI:
         current_version = loaded_plugin.metadata.version
         current_version = current_version if current_version.startswith("v") else f"v{current_version}"
         repo_url = loaded_plugin.metadata.url
-        latest_version = get_latest_repository_version(repo_url)
+        latest_version = await get_latest_repository_version(repo_url)
         if not latest_version or not has_newer_release_version(current_version, latest_version):
             return {"has_update": False, "latest_version": None, "repo_url": repo_url}
         return {"has_update": True, "latest_version": latest_version, "repo_url": repo_url}

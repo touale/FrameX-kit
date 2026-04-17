@@ -119,7 +119,10 @@ def test_openapi_tag_description_hides_plugin_config_without_auth(client: TestCl
 
 
 def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
-    monkeypatch.setattr("framex.driver.application.get_latest_repository_version", lambda _: "v9.9.9")
+    async def fake_get_latest_repository_version(_: str) -> str:
+        return "v9.9.9"
+
+    monkeypatch.setattr("framex.driver.application.get_latest_repository_version", fake_get_latest_repository_version)
 
     response = client.get("/docs/plugin-release", params={"plugin": "proxy"})
 
@@ -190,7 +193,10 @@ def test_get_plugin_config_documentation_rejects_settings_only_config_without_wh
 
 
 def test_get_plugin_config_documentation(client: TestClient, monkeypatch):
-    monkeypatch.setattr("framex.driver.application.is_private_repository", lambda *_: False)
+    async def fake_is_private_repository(*_args) -> bool:
+        return False
+
+    monkeypatch.setattr("framex.driver.application.is_private_repository", fake_is_private_repository)
     _set_oauth_session(client, monkeypatch)
     response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
 
@@ -201,8 +207,15 @@ def test_get_plugin_config_documentation(client: TestClient, monkeypatch):
 
 def test_get_plugin_config_documentation_requires_repository_access(client: TestClient, monkeypatch):
     _set_oauth_session(client, monkeypatch)
-    monkeypatch.setattr("framex.driver.application.is_private_repository", lambda *_: True)
-    monkeypatch.setattr("framex.driver.application.can_access_repository", lambda *_: False)
+
+    async def fake_is_private_repository(*_args) -> bool:
+        return True
+
+    async def fake_can_access_repository(*_args) -> bool:
+        return False
+
+    monkeypatch.setattr("framex.driver.application.is_private_repository", fake_is_private_repository)
+    monkeypatch.setattr("framex.driver.application.can_access_repository", fake_can_access_repository)
 
     response = client.get("/docs/plugin-config", params={"plugin": "proxy"})
 
@@ -213,11 +226,11 @@ def test_get_plugin_config_documentation_requires_repository_access(client: Test
 def test_get_plugin_config_documentation_checks_public_probe_before_token(client: TestClient, monkeypatch):
     called = {"can_access": 0, "is_private": 0}
 
-    def fake_can_access(*_args):
+    async def fake_can_access(*_args):
         called["can_access"] += 1
         return True
 
-    def fake_is_private(*_args):
+    async def fake_is_private(*_args):
         called["is_private"] += 1
         return False
 
@@ -232,7 +245,10 @@ def test_get_plugin_config_documentation_checks_public_probe_before_token(client
 
 
 def test_get_plugin_config_documentation_skips_repository_check_for_public_repo(client: TestClient, monkeypatch):
-    monkeypatch.setattr("framex.driver.application.is_private_repository", lambda *_: False)
+    async def fake_is_private_repository(*_args) -> bool:
+        return False
+
+    monkeypatch.setattr("framex.driver.application.is_private_repository", fake_is_private_repository)
     _set_oauth_session(client, monkeypatch)
 
     response = client.get("/docs/plugin-config", params={"plugin": "proxy"})

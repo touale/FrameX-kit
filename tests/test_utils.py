@@ -375,13 +375,12 @@ def test_has_newer_release_version():
     assert not has_newer_release_version("v0.3.4", "invalid")
 
 
-def test_get_latest_repository_version_uses_github_auth_token(monkeypatch):
-    get_latest_repository_version.cache_clear()
+async def test_get_latest_repository_version_uses_github_auth_token(monkeypatch):
     monkeypatch.setattr(settings.repository.auth.github, "token", "gh-private-token")
 
     captured_headers: dict[str, str | None] = {}
 
-    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+    async def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
         captured_headers["authorization"] = (headers or {}).get("Authorization")
         return {"tag_name": "v1.2.3"}
 
@@ -390,15 +389,13 @@ def test_get_latest_repository_version_uses_github_auth_token(monkeypatch):
         staticmethod(fake_fetch_json),
     )
 
-    version = get_latest_repository_version("https://github.com/example/private-repo")
+    version = await get_latest_repository_version("https://github.com/example/private-repo")
 
     assert version == "v1.2.3"
     assert captured_headers["authorization"] == "Bearer gh-private-token"
-    get_latest_repository_version.cache_clear()
 
 
-def test_get_latest_repository_version_uses_gitlab_private_token(monkeypatch):
-    get_latest_repository_version.cache_clear()
+async def test_get_latest_repository_version_uses_gitlab_private_token(monkeypatch):
     monkeypatch.setattr(settings.repository.auth.gitlab, "token", "gitlab-private-token")
     monkeypatch.setattr(
         settings.repository.auth.gitlab,
@@ -408,7 +405,7 @@ def test_get_latest_repository_version_uses_gitlab_private_token(monkeypatch):
 
     captured_headers: dict[str, str | None] = {}
 
-    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+    async def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
         captured_headers["private_token"] = (headers or {}).get("PRIVATE-TOKEN")
         return {"tag_name": "v2.0.0"}
 
@@ -417,15 +414,13 @@ def test_get_latest_repository_version_uses_gitlab_private_token(monkeypatch):
         staticmethod(fake_fetch_json),
     )
 
-    version = get_latest_repository_version("https://gitlab.com/example/private-repo")
+    version = await get_latest_repository_version("https://gitlab.com/example/private-repo")
 
     assert version == "v2.0.0"
     assert captured_headers["private_token"] == "gitlab-private-token"  # noqa
-    get_latest_repository_version.cache_clear()
 
 
-def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
-    get_latest_repository_version.cache_clear()
+async def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
     monkeypatch.setattr(
         settings.repository.auth.gitlab,
         "endpoints",
@@ -440,7 +435,7 @@ def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
 
     captured_headers: dict[str, str | None] = {}
 
-    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+    async def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
         captured_headers["private_token"] = (headers or {}).get("PRIVATE-TOKEN")
         return {"tag_name": "v3.0.0"}
 
@@ -449,15 +444,13 @@ def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
         staticmethod(fake_fetch_json),
     )
 
-    version = get_latest_repository_version("https://gitlab.internal.test/team-a/private-repo")
+    version = await get_latest_repository_version("https://gitlab.internal.test/team-a/private-repo")
 
     assert version == "v3.0.0"
     assert captured_headers["private_token"] == "team-a-token"  # noqa
-    get_latest_repository_version.cache_clear()
 
 
-def test_get_latest_repository_version_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
-    get_latest_repository_version.cache_clear()
+async def test_get_latest_repository_version_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
     monkeypatch.setattr(settings.repository.auth.gitlab, "token", "gitlab-private-token")
     monkeypatch.setattr(
         settings.repository.auth.gitlab,
@@ -467,11 +460,11 @@ def test_get_latest_repository_version_resolves_gitlab_project_from_subdirectory
 
     captured_urls: list[str] = []
 
-    def fake_can_fetch(url: str, headers: dict[str, str] | None = None):
+    async def fake_can_fetch(url: str, headers: dict[str, str] | None = None):
         captured_urls.append(url)
         return url.endswith("/api/v4/projects/example-group%2Fexample-repo")
 
-    def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+    async def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
         captured_urls.append(url)
         return {"tag_name": "v4.0.0"}
 
@@ -484,7 +477,7 @@ def test_get_latest_repository_version_resolves_gitlab_project_from_subdirectory
         staticmethod(fake_fetch_json),
     )
 
-    version = get_latest_repository_version(
+    version = await get_latest_repository_version(
         "https://gitlab.example.test/example-group/example-repo/plugins/example-plugin"
     )
 
@@ -494,10 +487,9 @@ def test_get_latest_repository_version_resolves_gitlab_project_from_subdirectory
         url.endswith("/api/v4/projects/example-group%2Fexample-repo/releases/permalink/latest")
         for url in captured_urls
     )
-    get_latest_repository_version.cache_clear()
 
 
-def test_can_access_repository_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
+async def test_can_access_repository_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
     monkeypatch.setattr(
         settings.repository.auth.gitlab,
         "endpoints",
@@ -505,7 +497,7 @@ def test_can_access_repository_resolves_gitlab_project_from_subdirectory_url(mon
     )
     captured: dict[str, object] = {"urls": []}
 
-    def fake_can_fetch(
+    async def fake_can_fetch(
         url: str,
         headers: dict[str, str] | None = None,
         *,
@@ -520,7 +512,7 @@ def test_can_access_repository_resolves_gitlab_project_from_subdirectory_url(mon
         staticmethod(fake_can_fetch),
     )
 
-    has_access = can_access_repository(
+    has_access = await can_access_repository(
         "https://gitlab.example.test/example-group/example-repo/plugins/example-plugin",
         "gitlab",
         "oauth-token",
@@ -534,14 +526,14 @@ def test_can_access_repository_resolves_gitlab_project_from_subdirectory_url(mon
     assert captured["authorization"] == "Bearer oauth-token"
 
 
-def test_gitlab_public_repository_probe_disables_redirects(monkeypatch):
+async def test_gitlab_public_repository_probe_disables_redirects(monkeypatch):
     from urllib.parse import urlparse
 
     from framex.repository.providers.gitlab import GitLabRepositoryVersionProvider
 
     captured: dict[str, object] = {}
 
-    def fake_can_fetch(
+    async def fake_can_fetch(
         url: str,
         headers: dict[str, str] | None = None,
         *,
@@ -557,7 +549,7 @@ def test_gitlab_public_repository_probe_disables_redirects(monkeypatch):
     )
 
     provider = GitLabRepositoryVersionProvider()
-    provider.is_public_repository(
+    await provider.is_public_repository(
         urlparse("https://gitlab.example.test/example-group/example-repo/plugins/example-plugin")
     )
 
@@ -565,7 +557,7 @@ def test_gitlab_public_repository_probe_disables_redirects(monkeypatch):
     assert captured["follow_redirects"] is False
 
 
-def test_repository_fetch_json_follows_redirects(monkeypatch):
+async def test_repository_fetch_json_follows_redirects(monkeypatch):
     import framex.repository.providers.base as base_module
 
     base_module = importlib.reload(base_module)
@@ -575,22 +567,22 @@ def test_repository_fetch_json_follows_redirects(monkeypatch):
         def __init__(self, *args, **kwargs):
             pass
 
-        def __enter__(self):
+        async def __aenter__(self):
             return self
 
-        def __exit__(self, exc_type, exc, tb):
+        async def __aexit__(self, exc_type, exc, tb):
             return False
 
-        def get(self, url: str, follow_redirects: bool = False):  # noqa
+        async def get(self, url: str, follow_redirects: bool = False):  # noqa
             captured["follow_redirects"] = follow_redirects
             response = type("Response", (), {})()
             response.status_code = 200
             response.json = lambda: {"tag_name": "v0.0.15"}
             return response
 
-    monkeypatch.setattr(base_module.httpx, "Client", FakeClient)
+    monkeypatch.setattr(base_module.httpx, "AsyncClient", FakeClient)
 
-    payload = base_module.RepositoryVersionProvider.fetch_json(
+    payload = await base_module.RepositoryVersionProvider.fetch_json(
         "https://gitlab.internal.test/api/v4/projects/184/releases/permalink/latest"
     )
 

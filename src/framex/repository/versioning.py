@@ -1,7 +1,6 @@
 """Repository version lookup entrypoints."""
 
 import re
-from functools import lru_cache
 from urllib.parse import ParseResult, urlparse
 
 from framex.repository.providers.base import RepositoryVersionProvider
@@ -17,26 +16,25 @@ def _get_provider_for_url(repo_url: str) -> tuple[RepositoryVersionProvider | No
     return provider, parsed_url
 
 
-@lru_cache(maxsize=128)
-def get_latest_repository_version(repo_url: str) -> str | None:
+async def get_latest_repository_version(repo_url: str) -> str | None:
     provider, parsed_url = _get_provider_for_url(repo_url)
     if provider is None:
         return None
-    return provider.get_latest_version(parsed_url)
+    return await provider.get_latest_version(parsed_url)
 
 
-def is_private_repository(repo_url: str) -> bool | None:
+async def is_private_repository(repo_url: str) -> bool | None:
     provider, parsed_url = _get_provider_for_url(repo_url)
     if provider is None:
         return None
 
-    is_public = provider.is_public_repository(parsed_url)
+    is_public = await provider.is_public_repository(parsed_url)
     if is_public is None:
         return None
     return not is_public
 
 
-def can_access_repository(repo_url: str, provider_name: str | None, access_token: str | None) -> bool | None:
+async def can_access_repository(repo_url: str, provider_name: str | None, access_token: str | None) -> bool | None:
     provider, parsed_url = _get_provider_for_url(repo_url)
     if provider is None:
         return None
@@ -46,7 +44,7 @@ def can_access_repository(repo_url: str, provider_name: str | None, access_token
     if not access_token:
         return False
 
-    return provider.has_repository_access(parsed_url, access_token)
+    return await provider.has_repository_access(parsed_url, access_token)
 
 
 def has_newer_release_version(current_version: str, latest_version: str) -> bool:

@@ -24,27 +24,27 @@ class GitLabRepositoryVersionProvider(RepositoryVersionProvider):
             or host in settings.repository.auth.gitlab.configured_hosts()
         )
 
-    def get_latest_version(self, parsed_url: ParseResult) -> str | None:
+    async def get_latest_version(self, parsed_url: ParseResult) -> str | None:
         headers = settings.repository.auth.gitlab.build_headers_for_url(parsed_url.netloc, parsed_url.path) or None
-        project_path = self._resolve_project_path(parsed_url, headers=headers, require_fetch=False)
+        project_path = await self._resolve_project_path(parsed_url, headers=headers, require_fetch=False)
         if project_path is None:
             return None
 
         api_url = self._build_release_api_url(parsed_url, project_path)
-        payload = self.fetch_json(api_url, headers=headers)
+        payload = await self.fetch_json(api_url, headers=headers)
         return self.extract_version(payload)
 
-    def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
-        return self.can_fetch(self._build_repository_web_url(parsed_url), follow_redirects=False)
+    async def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
+        return await self.can_fetch(self._build_repository_web_url(parsed_url), follow_redirects=False)
 
-    def has_repository_access(self, parsed_url: ParseResult, access_token: str) -> bool:
+    async def has_repository_access(self, parsed_url: ParseResult, access_token: str) -> bool:
         if not access_token:
             return False
 
         headers = {"Authorization": f"Bearer {access_token}"}
-        return self._resolve_project_path(parsed_url, headers=headers, require_fetch=True) is not None
+        return await self._resolve_project_path(parsed_url, headers=headers, require_fetch=True) is not None
 
-    def _resolve_project_path(
+    async def _resolve_project_path(
         self,
         parsed_url: ParseResult,
         headers: dict[str, str] | None = None,
@@ -57,7 +57,7 @@ class GitLabRepositoryVersionProvider(RepositoryVersionProvider):
             return candidates[0]
 
         for candidate in candidates:
-            if self.can_fetch(self._build_project_api_url(parsed_url, candidate), headers=headers):
+            if await self.can_fetch(self._build_project_api_url(parsed_url, candidate), headers=headers):
                 return candidate
         return None
 

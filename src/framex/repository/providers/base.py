@@ -19,15 +19,15 @@ class RepositoryVersionProvider(ABC):
         """Return whether this provider can handle the parsed repository URL."""
 
     @abstractmethod
-    def get_latest_version(self, parsed_url: ParseResult) -> str | None:
+    async def get_latest_version(self, parsed_url: ParseResult) -> str | None:
         """Return the latest published version for the repository URL."""
 
-    def has_repository_access(self, parsed_url: ParseResult, access_token: str) -> bool:
+    async def has_repository_access(self, parsed_url: ParseResult, access_token: str) -> bool:
         """Return whether the given user token can access the repository URL."""
 
         raise NotImplementedError("RepositoryVersionProvider does not implement access checking")
 
-    def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
+    async def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
         """Return whether the repository is publicly accessible without authentication."""
 
         raise NotImplementedError("RepositoryVersionProvider does not implement public repository checking")
@@ -42,12 +42,12 @@ class RepositoryVersionProvider(ABC):
         return parts
 
     @staticmethod
-    def fetch_json(url: str, headers: dict[str, str] | None = None) -> dict[str, Any] | None:
+    async def fetch_json(url: str, headers: dict[str, str] | None = None) -> dict[str, Any] | None:
         """Fetch a JSON object and return `None` when it cannot be consumed."""
 
         try:
-            with httpx.Client(timeout=DEFAULT_HTTP_TIMEOUT, headers=headers) as client:
-                response = client.get(url, follow_redirects=True)
+            async with httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT, headers=headers) as client:
+                response = await client.get(url, follow_redirects=True)
         except httpx.HTTPError:
             return None
 
@@ -62,7 +62,7 @@ class RepositoryVersionProvider(ABC):
         return payload if isinstance(payload, dict) else None
 
     @staticmethod
-    def can_fetch(
+    async def can_fetch(
         url: str,
         headers: dict[str, str] | None = None,
         *,
@@ -71,8 +71,8 @@ class RepositoryVersionProvider(ABC):
         """Return whether the resource can be fetched successfully."""
 
         try:
-            with httpx.Client(timeout=DEFAULT_HTTP_TIMEOUT, headers=headers) as client:
-                response = client.get(url, follow_redirects=follow_redirects)
+            async with httpx.AsyncClient(timeout=DEFAULT_HTTP_TIMEOUT, headers=headers) as client:
+                response = await client.get(url, follow_redirects=follow_redirects)
         except httpx.HTTPError:
             return False
 
