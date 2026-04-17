@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## v0.3.5 (2026-04-17)
+
+### Bug Fixes
+
+- Enforce repository access checks and restrict config paths
+  ([`411c241`](https://github.com/touale/FrameX-kit/commit/411c2419eba2ece457b7024e6778c195a43c8064))
+
+- Reduce OAuth scope to read_user and read_api
+  ([`36d58fe`](https://github.com/touale/FrameX-kit/commit/36d58fec1141220cb10951b6202b439bf4b83ecc))
+
+### Chores
+
+- **deps-dev**: Bump pytest from 9.0.2 to 9.0.3
+  ([`c8cf8b6`](https://github.com/touale/FrameX-kit/commit/c8cf8b62f87112058e6155c0fc7686211c5a1a49))
+
+### Documentation
+
+- Add online documentation link and badge
+  ([`1b7081a`](https://github.com/touale/FrameX-kit/commit/1b7081aaf93b106018779a503ff14dc2269338d8))
+
+### Features
+
+- Add embedded config files support in plugin config
+  ([`85fe10d`](https://github.com/touale/FrameX-kit/commit/85fe10d36b1a2e2d4a9c9882be40a850f5a5db25))
+
+- Add OAuth provider and private repository access
+  ([`e6ab19d`](https://github.com/touale/FrameX-kit/commit/e6ab19d0082db2dd6cd52b524ccc8d3cf060ede8))
+
+- Add plugin release check and config view
+  ([`2344e7f`](https://github.com/touale/FrameX-kit/commit/2344e7f26e2443f379572ffb46097332b6bb8288))
+
+- Enforce OAuth for plugin config documentation
+  ([`b9499ac`](https://github.com/touale/FrameX-kit/commit/b9499accd39c16c9f76c619f2066ed4b23649aec))
+
+
 ## v0.3.4 (2026-04-13)
 
 ### Chores
