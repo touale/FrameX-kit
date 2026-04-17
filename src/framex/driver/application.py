@@ -156,7 +156,9 @@ def create_fastapi_application() -> FastAPI:
                 )
 
         loaded_config = loaded_plugin.config.model_dump() if loaded_plugin and loaded_plugin.config else None
-        config_data = loaded_config or settings.plugins.get(plugin)  # type: ignore
+        config_data = loaded_config or settings.plugins.get(plugin)
+        if config_data is None and loaded_plugin and loaded_plugin.metadata:
+            config_data = settings.plugins.get(loaded_plugin.metadata.name)
         if config_data is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plugin config not found: {plugin}")
 
