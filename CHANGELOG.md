@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v0.3.6 (2026-04-17)
+
+### Bug Fixes
+
+- Add mysql to sensitive config keywords
+  ([`5e3cd76`](https://github.com/touale/FrameX-kit/commit/5e3cd7609b59b2f69afb6ac183cb212a50173dc4))
+
+- Fix configuration reading error in ray
+  ([`989065c`](https://github.com/touale/FrameX-kit/commit/989065cfef3f4ad5e1316782a9eef44c86c79891))
+
+- Improve plugin config fallback logic
+  ([`ab5d1b9`](https://github.com/touale/FrameX-kit/commit/ab5d1b901f7dd8ec2830783073c3e32681d03d3d))
+
+### Refactoring
+
+- Make repository operations async
+  ([`8a61f21`](https://github.com/touale/FrameX-kit/commit/8a61f217bd8db89d7591e4b0d05c222b116f07dc))
+
+
 ## v0.3.5 (2026-04-17)
 
 ### Bug Fixes
