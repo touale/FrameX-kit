@@ -350,7 +350,7 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
                             return;
                         }}
 
-                        link.textContent = "⬆️ " + data.latest_version;
+                        link.textContent = "⬆️ 发现新版本: " + data.latest_version;
                         if (data.repo_url) {{
                             link.href = data.repo_url;
                         }}

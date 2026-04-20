@@ -6,7 +6,7 @@ from urllib.parse import ParseResult
 
 import httpx
 
-DEFAULT_HTTP_TIMEOUT = 2.0
+DEFAULT_HTTP_TIMEOUT = 15
 
 
 class RepositoryVersionProvider(ABC):
