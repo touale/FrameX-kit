@@ -73,6 +73,11 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             margin: 0 0 8px 0;
         }}
 
+        .swagger-ui .scheme-container .auth-wrapper,
+        .swagger-ui .scheme-container .authorize {{
+            display: none !important;
+        }}
+
         .swagger-ui .opblock-tag-section {{
             margin-bottom: 8px;
             border: 1px solid var(--fx-border);

@@ -224,3 +224,5 @@ class TestAuthenticationIntegration:
             client.cookies.set(AUTH_COOKIE_NAME, token)
             resp = client.get("/docs", follow_redirects=False)
             assert resp.status_code == status.HTTP_200_OK
+            assert ".swagger-ui .scheme-container .auth-wrapper" in resp.text
+            assert ".swagger-ui .scheme-container .authorize" in resp.text
