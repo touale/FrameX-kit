@@ -17,10 +17,11 @@ from .config_docs import (
     mask_sensitive_config_text,
     mask_sensitive_embedded_config_content,
 )
-from .docs import build_plugin_description, build_swagger_ui_html
+from .docs import build_docs_action_button_views, build_plugin_description, build_swagger_ui_html
 
 __all__ = [
     "StreamEnventType",
+    "build_docs_action_button_views",
     "build_plugin_config_html",
     "build_plugin_description",
     "build_swagger_ui_html",

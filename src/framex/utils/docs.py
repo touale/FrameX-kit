@@ -1,3 +1,5 @@
+import json
+from typing import Any
 from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse
@@ -5,7 +7,34 @@ from fastapi.responses import HTMLResponse
 from framex.config import settings
 
 
-def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
+def build_docs_action_button_views(action_buttons: list[Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "index": index,
+            "title": button.title,
+            "variant": button.variant,
+            "inputs": [
+                {
+                    "name": input_config.name,
+                    "label": input_config.label,
+                    "placeholder": input_config.placeholder,
+                    "default": input_config.default,
+                    "required": input_config.required,
+                    "target": input_config.target,
+                }
+                for input_config in button.inputs
+            ],
+        }
+        for index, button in enumerate(action_buttons)
+    ]
+
+
+def build_swagger_ui_html(
+    openapi_url: str,
+    title: str,
+    action_buttons: list[dict[str, Any]] | None = None,
+) -> HTMLResponse:
+    docs_action_buttons = json.dumps(action_buttons or [], ensure_ascii=False)
     return HTMLResponse(
         f"""
 <!DOCTYPE html>
@@ -213,6 +242,8 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
         .swagger-ui .tag-toolbar {{
             display: flex;
             justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
             margin: 0 0 8px 0;
         }}
 
@@ -231,6 +262,125 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
 
         .swagger-ui .tag-toolbar button:hover {{
             background: #f9fafb;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-primary {{
+            border-color: #175cd3;
+            background: #175cd3;
+            color: #fff;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-primary:hover {{
+            background: #1849a9;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-success {{
+            border-color: #039855;
+            background: #039855;
+            color: #fff;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-success:hover {{
+            background: #027a48;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-warning {{
+            border-color: #dc6803;
+            background: #dc6803;
+            color: #fff;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-warning:hover {{
+            background: #b54708;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-danger {{
+            border-color: #d92d20;
+            background: #d92d20;
+            color: #fff;
+        }}
+
+        .swagger-ui .tag-toolbar .docs-action-button-danger:hover {{
+            background: #b42318;
+        }}
+
+        .docs-action-modal-backdrop {{
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.32);
+        }}
+
+        .docs-action-modal {{
+            width: min(420px, 100%);
+            border: 1px solid var(--fx-border);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+        }}
+
+        .docs-action-modal-header {{
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--fx-border-soft);
+            color: var(--fx-text);
+            font-size: 15px;
+            font-weight: 700;
+        }}
+
+        .docs-action-modal-body {{
+            display: grid;
+            gap: 12px;
+            padding: 16px;
+        }}
+
+        .docs-action-modal-field {{
+            display: grid;
+            gap: 6px;
+        }}
+
+        .docs-action-modal-field label {{
+            color: var(--fx-text);
+            font-size: 12.5px;
+            font-weight: 600;
+        }}
+
+        .docs-action-modal-field input {{
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--fx-border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: var(--fx-text);
+            font-size: 13px;
+        }}
+
+        .docs-action-modal-footer {{
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 16px 16px;
+        }}
+
+        .docs-action-modal-footer button {{
+            appearance: none;
+            border: 1px solid var(--fx-border);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--fx-text);
+            padding: 7px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }}
+
+        .docs-action-modal-footer button[type="submit"] {{
+            border-color: var(--fx-link);
+            background: var(--fx-link);
+            color: #fff;
         }}
 
         @media (max-width: 1400px) {{
@@ -279,6 +429,7 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
     <script>
         let allExpanded = false;
+        const docsActionButtons = {docs_action_buttons};
 
         function getTagSections() {{
             return Array.from(document.querySelectorAll(".swagger-ui .opblock-tag-section"));
@@ -313,6 +464,146 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
             syncToolbarText();
         }}
 
+        function collectDocsActionInputs(buttonConfig) {{
+            const inputs = Array.isArray(buttonConfig.inputs) ? buttonConfig.inputs : [];
+            if (inputs.length === 0) {{
+                return Promise.resolve({{}});
+            }}
+
+            return new Promise((resolve) => {{
+                const backdrop = document.createElement("div");
+                backdrop.className = "docs-action-modal-backdrop";
+
+                const modal = document.createElement("form");
+                modal.className = "docs-action-modal";
+                modal.noValidate = false;
+
+                const header = document.createElement("div");
+                header.className = "docs-action-modal-header";
+                header.textContent = buttonConfig.title || "执行操作";
+                modal.appendChild(header);
+
+                const body = document.createElement("div");
+                body.className = "docs-action-modal-body";
+
+                inputs.forEach((inputConfig, inputIndex) => {{
+                    const field = document.createElement("div");
+                    field.className = "docs-action-modal-field";
+
+                    const inputId = "docs-action-input-" + buttonConfig.index + "-" + inputIndex;
+                    const label = document.createElement("label");
+                    label.htmlFor = inputId;
+                    label.textContent = (inputConfig.label || inputConfig.name || "Input") + (inputConfig.required ? " *" : "");
+
+                    const input = document.createElement("input");
+                    input.id = inputId;
+                    input.name = inputConfig.name || "";
+                    input.type = "text";
+                    input.placeholder = inputConfig.placeholder || "";
+                    input.value = inputConfig.default || "";
+                    input.required = !!inputConfig.required;
+
+                    field.appendChild(label);
+                    field.appendChild(input);
+                    body.appendChild(field);
+                }});
+
+                modal.appendChild(body);
+
+                const footer = document.createElement("div");
+                footer.className = "docs-action-modal-footer";
+
+                const cancelButton = document.createElement("button");
+                cancelButton.type = "button";
+                cancelButton.textContent = "取消";
+
+                const submitButton = document.createElement("button");
+                submitButton.type = "submit";
+                submitButton.textContent = "执行";
+
+                footer.appendChild(cancelButton);
+                footer.appendChild(submitButton);
+                modal.appendChild(footer);
+                backdrop.appendChild(modal);
+                document.body.appendChild(backdrop);
+
+                const close = (value) => {{
+                    backdrop.remove();
+                    resolve(value);
+                }};
+
+                cancelButton.addEventListener("click", () => close(null));
+                backdrop.addEventListener("click", (event) => {{
+                    if (event.target === backdrop) {{
+                        close(null);
+                    }}
+                }});
+
+                modal.addEventListener("submit", (event) => {{
+                    event.preventDefault();
+                    if (!modal.reportValidity()) {{
+                        return;
+                    }}
+
+                    const values = {{}};
+                    Array.from(modal.querySelectorAll("input[name]")).forEach((input) => {{
+                        values[input.name] = input.value;
+                    }});
+                    close(values);
+                }});
+
+                const firstInput = modal.querySelector("input");
+                if (firstInput) {{
+                    firstInput.focus();
+                    firstInput.select();
+                }}
+            }});
+        }}
+
+        async function invokeDocsActionButton(buttonConfig, triggerButton) {{
+            const inputValues = await collectDocsActionInputs(buttonConfig);
+            if (inputValues === null) {{
+                return;
+            }}
+
+            const originalText = triggerButton.textContent;
+            triggerButton.disabled = true;
+            triggerButton.textContent = "请求中...";
+
+            try {{
+                const response = await fetch("/docs/action-buttons/" + buttonConfig.index + "/invoke", {{
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {{
+                        "Content-Type": "application/json"
+                    }},
+                    body: JSON.stringify({{
+                        inputs: inputValues
+                    }})
+                }});
+
+                const responseText = await response.text();
+                let data = null;
+                try {{
+                    data = JSON.parse(responseText);
+                }} catch (_error) {{
+                    data = null;
+                }}
+
+                if (data && Object.prototype.hasOwnProperty.call(data, "body")) {{
+                    alert("状态码: " + data.status_code + "\\n\\n" + data.body);
+                    return;
+                }}
+
+                alert("状态码: " + response.status + "\\n\\n" + responseText);
+            }} catch (error) {{
+                alert("请求失败: " + error);
+            }} finally {{
+                triggerButton.disabled = false;
+                triggerButton.textContent = originalText;
+            }}
+        }}
+
         function insertToolbar() {{
             if (document.querySelector(".swagger-ui .tag-toolbar")) return;
 
@@ -321,15 +612,25 @@ def build_swagger_ui_html(openapi_url: str, title: str) -> HTMLResponse:
 
             const toolbar = document.createElement("div");
             toolbar.className = "tag-toolbar";
-            toolbar.innerHTML = `
-                <button type="button" id="toggle-all-tags">展开全部</button>
-            `;
+
+            docsActionButtons.forEach((buttonConfig) => {{
+                const actionButton = document.createElement("button");
+                actionButton.type = "button";
+                actionButton.className = "docs-action-button-" + (buttonConfig.variant || "default");
+                actionButton.textContent = buttonConfig.title || "执行操作";
+                actionButton.addEventListener("click", () => invokeDocsActionButton(buttonConfig, actionButton));
+                toolbar.appendChild(actionButton);
+            }});
+
+            const toggleButton = document.createElement("button");
+            toggleButton.type = "button";
+            toggleButton.id = "toggle-all-tags";
+            toggleButton.textContent = "展开全部";
+            toolbar.appendChild(toggleButton);
 
             firstTagSection.parentNode.insertBefore(toolbar, firstTagSection);
 
-            document
-                .getElementById("toggle-all-tags")
-                .addEventListener("click", toggleAllTags);
+            toggleButton.addEventListener("click", toggleAllTags);
 
             syncToolbarText();
         }}

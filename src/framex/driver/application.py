@@ -9,8 +9,9 @@ from pathlib import Path
 from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
+import httpx
 import pytz
-from fastapi import Depends, FastAPI
+from fastapi import Body, Depends, FastAPI
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
@@ -32,6 +33,7 @@ from framex.repository import (
     is_private_repository,
 )
 from framex.utils import (
+    build_docs_action_button_views,
     build_plugin_config_html,
     build_swagger_ui_html,
     collect_embedded_config_files,
@@ -126,7 +128,72 @@ def create_fastapi_application() -> FastAPI:
 
     @application.get(DOCS_URL, include_in_schema=False)
     async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
-        return build_swagger_ui_html(openapi_url=OPENAPI_URL, title="FrameX Docs")
+        return build_swagger_ui_html(
+            openapi_url=OPENAPI_URL,
+            title="FrameX Docs",
+            action_buttons=build_docs_action_button_views(settings.docs.action_buttons),
+        )
+
+    @application.post("/docs/action-buttons/{button_index}/invoke", include_in_schema=False)
+    async def invoke_docs_action_button(
+        button_index: int,
+        _: Annotated[str, Depends(authenticate)],
+        payload: dict[str, Any] | None = Body(default=None),  # noqa
+    ) -> JSONResponse:
+        action_buttons = settings.docs.action_buttons
+        if button_index < 0 or button_index >= len(action_buttons):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Docs action button not found")
+
+        action_button = action_buttons[button_index]
+        input_values = (payload or {}).get("inputs", {})
+        if not isinstance(input_values, dict):
+            raise HTTPException(status_code=422, detail="Invalid input payload")
+
+        missing_inputs = [
+            input_config.label or input_config.name
+            for input_config in action_button.inputs
+            if input_config.required and not str(input_values.get(input_config.name, "")).strip()
+        ]
+        if missing_inputs:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Missing required inputs: {', '.join(missing_inputs)}",
+            )
+
+        merged_query = dict(action_button.query)
+        merged_body = dict(action_button.body)
+        for input_config in action_button.inputs:
+            if input_config.name in input_values:
+                if input_config.target == "query":
+                    merged_query[input_config.name] = input_values[input_config.name]
+                else:
+                    merged_body[input_config.name] = input_values[input_config.name]
+
+        request_kwargs: dict[str, Any] = {"headers": action_button.headers, "params": merged_query}
+        if merged_body:
+            if action_button.body_type == "form":
+                request_kwargs["data"] = merged_body
+            else:
+                request_kwargs["json"] = merged_body
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.request(
+                    action_button.method,
+                    action_button.url,
+                    **request_kwargs,
+                )
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=safe_error_message(exc)) from exc
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "ok": response.is_success,
+                "status_code": response.status_code,
+                "body": response.text,
+            },
+        )
 
     @application.get("/docs/plugin-config", include_in_schema=False)
     async def get_plugin_config_documentation(

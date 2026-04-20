@@ -148,8 +148,30 @@ class RepositoryConfig(BaseModel):
     auth: RepositoryAuthConfig = Field(default_factory=RepositoryAuthConfig)
 
 
+class DocsActionButtonInputConfig(BaseModel):
+    name: str
+    label: str
+    placeholder: str = ""
+    default: str = ""
+    required: bool = False
+    target: Literal["body", "query"] = "body"
+
+
+class DocsActionButtonConfig(BaseModel):
+    title: str
+    variant: Literal["default", "primary", "success", "warning", "danger"] = "default"
+    url: str
+    method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
+    headers: dict[str, str] = Field(default_factory=dict)
+    query: dict[str, Any] = Field(default_factory=dict)
+    body_type: Literal["json", "form"] = "json"
+    body: dict[str, Any] = Field(default_factory=dict)
+    inputs: list[DocsActionButtonInputConfig] = Field(default_factory=list)
+
+
 class DocsConfig(BaseModel):
     embedded_config_file_whitelist: list[str] = Field(default_factory=list)
+    action_buttons: list[DocsActionButtonConfig] = Field(default_factory=list)
 
 
 class AuthConfig(BaseModel):

@@ -7,12 +7,20 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from framex.config import AuthConfig, GitLabRepositoryAuthEndpointConfig, settings
+from framex.config import (
+    AuthConfig,
+    DocsActionButtonConfig,
+    DocsActionButtonInputConfig,
+    GitLabRepositoryAuthEndpointConfig,
+    settings,
+)
 from framex.repository import can_access_repository, get_latest_repository_version, has_newer_release_version
 from framex.utils import (
     StreamEnventType,
+    build_docs_action_button_views,
     build_plugin_config_html,
     build_plugin_description,
+    build_swagger_ui_html,
     cache_decode,
     cache_encode,
     collect_embedded_config_files,
@@ -202,6 +210,83 @@ def test_build_plugin_description_shows_lazy_release_view():
     )
 
     assert "/docs/plugin-release?plugin=demo" in description
+
+
+def test_build_docs_action_button_views_excludes_sensitive_request_config():
+    views = build_docs_action_button_views(
+        [
+            DocsActionButtonConfig(
+                title="Trigger CI",
+                variant="success",
+                url="https://example.test/trigger",
+                headers={"Authorization": "Bearer secret-token"},
+                body_type="form",
+                body={"token": "secret-token"},
+                inputs=[
+                    DocsActionButtonInputConfig(
+                        name="variables[PACKAGE_VERSION]",
+                        label="Package Version",
+                        placeholder="0.0.8",
+                        default="0.0.8",
+                        required=True,
+                    )
+                ],
+            )
+        ]
+    )
+
+    assert views == [
+        {
+            "index": 0,
+            "title": "Trigger CI",
+            "variant": "success",
+            "inputs": [
+                {
+                    "name": "variables[PACKAGE_VERSION]",
+                    "label": "Package Version",
+                    "placeholder": "0.0.8",
+                    "default": "0.0.8",
+                    "required": True,
+                    "target": "body",
+                }
+            ],
+        }
+    ]
+    assert "url" not in views[0]
+    assert "headers" not in views[0]
+    assert "body" not in views[0]
+
+
+def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
+    html_response = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        action_buttons=[
+            {
+                "index": 0,
+                "title": "Trigger CI",
+                "variant": "success",
+                "inputs": [
+                    {
+                        "name": "variables[PACKAGE_VERSION]",
+                        "label": "Package Version",
+                        "placeholder": "0.0.8",
+                        "default": "0.0.8",
+                        "required": True,
+                        "target": "body",
+                    }
+                ],
+            }
+        ],
+    )
+    html_text = html_response.body.decode()  # type: ignore
+
+    assert "Trigger CI" in html_text
+    assert "docs-action-button-success" in html_text
+    assert "variables[PACKAGE_VERSION]" in html_text
+    assert "/docs/action-buttons/" in html_text
+    assert "secret-token" not in html_text
+    assert "https://example.test/trigger" not in html_text
 
 
 def test_collect_embedded_config_files_reads_yaml_and_toml(tmp_path):

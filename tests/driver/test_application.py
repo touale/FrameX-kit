@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 from starlette import status
 from starlette.exceptions import HTTPException
 
+import framex.driver.application as application_module
+from framex.config import DocsActionButtonConfig, DocsActionButtonInputConfig, settings
 from framex.consts import API_STR
 from framex.driver.application import create_fastapi_application
 
@@ -106,6 +108,171 @@ class TestLogResponseMiddleware:
         assert data["message"] == "success"
         assert data["data"] == {"result": "ok"}
         assert "timestamp" in data
+
+
+class TestDocsActionButtons:
+    @staticmethod
+    def _get_invoke_endpoint(app) -> Any:
+        return next(
+            route.endpoint
+            for route in app.routes
+            if getattr(route, "path", "") == "/docs/action-buttons/{button_index}/invoke"
+        )
+
+    @pytest.mark.asyncio
+    async def test_invoke_form_action_button_merges_body_inputs(self, monkeypatch):
+        captured_request: dict[str, Any] = {}
+
+        class FakeResponse:
+            is_success = True
+            status_code = 201
+            text = "created"
+
+        class FakeClient:
+            def __init__(self, timeout: float):
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+            async def request(self, method: str, url: str, **kwargs: Any) -> FakeResponse:
+                captured_request.update({"method": method, "url": url, "kwargs": kwargs})
+                return FakeResponse()
+
+        monkeypatch.setattr(application_module.httpx, "AsyncClient", FakeClient)
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Trigger CI",
+                    url="https://example.test/trigger",
+                    method="POST",
+                    body_type="form",
+                    body={
+                        "token": "secret-token",
+                        "ref": "test-ci",
+                        "variables[PACKAGE_NAME]": "task-decomposer",
+                    },
+                    inputs=[
+                        DocsActionButtonInputConfig(
+                            name="variables[PACKAGE_VERSION]",
+                            label="Package Version",
+                            required=True,
+                        )
+                    ],
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+        response = await endpoint(0, None, {"inputs": {"variables[PACKAGE_VERSION]": "0.0.8"}})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert captured_request == {
+            "method": "POST",
+            "url": "https://example.test/trigger",
+            "kwargs": {
+                "headers": {},
+                "params": {},
+                "data": {
+                    "token": "secret-token",
+                    "ref": "test-ci",
+                    "variables[PACKAGE_NAME]": "task-decomposer",
+                    "variables[PACKAGE_VERSION]": "0.0.8",
+                },
+            },
+        }
+
+    @pytest.mark.asyncio
+    async def test_invoke_get_action_button_merges_query_inputs(self, monkeypatch):
+        captured_request: dict[str, Any] = {}
+
+        class FakeResponse:
+            is_success = True
+            status_code = 200
+            text = '{"message":"asd"}'
+
+        class FakeClient:
+            def __init__(self, timeout: float):
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+            async def request(self, method: str, url: str, **kwargs: Any) -> FakeResponse:
+                captured_request.update({"method": method, "url": url, "kwargs": kwargs})
+                return FakeResponse()
+
+        monkeypatch.setattr(application_module.httpx, "AsyncClient", FakeClient)
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    method="GET",
+                    headers={"accept": "application/json", "Authorization": "888"},
+                    inputs=[
+                        DocsActionButtonInputConfig(
+                            name="message",
+                            label="Message",
+                            required=True,
+                            target="query",
+                        )
+                    ],
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+        response = await endpoint(0, None, {"inputs": {"message": "asd"}})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert captured_request == {
+            "method": "GET",
+            "url": "http://localhost:11000/api/v1/echo",
+            "kwargs": {
+                "headers": {"accept": "application/json", "Authorization": "888"},
+                "params": {"message": "asd"},
+            },
+        }
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_rejects_missing_required_input(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    inputs=[
+                        DocsActionButtonInputConfig(
+                            name="message",
+                            label="Message",
+                            required=True,
+                            target="query",
+                        )
+                    ],
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, None, {"inputs": {"message": ""}})
+
+        assert exc_info.value.status_code == 422
+        assert exc_info.value.detail == "Missing required inputs: Message"
 
 
 class TestLifespanBehavior:
