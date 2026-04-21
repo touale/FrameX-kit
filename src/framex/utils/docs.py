@@ -13,6 +13,9 @@ def build_docs_action_button_views(action_buttons: list[Any]) -> list[dict[str, 
             "index": index,
             "title": button.title,
             "variant": button.variant,
+            "requires_confirmation": button.requires_confirmation,
+            "confirmation_message": button.confirmation_message,
+            "auth_type": button.auth.type,
             "inputs": [
                 {
                     "name": input_config.name,
@@ -561,9 +564,25 @@ def build_swagger_ui_html(
         }}
 
         async function invokeDocsActionButton(buttonConfig, triggerButton) {{
+            if (buttonConfig.requires_confirmation) {{
+                const confirmationMessage = buttonConfig.confirmation_message || ("确认执行: " + (buttonConfig.title || "执行操作") + "?");
+                if (!window.confirm(confirmationMessage)) {{
+                    return;
+                }}
+            }}
+
             const inputValues = await collectDocsActionInputs(buttonConfig);
             if (inputValues === null) {{
                 return;
+            }}
+
+            const authPayload = {{}};
+            if (buttonConfig.auth_type === "password") {{
+                const password = window.prompt("请输入操作密码");
+                if (password === null) {{
+                    return;
+                }}
+                authPayload.password = password;
             }}
 
             const originalText = triggerButton.textContent;
@@ -578,7 +597,8 @@ def build_swagger_ui_html(
                         "Content-Type": "application/json"
                     }},
                     body: JSON.stringify({{
-                        inputs: inputValues
+                        inputs: inputValues,
+                        auth: authPayload
                     }})
                 }});
 

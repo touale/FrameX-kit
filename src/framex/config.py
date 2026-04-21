@@ -1,5 +1,5 @@
 import secrets
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 from pydantic_settings import (
@@ -157,9 +157,31 @@ class DocsActionButtonInputConfig(BaseModel):
     target: Literal["body", "query"] = "body"
 
 
+class DocsActionButtonNoAuthConfig(BaseModel):
+    type: Literal["none"] = "none"
+
+
+class DocsActionButtonOAuthAuthConfig(BaseModel):
+    type: Literal["oauth"] = "oauth"
+    allowed_usernames: list[str] = Field(default_factory=lambda: ["*"])
+
+
+class DocsActionButtonPasswordAuthConfig(BaseModel):
+    type: Literal["password"] = "password"
+    password: str
+
+
+DocsActionButtonAuthConfig = Annotated[
+    DocsActionButtonNoAuthConfig | DocsActionButtonOAuthAuthConfig | DocsActionButtonPasswordAuthConfig,
+    Field(discriminator="type"),
+]
+
+
 class DocsActionButtonConfig(BaseModel):
     title: str
     variant: Literal["default", "primary", "success", "warning", "danger"] = "default"
+    requires_confirmation: bool = False
+    confirmation_message: str = ""
     url: str
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
     headers: dict[str, str] = Field(default_factory=dict)
@@ -167,6 +189,7 @@ class DocsActionButtonConfig(BaseModel):
     body_type: Literal["json", "form"] = "json"
     body: dict[str, Any] = Field(default_factory=dict)
     inputs: list[DocsActionButtonInputConfig] = Field(default_factory=list)
+    auth: DocsActionButtonAuthConfig = Field(default_factory=DocsActionButtonNoAuthConfig)
 
 
 class DocsConfig(BaseModel):

@@ -137,7 +137,7 @@ def create_fastapi_application() -> FastAPI:
     @application.post("/docs/action-buttons/{button_index}/invoke", include_in_schema=False)
     async def invoke_docs_action_button(
         button_index: int,
-        _: Annotated[str, Depends(authenticate)],
+        request: Request,
         payload: dict[str, Any] | None = Body(default=None),  # noqa
     ) -> JSONResponse:
         action_buttons = settings.docs.action_buttons
@@ -145,7 +145,23 @@ def create_fastapi_application() -> FastAPI:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Docs action button not found")
 
         action_button = action_buttons[button_index]
-        input_values = (payload or {}).get("inputs", {})
+        request_payload = payload or {}
+        auth_payload = get_auth_payload(request)
+        action_auth = action_button.auth
+        if action_auth.type == "oauth":
+            if auth_payload is None:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="OAuth authentication required")
+            if (
+                "*" not in action_auth.allowed_usernames
+                and auth_payload.get("username") not in action_auth.allowed_usernames
+            ):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not allowed")
+        elif action_auth.type == "password":
+            supplied_auth = request_payload.get("auth", {})
+            if not isinstance(supplied_auth, dict) or supplied_auth.get("password") != action_auth.password:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid action password")
+
+        input_values = request_payload.get("inputs", {})
         if not isinstance(input_values, dict):
             raise HTTPException(status_code=422, detail="Invalid input payload")
 

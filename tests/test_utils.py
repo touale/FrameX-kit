@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from framex.config import (
     AuthConfig,
@@ -212,16 +212,52 @@ def test_build_plugin_description_shows_lazy_release_view():
     assert "/docs/plugin-release?plugin=demo" in description
 
 
+def test_docs_action_button_auth_config_defaults_to_no_auth():
+    config = DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo")
+
+    assert config.auth.type == "none"
+    assert config.requires_confirmation is False
+    assert config.confirmation_message == ""
+
+
+@pytest.mark.parametrize(
+    "auth_config",
+    [
+        {"type": "none"},
+        {"type": "oauth", "allowed_usernames": ["*"]},
+        {"type": "oauth", "allowed_usernames": ["alice"]},
+        {"type": "password", "password": "secret"},
+    ],
+)
+def test_docs_action_button_auth_config_accepts_supported_modes(auth_config: dict[str, Any]):
+    config = DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo", auth=auth_config)
+
+    assert config.auth.type == auth_config["type"]
+
+
+def test_docs_action_button_password_auth_requires_password():
+    with pytest.raises(ValidationError):
+        DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo", auth={"type": "password"})
+
+
+def test_docs_action_button_rejects_unknown_auth_type():
+    with pytest.raises(ValidationError):
+        DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo", auth={"type": "api_key"})
+
+
 def test_build_docs_action_button_views_excludes_sensitive_request_config():
     views = build_docs_action_button_views(
         [
             DocsActionButtonConfig(
                 title="Trigger CI",
                 variant="success",
+                requires_confirmation=True,
+                confirmation_message="Confirm trigger?",
                 url="https://example.test/trigger",
                 headers={"Authorization": "Bearer secret-token"},
                 body_type="form",
                 body={"token": "secret-token"},
+                auth={"type": "password", "password": "action-password"},
                 inputs=[
                     DocsActionButtonInputConfig(
                         name="variables[PACKAGE_VERSION]",
@@ -240,6 +276,9 @@ def test_build_docs_action_button_views_excludes_sensitive_request_config():
             "index": 0,
             "title": "Trigger CI",
             "variant": "success",
+            "requires_confirmation": True,
+            "confirmation_message": "Confirm trigger?",
+            "auth_type": "password",
             "inputs": [
                 {
                     "name": "variables[PACKAGE_VERSION]",
@@ -255,6 +294,8 @@ def test_build_docs_action_button_views_excludes_sensitive_request_config():
     assert "url" not in views[0]
     assert "headers" not in views[0]
     assert "body" not in views[0]
+    assert "auth" not in views[0]
+    assert "password" not in views[0]
 
 
 def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
@@ -266,6 +307,9 @@ def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
                 "index": 0,
                 "title": "Trigger CI",
                 "variant": "success",
+                "requires_confirmation": True,
+                "confirmation_message": "Confirm trigger?",
+                "auth_type": "password",
                 "inputs": [
                     {
                         "name": "variables[PACKAGE_VERSION]",
@@ -284,8 +328,12 @@ def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
     assert "Trigger CI" in html_text
     assert "docs-action-button-success" in html_text
     assert "variables[PACKAGE_VERSION]" in html_text
+    assert "Confirm trigger?" in html_text
+    assert '"auth_type": "password"' in html_text
     assert "/docs/action-buttons/" in html_text
     assert "secret-token" not in html_text
+    assert "action-password" not in html_text
+    assert "allowed_usernames" not in html_text
     assert "https://example.test/trigger" not in html_text
 
 

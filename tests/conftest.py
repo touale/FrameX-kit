@@ -11,6 +11,12 @@ import framex
 from framex.config import settings
 from tests.mock import mock_get, mock_repository_fetch_json, mock_request
 
+TEST_AUTH_RULES = {
+    "/api/v1/openapi.json": ["i_am_docs_key"],
+    "/api/v1/echo": ["i_am_general_auth_keys"],
+    "/api/v1/proxy/remote": ["i_am_local_proxy_auth_keys"],
+}
+
 
 @pytest.fixture(autouse=True)
 def reset_runtime_state(monkeypatch):
@@ -65,6 +71,8 @@ def test_app() -> Generator:
         ),
         patch("httpx.AsyncClient.get", new=mock_get),
         patch("httpx.AsyncClient.request", new=mock_request),
+        patch.object(settings.auth, "oauth", None),
+        patch.object(settings.auth, "rules", TEST_AUTH_RULES.copy()),
     ):
         plugins = framex.load_plugins(str(Path(__file__).parent / "plugins"))
         assert len(plugins) == len(["invoker", "export", "alias_model"])

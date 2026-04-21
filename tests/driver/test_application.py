@@ -7,11 +7,13 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette import status
 from starlette.exceptions import HTTPException
+from starlette.requests import Request
 
 import framex.driver.application as application_module
-from framex.config import DocsActionButtonConfig, DocsActionButtonInputConfig, settings
-from framex.consts import API_STR
+from framex.config import DocsActionButtonConfig, DocsActionButtonInputConfig, OauthConfig, settings
+from framex.consts import API_STR, AUTH_COOKIE_NAME
 from framex.driver.application import create_fastapi_application
+from framex.driver.auth import create_auth_session, create_jwt
 
 
 class TestCreateFastAPIApplication:
@@ -119,6 +121,57 @@ class TestDocsActionButtons:
             if getattr(route, "path", "") == "/docs/action-buttons/{button_index}/invoke"
         )
 
+    @staticmethod
+    def _build_request(auth_token: str | None = None) -> Request:
+        headers = []
+        if auth_token:
+            headers.append((b"cookie", f"{AUTH_COOKIE_NAME}={auth_token}".encode()))
+        return Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/docs/action-buttons/0/invoke",
+                "headers": headers,
+            }
+        )
+
+    @staticmethod
+    def _build_oauth_request(monkeypatch, username: str) -> Request:
+        monkeypatch.setattr(
+            settings.auth,
+            "oauth",
+            OauthConfig(jwt_secret="test-secret-with-enough-bytes-for-hs256", jwt_algorithm="HS256"),  # noqa: S106
+        )
+        session_id = create_auth_session({"username": username})
+        token = create_jwt({"session_id": session_id, "username": username})
+        return TestDocsActionButtons._build_request(token)
+
+    @staticmethod
+    def _patch_fake_http_client(monkeypatch) -> dict[str, Any]:
+        captured_request: dict[str, Any] = {}
+
+        class FakeResponse:
+            is_success = True
+            status_code = 200
+            text = "ok"
+
+        class FakeClient:
+            def __init__(self, timeout: float):
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+            async def request(self, method: str, url: str, **kwargs: Any) -> FakeResponse:
+                captured_request.update({"method": method, "url": url, "kwargs": kwargs})
+                return FakeResponse()
+
+        monkeypatch.setattr(application_module.httpx, "AsyncClient", FakeClient)
+        return captured_request
+
     @pytest.mark.asyncio
     async def test_invoke_form_action_button_merges_body_inputs(self, monkeypatch):
         captured_request: dict[str, Any] = {}
@@ -151,6 +204,7 @@ class TestDocsActionButtons:
                     title="Trigger CI",
                     url="https://example.test/trigger",
                     method="POST",
+                    auth={"type": "none"},
                     body_type="form",
                     body={
                         "token": "secret-token",
@@ -169,7 +223,11 @@ class TestDocsActionButtons:
         )
 
         endpoint = self._get_invoke_endpoint(create_fastapi_application())
-        response = await endpoint(0, None, {"inputs": {"variables[PACKAGE_VERSION]": "0.0.8"}})
+        response = await endpoint(
+            0,
+            self._build_request(),
+            {"inputs": {"variables[PACKAGE_VERSION]": "0.0.8"}},
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert captured_request == {
@@ -219,6 +277,7 @@ class TestDocsActionButtons:
                     title="Echo",
                     url="http://localhost:11000/api/v1/echo",
                     method="GET",
+                    auth={"type": "none"},
                     headers={"accept": "application/json", "Authorization": "888"},
                     inputs=[
                         DocsActionButtonInputConfig(
@@ -233,7 +292,7 @@ class TestDocsActionButtons:
         )
 
         endpoint = self._get_invoke_endpoint(create_fastapi_application())
-        response = await endpoint(0, None, {"inputs": {"message": "asd"}})
+        response = await endpoint(0, self._build_request(), {"inputs": {"message": "asd"}})
 
         assert response.status_code == status.HTTP_200_OK
         assert captured_request == {
@@ -254,6 +313,7 @@ class TestDocsActionButtons:
                 DocsActionButtonConfig(
                     title="Echo",
                     url="http://localhost:11000/api/v1/echo",
+                    auth={"type": "none"},
                     inputs=[
                         DocsActionButtonInputConfig(
                             name="message",
@@ -269,10 +329,118 @@ class TestDocsActionButtons:
         endpoint = self._get_invoke_endpoint(create_fastapi_application())
 
         with pytest.raises(HTTPException) as exc_info:
-            await endpoint(0, None, {"inputs": {"message": ""}})
+            await endpoint(0, self._build_request(), {"inputs": {"message": ""}})
 
         assert exc_info.value.status_code == 422
         assert exc_info.value.detail == "Missing required inputs: Message"
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_rejects_missing_oauth_session(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    auth={"type": "oauth"},
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_request(), {"inputs": {}})
+
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.detail == "OAuth authentication required"
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_allows_oauth_wildcard_user(self, monkeypatch):
+        captured_request = self._patch_fake_http_client(monkeypatch)
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    auth={"type": "oauth", "allowed_usernames": ["*"]},
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_oauth_request(monkeypatch, "anyone"), {"inputs": {}})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert captured_request["url"] == "http://localhost:11000/api/v1/echo"
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_rejects_oauth_user_not_in_whitelist(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    auth={"type": "oauth", "allowed_usernames": ["alice"]},
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_oauth_request(monkeypatch, "bob"), {"inputs": {}})
+
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+        assert exc_info.value.detail == "User is not allowed"
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_rejects_wrong_password(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    auth={"type": "password", "password": "secret"},
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_request(), {"inputs": {}, "auth": {"password": "wrong"}})
+
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.detail == "Invalid action password"
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_allows_correct_password(self, monkeypatch):
+        captured_request = self._patch_fake_http_client(monkeypatch)
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    auth={"type": "password", "password": "secret"},
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_request(), {"inputs": {}, "auth": {"password": "secret"}})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert captured_request["url"] == "http://localhost:11000/api/v1/echo"
 
 
 class TestLifespanBehavior:
