@@ -26,7 +26,7 @@ jobs:
           tool: mdbook@0.4.52
       - name: build book
         run: cd book && mdbook build
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: book/book
 
