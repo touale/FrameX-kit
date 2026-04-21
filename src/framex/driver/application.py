@@ -193,7 +193,7 @@ def create_fastapi_application() -> FastAPI:
                 request_kwargs["json"] = merged_body
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=action_button.timeout) as client:
                 response = await client.request(
                     action_button.method,
                     action_button.url,

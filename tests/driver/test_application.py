@@ -157,7 +157,7 @@ class TestDocsActionButtons:
 
         class FakeClient:
             def __init__(self, timeout: float):
-                self.timeout = timeout
+                captured_request["timeout"] = timeout
 
             async def __aenter__(self):
                 return self
@@ -183,7 +183,7 @@ class TestDocsActionButtons:
 
         class FakeClient:
             def __init__(self, timeout: float):
-                self.timeout = timeout
+                captured_request["timeout"] = timeout
 
             async def __aenter__(self):
                 return self
@@ -233,6 +233,7 @@ class TestDocsActionButtons:
         assert captured_request == {
             "method": "POST",
             "url": "https://example.test/trigger",
+            "timeout": 30.0,
             "kwargs": {
                 "headers": {},
                 "params": {},
@@ -256,7 +257,7 @@ class TestDocsActionButtons:
 
         class FakeClient:
             def __init__(self, timeout: float):
-                self.timeout = timeout
+                captured_request["timeout"] = timeout
 
             async def __aenter__(self):
                 return self
@@ -277,6 +278,7 @@ class TestDocsActionButtons:
                     title="Echo",
                     url="http://localhost:11000/api/v1/echo",
                     method="GET",
+                    timeout=12.5,
                     auth={"type": "none"},
                     headers={"accept": "application/json", "Authorization": "888"},
                     inputs=[
@@ -298,6 +300,7 @@ class TestDocsActionButtons:
         assert captured_request == {
             "method": "GET",
             "url": "http://localhost:11000/api/v1/echo",
+            "timeout": 12.5,
             "kwargs": {
                 "headers": {"accept": "application/json", "Authorization": "888"},
                 "params": {"message": "asd"},

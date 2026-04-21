@@ -184,6 +184,7 @@ class DocsActionButtonConfig(BaseModel):
     confirmation_message: str = ""
     url: str
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
+    timeout: float = Field(default=30.0, gt=0)
     headers: dict[str, str] = Field(default_factory=dict)
     query: dict[str, Any] = Field(default_factory=dict)
     body_type: Literal["json", "form"] = "json"

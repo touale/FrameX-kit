@@ -4,10 +4,10 @@ from urllib.parse import quote
 
 from fastapi.responses import HTMLResponse
 
-from framex.config import settings
+from framex.config import DocsActionButtonConfig, settings
 
 
-def build_docs_action_button_views(action_buttons: list[Any]) -> list[dict[str, Any]]:
+def build_docs_action_button_views(action_buttons: list["DocsActionButtonConfig"]) -> list[dict[str, Any]]:
     return [
         {
             "index": index,

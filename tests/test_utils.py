@@ -216,8 +216,20 @@ def test_docs_action_button_auth_config_defaults_to_no_auth():
     config = DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo")
 
     assert config.auth.type == "none"
+    assert config.timeout == 30.0
     assert config.requires_confirmation is False
     assert config.confirmation_message == ""
+
+
+def test_docs_action_button_timeout_accepts_positive_override():
+    config = DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo", timeout=12.5)
+
+    assert config.timeout == 12.5
+
+
+def test_docs_action_button_timeout_must_be_positive():
+    with pytest.raises(ValidationError):
+        DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo", timeout=0)
 
 
 @pytest.mark.parametrize(
