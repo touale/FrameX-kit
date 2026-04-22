@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## v0.3.7 (2026-04-22)
+
+### Bug Fixes
+
+- Hide auth buttons in swagger ui
+  ([`faf204f`](https://github.com/touale/FrameX-kit/commit/faf204f0786ad4f023c99b4b41cd7d1d32faf387))
+
+- Increase http timeout and update version notification text
+  ([`9d023b8`](https://github.com/touale/FrameX-kit/commit/9d023b8406d4d3552e2803a8e994bbe33b04bf35))
+
+### Chores
+
+- **deps**: Bump actions/upload-pages-artifact from 4 to 5
+  ([`df9e6ec`](https://github.com/touale/FrameX-kit/commit/df9e6ece8b615da7a1fb84ceb5f2403dbfe599aa))
+
+- **deps**: Bump pydantic from 2.12.5 to 2.13.2
+  ([`741cd7a`](https://github.com/touale/FrameX-kit/commit/741cd7a2b8af556065473b6046a2f086f4ebe262))
+
+- **deps-dev**: Bump mypy from 1.19.1 to 1.20.1
+  ([`ca9ffa4`](https://github.com/touale/FrameX-kit/commit/ca9ffa4e1a1e4bae635fd53ecf39bfd0119b600a))
+
+- **deps-dev**: Bump ruff from 0.15.8 to 0.15.11
+  ([`7a85f3d`](https://github.com/touale/FrameX-kit/commit/7a85f3dfa998fa0f64506c7d6737e3ac3f2b7ae3))
+
+### Features
+
+- Add auth and confirmation to action buttons
+  ([`29f63a6`](https://github.com/touale/FrameX-kit/commit/29f63a621a9c935260fb2815363de6a035550205))
+
+- Add configurable action buttons to docs UI
+  ([`ef84467`](https://github.com/touale/FrameX-kit/commit/ef84467c608f45d40e56c0a10344a85afcb63e49))
+
+- Add configurable timeout to action buttons
+  ([`ba754c3`](https://github.com/touale/FrameX-kit/commit/ba754c383379b8539816707e6ea45bd1615f3b1b))
+
+- Add LINK method and response URL to action buttons
+  ([`ad6b890`](https://github.com/touale/FrameX-kit/commit/ad6b890e3563f1960b54a208c95cd8096a0d29be))
+
+
 ## v0.3.6 (2026-04-17)
 
 ### Bug Fixes
