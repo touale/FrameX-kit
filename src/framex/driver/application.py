@@ -37,6 +37,7 @@ from framex.utils import (
     build_plugin_config_html,
     build_swagger_ui_html,
     collect_embedded_config_files,
+    extract_docs_action_response_open_url,
     format_uptime,
     safe_error_message,
 )
@@ -126,26 +127,17 @@ def create_fastapi_application() -> FastAPI:
             return plugin_info_map[plugin_id]
         return None
 
-    @application.get(DOCS_URL, include_in_schema=False)
-    async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
-        return build_swagger_ui_html(
-            openapi_url=OPENAPI_URL,
-            title="FrameX Docs",
-            action_buttons=build_docs_action_button_views(settings.docs.action_buttons),
-        )
-
-    @application.post("/docs/action-buttons/{button_index}/invoke", include_in_schema=False)
-    async def invoke_docs_action_button(
-        button_index: int,
-        request: Request,
-        payload: dict[str, Any] | None = Body(default=None),  # noqa
-    ) -> JSONResponse:
+    def _get_docs_action_button(button_index: int) -> Any:
         action_buttons = settings.docs.action_buttons
         if button_index < 0 or button_index >= len(action_buttons):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Docs action button not found")
+        return action_buttons[button_index]
 
-        action_button = action_buttons[button_index]
-        request_payload = payload or {}
+    def _check_docs_action_button_auth(
+        action_button: Any,
+        request: Request,
+        request_payload: dict[str, Any],
+    ) -> None:
         auth_payload = get_auth_payload(request)
         action_auth = action_button.auth
         if action_auth.type == "oauth":
@@ -160,6 +152,27 @@ def create_fastapi_application() -> FastAPI:
             supplied_auth = request_payload.get("auth", {})
             if not isinstance(supplied_auth, dict) or supplied_auth.get("password") != action_auth.password:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid action password")
+
+    @application.get(DOCS_URL, include_in_schema=False)
+    async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
+        return build_swagger_ui_html(
+            openapi_url=OPENAPI_URL,
+            title="FrameX Docs",
+            action_buttons=build_docs_action_button_views(settings.docs.action_buttons),
+        )
+
+    @application.post("/docs/action-buttons/{button_index}/invoke", include_in_schema=False)
+    async def invoke_docs_action_button(
+        button_index: int,
+        request: Request,
+        payload: dict[str, Any] | None = Body(default=None),  # noqa
+    ) -> JSONResponse:
+        action_button = _get_docs_action_button(button_index)
+        if action_button.method == "LINK":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Docs action button is a link")
+
+        request_payload = payload or {}
+        _check_docs_action_button_auth(action_button, request, request_payload)
 
         input_values = request_payload.get("inputs", {})
         if not isinstance(input_values, dict):
@@ -202,13 +215,35 @@ def create_fastapi_application() -> FastAPI:
         except httpx.HTTPError as exc:
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=safe_error_message(exc)) from exc
 
+        response_content: dict[str, Any] = {
+            "ok": response.is_success,
+            "status_code": response.status_code,
+            "body": response.text,
+        }
+        if action_button.response_open_url:
+            response_content["open_url"] = extract_docs_action_response_open_url(
+                response.text,
+                action_button.response_open_url,
+            )
+
+        return JSONResponse(status_code=status.HTTP_200_OK, content=response_content)
+
+    @application.post("/docs/action-buttons/{button_index}/open", include_in_schema=False)
+    async def open_docs_action_button(
+        button_index: int,
+        request: Request,
+        payload: dict[str, Any] | None = Body(default=None),  # noqa
+    ) -> JSONResponse:
+        action_button = _get_docs_action_button(button_index)
+        if action_button.method != "LINK":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Docs action button is not a link")
+
+        request_payload = payload or {}
+        _check_docs_action_button_auth(action_button, request, request_payload)
+
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content={
-                "ok": response.is_success,
-                "status_code": response.status_code,
-                "body": response.text,
-            },
+            content={"open_url": action_button.url},
         )
 
     @application.get("/docs/plugin-config", include_in_schema=False)

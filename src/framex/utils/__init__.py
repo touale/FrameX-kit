@@ -17,7 +17,12 @@ from .config_docs import (
     mask_sensitive_config_text,
     mask_sensitive_embedded_config_content,
 )
-from .docs import build_docs_action_button_views, build_plugin_description, build_swagger_ui_html
+from .docs import (
+    build_docs_action_button_views,
+    build_plugin_description,
+    build_swagger_ui_html,
+    extract_docs_action_response_open_url,
+)
 
 __all__ = [
     "StreamEnventType",
@@ -29,6 +34,7 @@ __all__ = [
     "cache_encode",
     "collect_embedded_config_files",
     "escape_tag",
+    "extract_docs_action_response_open_url",
     "extract_method_params",
     "format_uptime",
     "make_stream_event",

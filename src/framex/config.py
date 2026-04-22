@@ -1,7 +1,7 @@
 import secrets
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -183,7 +183,7 @@ class DocsActionButtonConfig(BaseModel):
     requires_confirmation: bool = False
     confirmation_message: str = ""
     url: str
-    method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
+    method: Literal["GET", "POST", "PUT", "PATCH", "DELETE", "LINK"] = "POST"
     timeout: float = Field(default=30.0, gt=0)
     headers: dict[str, str] = Field(default_factory=dict)
     query: dict[str, Any] = Field(default_factory=dict)
@@ -191,6 +191,13 @@ class DocsActionButtonConfig(BaseModel):
     body: dict[str, Any] = Field(default_factory=dict)
     inputs: list[DocsActionButtonInputConfig] = Field(default_factory=list)
     auth: DocsActionButtonAuthConfig = Field(default_factory=DocsActionButtonNoAuthConfig)
+    response_open_url: str = ""
+
+    @model_validator(mode="after")
+    def validate_link_url(self) -> "DocsActionButtonConfig":
+        if self.method == "LINK" and not self.url.startswith(("http://", "https://")):
+            raise ValueError("Docs action button LINK url must start with http:// or https://")
+        return self
 
 
 class DocsConfig(BaseModel):

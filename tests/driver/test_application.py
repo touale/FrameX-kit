@@ -1,5 +1,6 @@
 """Comprehensive tests for framex.driver.application module."""
 
+import json
 from typing import Any
 from unittest.mock import patch
 
@@ -119,6 +120,14 @@ class TestDocsActionButtons:
             route.endpoint
             for route in app.routes
             if getattr(route, "path", "") == "/docs/action-buttons/{button_index}/invoke"
+        )
+
+    @staticmethod
+    def _get_open_endpoint(app) -> Any:
+        return next(
+            route.endpoint
+            for route in app.routes
+            if getattr(route, "path", "") == "/docs/action-buttons/{button_index}/open"
         )
 
     @staticmethod
@@ -444,6 +453,320 @@ class TestDocsActionButtons:
 
         assert response.status_code == status.HTTP_200_OK
         assert captured_request["url"] == "http://localhost:11000/api/v1/echo"
+
+    @pytest.mark.asyncio
+    async def test_invoke_rejects_link_action_button(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url="https://logs.example.test/project/1",
+                    method="LINK",
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_request(), {"inputs": {}})
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert exc_info.value.detail == "Docs action button is a link"
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_returns_url_without_auth(self, monkeypatch):
+        link_url = "https://logs.example.test/project/1"
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url=link_url,
+                    method="LINK",
+                )
+            ],
+        )
+
+        endpoint = self._get_open_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_request(), {})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert json.loads(response.body) == {"open_url": link_url}
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_rejects_non_link_button(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Echo",
+                    url="http://localhost:11000/api/v1/echo",
+                    method="GET",
+                )
+            ],
+        )
+
+        endpoint = self._get_open_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_request(), {})
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert exc_info.value.detail == "Docs action button is not a link"
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_requires_oauth_session(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url="https://logs.example.test/project/1",
+                    method="LINK",
+                    auth={"type": "oauth"},
+                )
+            ],
+        )
+
+        endpoint = self._get_open_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_request(), {})
+
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.detail == "OAuth authentication required"
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_rejects_oauth_user_not_in_whitelist(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url="https://logs.example.test/project/1",
+                    method="LINK",
+                    auth={"type": "oauth", "allowed_usernames": ["alice"]},
+                )
+            ],
+        )
+
+        endpoint = self._get_open_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_oauth_request(monkeypatch, "bob"), {})
+
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+        assert exc_info.value.detail == "User is not allowed"
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_allows_oauth_wildcard_user(self, monkeypatch):
+        link_url = "https://logs.example.test/project/1"
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url=link_url,
+                    method="LINK",
+                    auth={"type": "oauth", "allowed_usernames": ["*"]},
+                )
+            ],
+        )
+
+        endpoint = self._get_open_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_oauth_request(monkeypatch, "anyone"), {})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert json.loads(response.body) == {"open_url": link_url}
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_rejects_wrong_password(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url="https://logs.example.test/project/1",
+                    method="LINK",
+                    auth={"type": "password", "password": "secret"},
+                )
+            ],
+        )
+
+        endpoint = self._get_open_endpoint(create_fastapi_application())
+
+        with pytest.raises(HTTPException) as exc_info:
+            await endpoint(0, self._build_request(), {"auth": {"password": "wrong"}})
+
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.detail == "Invalid action password"
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_allows_correct_password(self, monkeypatch):
+        link_url = "https://logs.example.test/project/1"
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url=link_url,
+                    method="LINK",
+                    auth={"type": "password", "password": "secret"},
+                )
+            ],
+        )
+
+        endpoint = self._get_open_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_request(), {"auth": {"password": "secret"}})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert json.loads(response.body) == {"open_url": link_url}
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_returns_open_url_from_response_json(self, monkeypatch):
+        pipeline_url = "http://gitlab.example.test/project/-/pipelines/35389"
+
+        class FakeResponse:
+            is_success = True
+            status_code = 201
+            text = json.dumps({"web_url": pipeline_url})
+
+        class FakeClient:
+            def __init__(self, timeout: float):
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+            async def request(self, method: str, url: str, **kwargs: Any) -> FakeResponse:  # noqa
+                return FakeResponse()
+
+        monkeypatch.setattr(application_module.httpx, "AsyncClient", FakeClient)
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Trigger CI",
+                    url="https://example.test/trigger",
+                    auth={"type": "none"},
+                    response_open_url="web_url",
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_request(), {"inputs": {}})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert json.loads(response.body)["open_url"] == pipeline_url
+
+    @pytest.mark.asyncio
+    async def test_invoke_action_button_returns_open_url_from_nested_response_path(self, monkeypatch):
+        user_url = "https://gitlab.example.test/touale"
+
+        class FakeResponse:
+            is_success = True
+            status_code = 201
+            text = json.dumps({"user": {"web_url": user_url}})
+
+        class FakeClient:
+            def __init__(self, timeout: float):
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+            async def request(self, method: str, url: str, **kwargs: Any) -> FakeResponse:  # noqa
+                return FakeResponse()
+
+        monkeypatch.setattr(application_module.httpx, "AsyncClient", FakeClient)
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Trigger CI",
+                    url="https://example.test/trigger",
+                    auth={"type": "none"},
+                    response_open_url="user.web_url",
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_request(), {"inputs": {}})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert json.loads(response.body)["open_url"] == user_url
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "response_text",
+        [
+            "created",
+            json.dumps({"web_url": "/project/-/pipelines/35389"}),
+            json.dumps({"web_url": "javascript:alert(1)"}),
+            json.dumps({"web_url": 35389}),
+            json.dumps({"pipeline": {"url": "https://gitlab.example.test/pipeline"}}),
+        ],
+    )
+    async def test_invoke_action_button_ignores_invalid_open_url_response(self, monkeypatch, response_text: str):
+        class FakeResponse:
+            is_success = True
+            status_code = 201
+            text = response_text
+
+        class FakeClient:
+            def __init__(self, timeout: float):
+                self.timeout = timeout
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+            async def request(self, method: str, url: str, **kwargs: Any) -> FakeResponse:  # noqa
+                return FakeResponse()
+
+        monkeypatch.setattr(application_module.httpx, "AsyncClient", FakeClient)
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="Trigger CI",
+                    url="https://example.test/trigger",
+                    auth={"type": "none"},
+                    response_open_url="web_url",
+                )
+            ],
+        )
+
+        endpoint = self._get_invoke_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_request(), {"inputs": {}})
+        data = json.loads(response.body)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert data["body"] == response_text
+        assert data["open_url"] is None
 
 
 class TestLifespanBehavior:
