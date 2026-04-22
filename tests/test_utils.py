@@ -24,6 +24,7 @@ from framex.utils import (
     cache_decode,
     cache_encode,
     collect_embedded_config_files,
+    extract_docs_action_response_open_url,
     format_uptime,
     make_stream_event,
     mask_sensitive_config_data,
@@ -232,6 +233,55 @@ def test_docs_action_button_timeout_must_be_positive():
         DocsActionButtonConfig(title="Echo", url="http://localhost:11000/api/v1/echo", timeout=0)
 
 
+def test_docs_action_button_response_open_url_accepts_path():
+    config = DocsActionButtonConfig(
+        title="Trigger CI",
+        url="https://example.test/trigger",
+        response_open_url="web_url",
+    )
+
+    assert config.response_open_url == "web_url"
+
+
+def test_docs_action_button_link_method_accepts_http_url():
+    config = DocsActionButtonConfig(
+        title="View Logs",
+        url="https://logs.example.test/project/1",
+        method="LINK",
+    )
+
+    assert config.method == "LINK"
+
+
+def test_docs_action_button_link_method_rejects_unsafe_url():
+    with pytest.raises(ValidationError):
+        DocsActionButtonConfig(title="View Logs", url="javascript:alert(1)", method="LINK")
+
+
+def test_extract_docs_action_response_open_url_from_json_path():
+    assert (
+        extract_docs_action_response_open_url(
+            json.dumps({"pipeline": {"web_url": "https://gitlab.example.test/pipelines/1"}}),
+            "pipeline.web_url",
+        )
+        == "https://gitlab.example.test/pipelines/1"
+    )
+
+
+@pytest.mark.parametrize(
+    "response_text",
+    [
+        "created",
+        json.dumps({"web_url": "/project/-/pipelines/35389"}),
+        json.dumps({"web_url": "javascript:alert(1)"}),
+        json.dumps({"web_url": 35389}),
+        json.dumps({"pipeline": {"url": "https://gitlab.example.test/pipeline"}}),
+    ],
+)
+def test_extract_docs_action_response_open_url_ignores_invalid_values(response_text: str):
+    assert extract_docs_action_response_open_url(response_text, "web_url") is None
+
+
 @pytest.mark.parametrize(
     "auth_config",
     [
@@ -270,6 +320,7 @@ def test_build_docs_action_button_views_excludes_sensitive_request_config():
                 body_type="form",
                 body={"token": "secret-token"},
                 auth={"type": "password", "password": "action-password"},
+                response_open_url="web_url",
                 inputs=[
                     DocsActionButtonInputConfig(
                         name="variables[PACKAGE_VERSION]",
@@ -288,6 +339,7 @@ def test_build_docs_action_button_views_excludes_sensitive_request_config():
             "index": 0,
             "title": "Trigger CI",
             "variant": "success",
+            "method": "POST",
             "requires_confirmation": True,
             "confirmation_message": "Confirm trigger?",
             "auth_type": "password",
@@ -308,6 +360,44 @@ def test_build_docs_action_button_views_excludes_sensitive_request_config():
     assert "body" not in views[0]
     assert "auth" not in views[0]
     assert "password" not in views[0]
+    assert "response_open_url" not in views[0]
+    assert "web_url" not in views[0]
+
+
+def test_build_docs_action_button_views_keeps_link_url_server_side():
+    views = build_docs_action_button_views(
+        [
+            DocsActionButtonConfig(
+                title="View Logs",
+                variant="primary",
+                url="https://logs.example.test/project/1",
+                method="LINK",
+                auth={"type": "oauth", "allowed_usernames": ["alice"]},
+                inputs=[
+                    DocsActionButtonInputConfig(
+                        name="ignored",
+                        label="Ignored",
+                        required=True,
+                    )
+                ],
+            )
+        ]
+    )
+
+    assert views == [
+        {
+            "index": 0,
+            "title": "View Logs",
+            "variant": "primary",
+            "method": "LINK",
+            "requires_confirmation": False,
+            "confirmation_message": "",
+            "auth_type": "oauth",
+            "inputs": [],
+        }
+    ]
+    assert "url" not in views[0]
+    assert "allowed_usernames" not in views[0]
 
 
 def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
@@ -319,6 +409,7 @@ def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
                 "index": 0,
                 "title": "Trigger CI",
                 "variant": "success",
+                "method": "POST",
                 "requires_confirmation": True,
                 "confirmation_message": "Confirm trigger?",
                 "auth_type": "password",
@@ -342,10 +433,15 @@ def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
     assert "variables[PACKAGE_VERSION]" in html_text
     assert "Confirm trigger?" in html_text
     assert '"auth_type": "password"' in html_text
+    assert '"method": "POST"' in html_text
     assert "/docs/action-buttons/" in html_text
+    assert "/open" in html_text
+    assert "open_url" in html_text
     assert "secret-token" not in html_text
     assert "action-password" not in html_text
     assert "allowed_usernames" not in html_text
+    assert "response_open_url" not in html_text
+    assert "web_url" not in html_text
     assert "https://example.test/trigger" not in html_text
 
 

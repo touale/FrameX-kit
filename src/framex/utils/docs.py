@@ -13,10 +13,13 @@ def build_docs_action_button_views(action_buttons: list["DocsActionButtonConfig"
             "index": index,
             "title": button.title,
             "variant": button.variant,
+            "method": button.method,
             "requires_confirmation": button.requires_confirmation,
             "confirmation_message": button.confirmation_message,
             "auth_type": button.auth.type,
-            "inputs": [
+            "inputs": []
+            if button.method == "LINK"
+            else [
                 {
                     "name": input_config.name,
                     "label": input_config.label,
@@ -30,6 +33,22 @@ def build_docs_action_button_views(action_buttons: list["DocsActionButtonConfig"
         }
         for index, button in enumerate(action_buttons)
     ]
+
+
+def extract_docs_action_response_open_url(response_text: str, path: str) -> str | None:
+    try:
+        current: Any = json.loads(response_text)
+    except json.JSONDecodeError:
+        return None
+
+    for part in path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return None
+        current = current[part]
+
+    if not isinstance(current, str) or not current.startswith(("http://", "https://")):
+        return None
+    return current
 
 
 def build_swagger_ui_html(
@@ -268,8 +287,8 @@ def build_swagger_ui_html(
         }}
 
         .swagger-ui .tag-toolbar .docs-action-button-primary {{
-            border-color: #175cd3;
-            background: #175cd3;
+            border-color: #6d9ae7;
+            background: #6d9ae7;
             color: #fff;
         }}
 
@@ -278,8 +297,8 @@ def build_swagger_ui_html(
         }}
 
         .swagger-ui .tag-toolbar .docs-action-button-success {{
-            border-color: #039855;
-            background: #039855;
+            border-color: #7cbd3e;
+            background: #7cbd3e;
             color: #fff;
         }}
 
@@ -298,8 +317,8 @@ def build_swagger_ui_html(
         }}
 
         .swagger-ui .tag-toolbar .docs-action-button-danger {{
-            border-color: #d92d20;
-            background: #d92d20;
+            border-color: #ce6a63;
+            background: #ce6a63;
             color: #fff;
         }}
 
@@ -563,6 +582,62 @@ def build_swagger_ui_html(
             }});
         }}
 
+        function collectDocsActionAuth(buttonConfig) {{
+            const authPayload = {{}};
+            if (buttonConfig.auth_type === "password") {{
+                const password = window.prompt("请输入操作密码");
+                if (password === null) {{
+                    return null;
+                }}
+                authPayload.password = password;
+            }}
+            return authPayload;
+        }}
+
+        async function openDocsActionButton(buttonConfig, triggerButton) {{
+            const authPayload = collectDocsActionAuth(buttonConfig);
+            if (authPayload === null) {{
+                return;
+            }}
+
+            const originalText = triggerButton.textContent;
+            triggerButton.disabled = true;
+            triggerButton.textContent = "请求中...";
+
+            try {{
+                const response = await fetch("/docs/action-buttons/" + buttonConfig.index + "/open", {{
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {{
+                        "Content-Type": "application/json"
+                    }},
+                    body: JSON.stringify({{
+                        auth: authPayload
+                    }})
+                }});
+
+                const responseText = await response.text();
+                let data = null;
+                try {{
+                    data = JSON.parse(responseText);
+                }} catch (_error) {{
+                    data = null;
+                }}
+
+                if (data && data.open_url) {{
+                    window.open(data.open_url, "_blank", "noopener,noreferrer");
+                    return;
+                }}
+
+                alert("状态码: " + response.status + "\\n\\n" + responseText);
+            }} catch (error) {{
+                alert("请求失败: " + error);
+            }} finally {{
+                triggerButton.disabled = false;
+                triggerButton.textContent = originalText;
+            }}
+        }}
+
         async function invokeDocsActionButton(buttonConfig, triggerButton) {{
             if (buttonConfig.requires_confirmation) {{
                 const confirmationMessage = buttonConfig.confirmation_message || ("确认执行: " + (buttonConfig.title || "执行操作") + "?");
@@ -571,18 +646,19 @@ def build_swagger_ui_html(
                 }}
             }}
 
+            if (buttonConfig.method === "LINK") {{
+                await openDocsActionButton(buttonConfig, triggerButton);
+                return;
+            }}
+
             const inputValues = await collectDocsActionInputs(buttonConfig);
             if (inputValues === null) {{
                 return;
             }}
 
-            const authPayload = {{}};
-            if (buttonConfig.auth_type === "password") {{
-                const password = window.prompt("请输入操作密码");
-                if (password === null) {{
-                    return;
-                }}
-                authPayload.password = password;
+            const authPayload = collectDocsActionAuth(buttonConfig);
+            if (authPayload === null) {{
+                return;
             }}
 
             const originalText = triggerButton.textContent;
@@ -611,6 +687,9 @@ def build_swagger_ui_html(
                 }}
 
                 if (data && Object.prototype.hasOwnProperty.call(data, "body")) {{
+                    if (data.open_url) {{
+                        window.open(data.open_url, "_blank", "noopener,noreferrer");
+                    }}
                     alert("状态码: " + data.status_code + "\\n\\n" + data.body);
                     return;
                 }}
