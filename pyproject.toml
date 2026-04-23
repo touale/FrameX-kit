@@ -44,7 +44,7 @@ dev = [
 framex = "framex.cli:framex"
 
 [project.optional-dependencies]
-ray = ["ray[serve]==2.54.1"]
+ray = ["ray[serve]==2.55.1"]
 release = ["poethepoet>=0.36.0", "python-semantic-release>=10.2.0"]
 
 
