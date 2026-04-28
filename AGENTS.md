@@ -42,6 +42,15 @@ Keep feature work boundary-first and explicit:
 - Make ownership of user inputs explicit. Model where an input lands instead of guessing from names; for example, use explicit targets such as query params versus request body fields.
 - Prefer small, composable helpers at the correct layer over ad hoc inline logic. A helper is justified when it protects a boundary, removes repeated serialization logic, or makes security constraints obvious.
 
+For `/docs` action buttons, keep the boundary especially clear:
+
+- `framex.config` owns the public configuration model only: title, variant, confirmation, auth mode, request URL/method/headers/body/query, input definitions, timeout, and response handling options.
+- `framex.utils.docs` owns docs-specific presentation and response shaping: sanitized button view models, Swagger UI HTML/JavaScript, and helpers that interpret remote responses for docs UI behavior, such as extracting an `open_url` from a JSON response.
+- `framex.driver.application` owns route assembly, request auth checks, input validation, server-side request execution, and returning a compact invoke result. Do not place docs view-model serialization, UI helpers, or response-path parsing helpers in this module.
+- Keep sensitive action-button data server-side. The browser may receive button title, variant, confirmation text, auth type, and input metadata, but must not receive configured target URLs, headers, tokens, fixed request bodies, passwords, username allowlists, or response path config.
+- For `method = "LINK"` docs action buttons, keep the configured URL server-side until the internal open endpoint has applied the button auth rules. The initial docs HTML must only know that the button is a LINK action, not the target URL.
+- When a remote action response drives UI behavior, preserve the raw response shown to users and add only minimal derived fields needed by the browser. Validate derived URLs server-side and allow only explicit `http://` or `https://` URLs.
+
 For UI design, prefer restrained, predictable controls over arbitrary styling:
 
 - Use preset variants for visual intent, such as default, primary, success, warning, and danger. Avoid per-instance arbitrary CSS unless the project has an established design-token path for it.
