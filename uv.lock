@@ -521,6 +521,7 @@ dependencies = [
     { name = "sentry-sdk", extra = ["fastapi"] },
     { name = "tomli" },
     { name = "uvicorn" },
+    { name = "websockets" },
 ]
 
 [package.optional-dependencies]
@@ -567,6 +568,7 @@ requires-dist = [
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.33.0" },
     { name = "tomli", specifier = ">=2.2.1" },
     { name = "uvicorn", specifier = ">=0.38.0" },
+    { name = "websockets", specifier = ">=15.0.1" },
 ]
 provides-extras = ["ray", "release"]
 

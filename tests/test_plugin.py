@@ -22,6 +22,44 @@ def test_get_plugin():
     assert plugin.config.model_dump() == {"id": 123, "name": "test"}
 
 
+def test_get_websocket_plugin_apis():
+    from framex.plugin import get_websocket_plugin_apis
+
+    websocket_apis = get_websocket_plugin_apis()
+    assert any(api.api == "/api/v1/ws/echo/{room}" for api in websocket_apis)
+    assert all(api.call_type == ApiType.WEBSOCKET for api in websocket_apis)
+
+
+def test_on_request_rejects_websocket_without_path():
+    from framex.plugin.on import on_request
+
+    with pytest.raises(TypeError, match="requires a path"):
+
+        @on_request(call_type=ApiType.WEBSOCKET)
+        async def invalid() -> None:
+            return None
+
+
+def test_on_request_rejects_websocket_stream():
+    from framex.plugin.on import on_request
+
+    with pytest.raises(TypeError, match="stream=True"):
+
+        @on_request("/ws", call_type=ApiType.WEBSOCKET, stream=True)
+        async def invalid(message: str) -> str:
+            return message
+
+
+def test_on_request_rejects_websocket_raw_response():
+    from framex.plugin.on import on_request
+
+    with pytest.raises(TypeError, match="raw_response=True"):
+
+        @on_request("/ws", call_type=ApiType.WEBSOCKET, raw_response=True)
+        async def invalid(message: str) -> str:
+            return message
+
+
 class SampleModel(BaseModel):
     field1: str
     field2: int

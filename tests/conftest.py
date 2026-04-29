@@ -75,7 +75,7 @@ def test_app() -> Generator:
         patch.object(settings.auth, "rules", TEST_AUTH_RULES.copy()),
     ):
         plugins = framex.load_plugins(str(Path(__file__).parent / "plugins"))
-        assert len(plugins) == len(["invoker", "export", "alias_model"])
+        assert len(plugins) == len(["invoker", "export", "alias_model", "websocket_demo"])
         yield framex.run(test_mode=True)  # type: ignore[return-value]
 
 

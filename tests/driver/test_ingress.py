@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, APIWebSocketRoute
 from starlette.routing import Route
 
 from framex.driver.ingress import APIIngress
@@ -16,6 +16,12 @@ def make_route(path: str, methods: set[str]) -> APIRoute:
     return route
 
 
+def make_websocket_route(path: str) -> APIWebSocketRoute:
+    route = Mock(spec=APIWebSocketRoute)
+    route.path = path
+    return route
+
+
 # ---------- fixtures ----------
 
 
@@ -24,6 +30,8 @@ def mock_app():
     with patch("framex.driver.ingress.app") as app:
         app.routes = []
         app.add_api_route = Mock()
+        app.add_api_websocket_route = Mock()
+        app.state.tags_metadata_map = []
         yield app
 
 
@@ -108,3 +116,17 @@ def test_kwargs_are_passed_through(ingress, mock_app):
     _, kwargs = mock_app.add_api_route.call_args
     assert kwargs["tags"] == ["users"]
     assert "response_class" in kwargs
+
+
+def test_add_first_websocket_route_success(ingress, mock_app):
+    ingress.add_api_websocket_route("/ws", Mock(), tags=["ws"], description="demo")
+
+    mock_app.add_api_websocket_route.assert_called_once()
+    assert mock_app.state.tags_metadata_map == [{"name": "ws", "description": "demo"}]
+
+
+def test_duplicate_websocket_path_raises(ingress, mock_app):
+    mock_app.routes = [make_websocket_route("/ws/{id}")]
+
+    with pytest.raises(RuntimeError, match=r"Duplicate WebSocket route"):
+        ingress.add_api_websocket_route("/ws/{room}", Mock())

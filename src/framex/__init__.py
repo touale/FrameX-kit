@@ -162,10 +162,16 @@ def run(
     auto_load_plugins(builtin_plugins, external_plugins, enable_proxy)
 
     logger.info("Start initializing all DeploymentHandle...")
-    from framex.plugin import get_http_plugin_apis, get_runtime_plugin_infos, init_all_deployments
+    from framex.plugin import (
+        get_http_plugin_apis,
+        get_runtime_plugin_infos,
+        get_websocket_plugin_apis,
+        init_all_deployments,
+    )
 
     deployments = init_all_deployments(enable_proxy=enable_proxy)
     http_apis = get_http_plugin_apis()
+    websocket_apis = get_websocket_plugin_apis()
     runtime_plugin_infos = get_runtime_plugin_infos()
     _ensure_server_ingress_config(http_apis)
 
@@ -196,7 +202,7 @@ def run(
 
         api_ingress = APIIngress.bind(  # type: ignore
             deployments=deployments,
-            plugin_apis=http_apis,
+            plugin_apis=[*http_apis, *websocket_apis],
             plugin_infos=runtime_plugin_infos,
         )
 
@@ -213,7 +219,7 @@ def run(
 
         api_ingress = APIIngress(
             deployments=deployments,
-            plugin_apis=http_apis,
+            plugin_apis=[*http_apis, *websocket_apis],
             plugin_infos=runtime_plugin_infos,
         )
 

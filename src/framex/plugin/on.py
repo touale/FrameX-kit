@@ -119,8 +119,14 @@ def on_request(
                 "but found {len(base_model_params)}: {base_model_params}"
             )
 
-        if not path and call_type in [ApiType.HTTP, ApiType.ALL]:
+        if not path and call_type in [ApiType.HTTP, ApiType.ALL, ApiType.WEBSOCKET]:
             raise TypeError(f"@on_request({path!r}) requires a path when call_type is {call_type}")
+
+        if call_type == ApiType.WEBSOCKET:
+            if stream:
+                raise TypeError("@on_request() does not support stream=True when call_type is WEBSOCKET")
+            if raw_response:
+                raise TypeError("@on_request() does not support raw_response=True when call_type is WEBSOCKET")
 
         func._on_request = True  # type: ignore [attr-defined]
         func.__expose_path__ = path  # type: ignore [attr-defined]

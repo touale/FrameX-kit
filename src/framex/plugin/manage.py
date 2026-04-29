@@ -43,17 +43,20 @@ class PluginManager:
                 for dep in plugin.deployments:
                     http_api_names = []
                     func_api_names = []
+                    websocket_api_names = []
                     for api in dep.plugin_apis:
                         api_name = f"{api.deployment_name}.{api.func_name}"
-                        is_func = api.call_type in {ApiType.FUNC, ApiType.ALL}
-                        is_http = api.call_type in {ApiType.HTTP, ApiType.ALL}
-                        if is_func:
+                        if api.call_type in {ApiType.FUNC, ApiType.ALL}:
                             self._plugin_apis[ApiType.FUNC][api_name] = api
                             func_api_names.append(api_name)
 
-                        if api.api and is_http:
+                        if api.api and api.call_type in {ApiType.HTTP, ApiType.ALL}:
                             self._plugin_apis[ApiType.HTTP][api.api] = api
                             http_api_names.append(api.api)
+
+                        if api.api and api.call_type == ApiType.WEBSOCKET:
+                            self._plugin_apis[ApiType.WEBSOCKET][api.api] = api
+                            websocket_api_names.append(api.api)
 
                     if not dep.plugin_apis:
                         logger.opt(colors=True).warning(f"<r>No relevant API found in plugin({plugin.name})</r>")
@@ -67,6 +70,10 @@ class PluginManager:
                         logger.opt(colors=True).success(
                             f'Found plugin FUNC API "<g>{func_api_names}</g>" from plugin({plugin.name})'
                         )
+                    if websocket_api_names:
+                        logger.opt(colors=True).success(
+                            f'Found plugin WEBSOCKET API "<g>{websocket_api_names}</g>" from plugin({plugin.name})'
+                        )
         return self._plugin_apis
 
     @property
@@ -76,6 +83,10 @@ class PluginManager:
     @property
     def func_plugin_apis(self) -> list[PluginApi]:
         return list(self.all_plugin_apis[ApiType.FUNC].values())
+
+    @property
+    def websocket_plugin_apis(self) -> list[PluginApi]:
+        return list(self.all_plugin_apis[ApiType.WEBSOCKET].values())
 
     @property
     def controlled_modules(self) -> dict[str, str]:

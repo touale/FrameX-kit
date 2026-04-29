@@ -150,6 +150,10 @@ def get_http_plugin_apis() -> list["PluginApi"]:
     return _manager.http_plugin_apis
 
 
+def get_websocket_plugin_apis() -> list["PluginApi"]:
+    return _manager.websocket_plugin_apis
+
+
 def get_runtime_plugin_infos() -> dict[str, "RuntimePluginInfo"]:
     return {
         plugin.name: RuntimePluginInfo(
@@ -173,6 +177,7 @@ __all__ = [
     "PluginMetadata",
     "RuntimePluginInfo",
     "get_runtime_plugin_infos",
+    "get_websocket_plugin_apis",
     "load_builtin_plugins",
     "load_plugins",
     "on_proxy",

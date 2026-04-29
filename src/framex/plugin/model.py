@@ -22,6 +22,7 @@ class PluginMetadata(BaseModel):
 class ApiType(StrEnum):
     FUNC = "func"
     HTTP = "http"
+    WEBSOCKET = "websocket"
     ALL = "all"
     PROXY = "proxy"
 

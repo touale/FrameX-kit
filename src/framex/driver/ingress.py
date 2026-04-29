@@ -1,13 +1,15 @@
 import inspect
+import json
 import os
 import re
 from collections.abc import Callable
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request, Response, status
+from fastapi import Depends, HTTPException, Request, Response, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.routing import APIRoute
-from starlette.routing import Route
+from fastapi.routing import APIRoute, APIWebSocketRoute
+from pydantic import BaseModel
+from starlette.routing import Route, WebSocketRoute
 
 from framex.adapter import get_adapter
 from framex.consts import BACKEND_NAME
@@ -65,6 +67,20 @@ class APIIngress:
                     deployment,
                     stream=plugin_api.stream,
                     direct_output=plugin_api.raw_response,
+                    tags=plugin_api.tags,
+                    description=plugin_api.description,
+                    **plugin_api.extend_kwargs,
+                )
+            elif (
+                plugin_api.api
+                and (deployment := self.deployments_dict.get(plugin_api.deployment_name))
+                and plugin_api.call_type == ApiType.WEBSOCKET
+            ):
+                self.register_websocket_route(
+                    plugin_api.api,
+                    plugin_api.func_name,
+                    plugin_api.params,
+                    deployment,
                     tags=plugin_api.tags,
                     description=plugin_api.description,
                     **plugin_api.extend_kwargs,
@@ -184,6 +200,114 @@ class APIIngress:
             )
         return False
 
+    def register_websocket_route(
+        self,
+        path: str,
+        func_name: str,
+        params: list[tuple[str, type | Callable]],
+        handle: Any,
+        tags: list[str] | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        **kwargs: Any,
+    ) -> bool:
+        from framex.log import logger
+
+        if tags is None:
+            tags = ["default"]
+        adapter = get_adapter()
+
+        try:
+            if not path:
+                raise RuntimeError(f"Api({path}) is empty")
+            norm_path = re.sub(r"\{[^}]+\}", "{}", path)
+            path_param_names = set(re.findall(r"\{([^}]+)\}", path))
+            for route in app.routes:
+                if (
+                    isinstance(route, APIWebSocketRoute | WebSocketRoute)
+                    and re.sub(r"\{[^}]+\}", "{}", route.path) == norm_path
+                ):
+                    raise RuntimeError(f"Duplicate WebSocket route: {norm_path}")
+                if isinstance(route, APIRoute) and re.sub(r"\{[^}]+\}", "{}", route.path) == norm_path:
+                    raise RuntimeError(f"Duplicate API route path across HTTP and WebSocket: {norm_path}")
+
+            async def websocket_handler(websocket: WebSocket, **connection_kwargs: Any) -> None:
+                c_handle = getattr(handle, func_name)
+                if not c_handle:
+                    raise RuntimeError(
+                        f"No handle found for websocket api: {path} from {handle.deployment_name}.{func_name}"
+                    )
+
+                await websocket.accept()
+                while True:
+                    try:
+                        raw_text = await websocket.receive_text()
+                    except WebSocketDisconnect:
+                        return
+
+                    try:
+                        payload = json.loads(raw_text)
+                        if not isinstance(payload, dict):
+                            raise ValueError("WebSocket message must be a JSON object")
+                    except json.JSONDecodeError:
+                        await websocket.send_json({"status": 400, "message": "WebSocket message must be valid JSON"})
+                        continue
+                    except ValueError as e:
+                        await websocket.send_json({"status": 400, "message": str(e)})
+                        continue
+
+                    request_kwargs = {**dict(websocket.query_params), **payload, **connection_kwargs}
+                    try:
+                        result = await adapter._invoke(c_handle, **request_kwargs)
+                    except Exception as e:
+                        logger.opt(exception=e, colors=True).error(
+                            f'<r>WebSocket business call failed for "{escape_tag(path)}" from {handle.deployment_name}</r>'
+                        )
+                        await websocket.send_json({"status": 500, "message": str(e)})
+                        continue
+
+                    if isinstance(result, BaseModel):
+                        result = result.model_dump(by_alias=True)
+                    await websocket.send_json({"status": 200, "message": "success", "data": result})
+
+            websocket_handler.__signature__ = inspect.Signature(  # type: ignore[attr-defined]
+                [
+                    inspect.Parameter(
+                        "websocket",
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        annotation=WebSocket,
+                    ),
+                    *[
+                        inspect.Parameter(
+                            name,
+                            inspect.Parameter.KEYWORD_ONLY,
+                            annotation=tp,
+                            default=inspect.Parameter.empty,
+                        )
+                        for name, tp in params
+                        if name in path_param_names
+                    ],
+                ]
+            )
+
+            self.add_api_websocket_route(
+                path,
+                websocket_handler,
+                tags=tags,
+                description=description,
+                include_in_schema=include_in_schema,
+                **kwargs,
+            )
+            logger.opt(colors=True).success(
+                f"WebSocket route registered: <g>{shorten_str(path):<45}</g> ({handle.deployment_name})"
+            )
+            return True
+        except Exception as e:
+            logger.opt(exception=e, colors=True).error(
+                f'<r>Failed to register websocket "{escape_tag(path)}" from {handle.deployment_name}</r>'
+            )
+        return False
+
     @app.get("/ping")
     async def inner(self) -> str:  # pragma: no cover
         return "pong"
@@ -221,6 +345,38 @@ class APIIngress:
             include_in_schema=include_in_schema,
             **kwargs,
         )
+
+        if include_in_schema and tags:
+            names = list({tag["name"] for tag in app.state.tags_metadata_map})
+            for tag in tags:
+                if tag not in names:
+                    app.state.tags_metadata_map.append(
+                        {
+                            "name": tag,
+                            "description": description,
+                        },
+                    )
+
+    def add_api_websocket_route(
+        self,
+        path: str,
+        endpoint: Callable[..., Any],
+        *,
+        tags: list[str] | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        norm_path = re.sub(r"\{[^}]+\}", "{}", path)
+        for route in app.routes:
+            if (
+                isinstance(route, APIWebSocketRoute | WebSocketRoute)
+                and re.sub(r"\{[^}]+\}", "{}", route.path) == norm_path
+            ):
+                raise RuntimeError(f"Duplicate WebSocket route: {norm_path}")
+            if isinstance(route, APIRoute) and re.sub(r"\{[^}]+\}", "{}", route.path) == norm_path:
+                raise RuntimeError(f"Duplicate API route path across HTTP and WebSocket: {norm_path}")
+        app.add_api_websocket_route(path, endpoint, **kwargs)
 
         if include_in_schema and tags:
             names = list({tag["name"] for tag in app.state.tags_metadata_map})
