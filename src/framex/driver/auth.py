@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
 from typing import Any
+from urllib.parse import urlencode, urlsplit
 
 import httpx
 import jwt
@@ -100,6 +101,16 @@ def auth_jwt(request: Request) -> bool:
     return get_auth_payload(request) is not None
 
 
+def _get_post_auth_redirect_url(state: str | None) -> str:
+    if not state:
+        return DOCS_URL
+
+    parsed = urlsplit(state)
+    if parsed.scheme or parsed.netloc or not state.startswith("/") or state.startswith("//"):
+        return DOCS_URL
+    return state
+
+
 def authenticate(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
     if settings.auth.oauth:
         if get_auth_payload(request) is not None:
@@ -108,21 +119,25 @@ def authenticate(request: Request, api_key: str | None = Depends(api_key_header)
         if api_key and api_key in (settings.auth.get_auth_keys(request.url.path) or []):
             return
 
+        state = f"{request.url.path}?{request.url.query}" if request.url.query else request.url.path
+        query = urlencode(
+            {
+                "client_id": settings.auth.oauth.client_id,
+                "response_type": "code",
+                "redirect_uri": settings.auth.oauth.call_back_url,
+                "scope": "read_user read_api",
+                "state": state,
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_302_FOUND,
             headers={
-                "Location": (
-                    f"{settings.auth.oauth.authorization_url}"
-                    f"?client_id={settings.auth.oauth.client_id}"
-                    "&response_type=code"
-                    f"&redirect_uri={settings.auth.oauth.call_back_url}"
-                    "&scope=read_user%20read_api"
-                )
+                "Location": f"{settings.auth.oauth.authorization_url}?{query}",
             },
         )
 
 
-async def oauth_callback(code: str) -> Response:
+async def oauth_callback(code: str, state: str | None = None) -> Response:
     if not settings.auth.oauth:  # pragma: no cover
         raise RuntimeError("OAuth not configured")
 
@@ -163,7 +178,10 @@ async def oauth_callback(code: str) -> Response:
     }
     session_id = create_auth_session(user_info)
 
-    res = RedirectResponse(url=DOCS_URL, status_code=status.HTTP_302_FOUND)
+    res = RedirectResponse(
+        url=_get_post_auth_redirect_url(state),
+        status_code=status.HTTP_302_FOUND,
+    )
     res.set_cookie(
         AUTH_COOKIE_NAME,
         create_jwt(

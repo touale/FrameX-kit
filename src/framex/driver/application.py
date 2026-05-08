@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -14,7 +15,7 @@ import pytz
 from fastapi import Body, Depends, FastAPI
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette import status
 from starlette.concurrency import iterate_in_threadpool
 from starlette.exceptions import HTTPException
@@ -142,7 +143,28 @@ def create_fastapi_application() -> FastAPI:
         action_auth = action_button.auth
         if action_auth.type == "oauth":
             if auth_payload is None:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="OAuth authentication required")
+                oauth = settings.auth.oauth
+                if oauth is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="OAuth authentication required",
+                    )
+                redirect_query = urlencode(
+                    {
+                        "client_id": oauth.client_id,
+                        "response_type": "code",
+                        "redirect_uri": oauth.call_back_url,
+                        "scope": "read_user read_api",
+                        "state": DOCS_URL,
+                    }
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="OAuth authentication required",
+                    headers={
+                        "X-FrameX-OAuth-Redirect": f"{oauth.authorization_url}?{redirect_query}",
+                    },
+                )
             if (
                 "*" not in action_auth.allowed_usernames
                 and auth_payload.get("username") not in action_auth.allowed_usernames
@@ -155,11 +177,13 @@ def create_fastapi_application() -> FastAPI:
 
     @application.get(DOCS_URL, include_in_schema=False)
     async def get_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:
-        return build_swagger_ui_html(
+        response = build_swagger_ui_html(
             openapi_url=OPENAPI_URL,
             title="FrameX Docs",
             action_buttons=build_docs_action_button_views(settings.docs.action_buttons),
         )
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     @application.post("/docs/action-buttons/{button_index}/invoke", include_in_schema=False)
     async def invoke_docs_action_button(
@@ -245,6 +269,19 @@ def create_fastapi_application() -> FastAPI:
             status_code=status.HTTP_200_OK,
             content={"open_url": action_button.url},
         )
+
+    @application.get("/docs/action-buttons/{button_index}/open", include_in_schema=False)
+    async def open_docs_action_button_window(
+        button_index: int,
+        request: Request,
+        _: Annotated[str, Depends(authenticate)],
+    ) -> RedirectResponse:
+        action_button = _get_docs_action_button(button_index)
+        if action_button.method != "LINK":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Docs action button is not a link")
+
+        _check_docs_action_button_auth(action_button, request, {})
+        return RedirectResponse(url=action_button.url, status_code=status.HTTP_302_FOUND)
 
     @application.get("/docs/plugin-config", include_in_schema=False)
     async def get_plugin_config_documentation(

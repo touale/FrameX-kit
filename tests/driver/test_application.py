@@ -37,6 +37,35 @@ class TestCreateFastAPIApplication:
         middleware_classes = [m.cls.__name__ for m in app.user_middleware]  # type: ignore
         assert "CORSMiddleware" in middleware_classes
 
+    def test_docs_response_disables_caching_for_oauth(self, monkeypatch):
+        monkeypatch.setattr(
+            settings.auth,
+            "oauth",
+            OauthConfig(
+                provider="gitlab",
+                authorization_url="https://oauth.example.com/authorize",
+                token_url="https://oauth.example.com/token",  # noqa: S106
+                user_info_url="https://oauth.example.com/user",
+                client_id="client",
+                client_secret="secret",  # noqa: S106
+                redirect_uri="/oauth/callback",
+                call_back_url="http://test/callback",
+                jwt_secret="test-secret-with-enough-bytes-for-hs256",  # noqa
+                jwt_algorithm="HS256",
+            ),
+        )
+        app = create_fastapi_application()
+        client = TestClient(app)
+
+        session_id = create_auth_session({"username": "test"})
+        token = create_jwt({"username": "test", "session_id": session_id})
+        client.cookies.set(AUTH_COOKIE_NAME, token)
+
+        response = client.get("/docs", follow_redirects=False)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["cache-control"] == "no-store"
+
 
 class TestExceptionHandlers:
     @pytest.fixture
@@ -128,6 +157,16 @@ class TestDocsActionButtons:
             route.endpoint
             for route in app.routes
             if getattr(route, "path", "") == "/docs/action-buttons/{button_index}/open"
+            and "POST" in getattr(route, "methods", set())
+        )
+
+    @staticmethod
+    def _get_open_window_endpoint(app) -> Any:
+        return next(
+            route.endpoint
+            for route in app.routes
+            if getattr(route, "path", "") == "/docs/action-buttons/{button_index}/open"
+            and "GET" in getattr(route, "methods", set())
         )
 
     @staticmethod
@@ -349,6 +388,11 @@ class TestDocsActionButtons:
     @pytest.mark.asyncio
     async def test_invoke_action_button_rejects_missing_oauth_session(self, monkeypatch):
         monkeypatch.setattr(
+            settings.auth,
+            "oauth",
+            OauthConfig(jwt_secret="test-secret-with-enough-bytes-for-hs256", jwt_algorithm="HS256"),  # noqa: S106
+        )
+        monkeypatch.setattr(
             settings.docs,
             "action_buttons",
             [
@@ -367,6 +411,9 @@ class TestDocsActionButtons:
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
         assert exc_info.value.detail == "OAuth authentication required"
+        assert exc_info.value.headers is not None
+        assert "X-FrameX-OAuth-Redirect" in exc_info.value.headers
+        assert "state=%2Fdocs" in exc_info.value.headers["X-FrameX-OAuth-Redirect"]
 
     @pytest.mark.asyncio
     async def test_invoke_action_button_allows_oauth_wildcard_user(self, monkeypatch):
@@ -522,6 +569,11 @@ class TestDocsActionButtons:
     @pytest.mark.asyncio
     async def test_open_link_action_button_requires_oauth_session(self, monkeypatch):
         monkeypatch.setattr(
+            settings.auth,
+            "oauth",
+            OauthConfig(jwt_secret="test-secret-with-enough-bytes-for-hs256", jwt_algorithm="HS256"),  # noqa: S106
+        )
+        monkeypatch.setattr(
             settings.docs,
             "action_buttons",
             [
@@ -541,6 +593,9 @@ class TestDocsActionButtons:
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
         assert exc_info.value.detail == "OAuth authentication required"
+        assert exc_info.value.headers is not None
+        assert "X-FrameX-OAuth-Redirect" in exc_info.value.headers
+        assert "state=%2Fdocs" in exc_info.value.headers["X-FrameX-OAuth-Redirect"]
 
     @pytest.mark.asyncio
     async def test_open_link_action_button_rejects_oauth_user_not_in_whitelist(self, monkeypatch):
@@ -586,6 +641,28 @@ class TestDocsActionButtons:
 
         assert response.status_code == status.HTTP_200_OK
         assert json.loads(response.body) == {"open_url": link_url}
+
+    @pytest.mark.asyncio
+    async def test_open_link_action_button_window_redirects_for_oauth_user(self, monkeypatch):
+        link_url = "https://logs.example.test/project/1"
+        monkeypatch.setattr(
+            settings.docs,
+            "action_buttons",
+            [
+                DocsActionButtonConfig(
+                    title="View Logs",
+                    url=link_url,
+                    method="LINK",
+                    auth={"type": "oauth", "allowed_usernames": ["*"]},
+                )
+            ],
+        )
+
+        endpoint = self._get_open_window_endpoint(create_fastapi_application())
+        response = await endpoint(0, self._build_oauth_request(monkeypatch, "anyone"), "")
+
+        assert response.status_code == status.HTTP_302_FOUND
+        assert response.headers["location"] == link_url
 
     @pytest.mark.asyncio
     async def test_open_link_action_button_rejects_wrong_password(self, monkeypatch):

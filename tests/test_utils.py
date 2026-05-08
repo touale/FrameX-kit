@@ -445,6 +445,30 @@ def test_build_swagger_ui_html_renders_action_button_metadata_without_secrets():
     assert "https://example.test/trigger" not in html_text
 
 
+def test_build_swagger_ui_html_renders_oauth_action_redirect_behaviors():
+    html_response = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        action_buttons=[
+            {
+                "index": 2,
+                "title": "View Logs",
+                "variant": "default",
+                "method": "LINK",
+                "requires_confirmation": False,
+                "confirmation_message": "",
+                "auth_type": "oauth",
+                "inputs": [],
+            }
+        ],
+    )
+    html_text = html_response.body.decode()  # type: ignore
+
+    assert 'window.open("/docs/action-buttons/" + buttonConfig.index + "/open"' in html_text
+    assert "Your login session has expired. You will be redirected to sign in again." in html_text
+    assert 'response.headers.get("X-FrameX-OAuth-Redirect")' in html_text
+
+
 def test_collect_embedded_config_files_reads_yaml_and_toml(tmp_path):
     yaml_path = tmp_path / "demo.yaml"
     yaml_path.write_text("name: demo\n", encoding="utf-8")

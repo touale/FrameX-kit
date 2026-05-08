@@ -594,7 +594,21 @@ def build_swagger_ui_html(
             return authPayload;
         }}
 
+        function redirectToDocsActionOauth(response) {{
+            const redirectUrl = response.headers.get("X-FrameX-OAuth-Redirect");
+            if (!redirectUrl) {{
+                return false;
+            }}
+            window.location.assign(redirectUrl);
+            return true;
+        }}
+
         async function openDocsActionButton(buttonConfig, triggerButton) {{
+            if (buttonConfig.auth_type === "oauth") {{
+                window.open("/docs/action-buttons/" + buttonConfig.index + "/open", "_blank", "noopener,noreferrer");
+                return;
+            }}
+
             const authPayload = collectDocsActionAuth(buttonConfig);
             if (authPayload === null) {{
                 return;
@@ -615,6 +629,10 @@ def build_swagger_ui_html(
                         auth: authPayload
                     }})
                 }});
+
+                if (response.status === 401 && redirectToDocsActionOauth(response)) {{
+                    return;
+                }}
 
                 const responseText = await response.text();
                 let data = null;
@@ -677,6 +695,19 @@ def build_swagger_ui_html(
                         auth: authPayload
                     }})
                 }});
+
+                if (response.status === 401) {{
+                    const redirectUrl = response.headers.get("X-FrameX-OAuth-Redirect");
+                    if (redirectUrl) {{
+                        alert("Your login session has expired. You will be redirected to sign in again.");
+                        window.location.assign(redirectUrl);
+                        return;
+                    }}
+                }}
+
+                if (response.status === 401 && redirectToDocsActionOauth(response)) {{
+                    return;
+                }}
 
                 const responseText = await response.text();
                 let data = null;
