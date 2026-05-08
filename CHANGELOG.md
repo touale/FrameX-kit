@@ -2,6 +2,66 @@
 
 <!-- version list -->
 
+## v0.3.8 (2026-05-08)
+
+### Bug Fixes
+
+- Add OAuth redirect for docs action buttons
+  ([`289d3d6`](https://github.com/touale/FrameX-kit/commit/289d3d628518adf0f2d1c64db63881f1a295567e))
+
+### Chores
+
+- **deps**: Bump gitpython from 3.1.45 to 3.1.47
+  ([`e094550`](https://github.com/touale/FrameX-kit/commit/e0945500f2f118c3629eeaff0223ce3f04e0205a))
+
+- **deps**: Bump pydantic from 2.13.2 to 2.13.3
+  ([`7ed12dc`](https://github.com/touale/FrameX-kit/commit/7ed12dc44e8d0481e324f46c5fa3204de3970e3d))
+
+- **deps**: Bump pydantic-settings from 2.13.1 to 2.14.0
+  ([`f809839`](https://github.com/touale/FrameX-kit/commit/f80983947049327c06d1cf1f55f22e8bf5d291e7))
+
+- **deps**: Bump python-multipart from 0.0.26 to 0.0.27
+  ([`3a34d96`](https://github.com/touale/FrameX-kit/commit/3a34d963fccae9094b56eabeb1d9a9a664e41f6f))
+
+- **deps**: Bump python-semantic-release from 10.2.0 to 10.5.3
+  ([`75202b3`](https://github.com/touale/FrameX-kit/commit/75202b312a1c2228309515a661b7ebf5e20b8ab2))
+
+- **deps**: Bump ray[serve] from 2.54.1 to 2.55.1
+  ([`0af6f93`](https://github.com/touale/FrameX-kit/commit/0af6f93e0617767aae8a46f62e98295e9ecaebaf))
+
+- **deps**: Bump uvicorn from 0.44.0 to 0.45.0
+  ([`bd4ed4b`](https://github.com/touale/FrameX-kit/commit/bd4ed4b8470dc456b8702da54796a6edd4c87cd5))
+
+- **deps**: Bump uvicorn from 0.45.0 to 0.46.0
+  ([`7295c4e`](https://github.com/touale/FrameX-kit/commit/7295c4ee1e43091e2fcbbcded79db05636e4f656))
+
+- **deps-dev**: Bump mypy from 1.20.1 to 1.20.2
+  ([`c79910d`](https://github.com/touale/FrameX-kit/commit/c79910d103890ceb0acba4d2c8288e431a715498))
+
+- **deps-dev**: Bump poethepoet from 0.44.0 to 0.45.0
+  ([`2a626b2`](https://github.com/touale/FrameX-kit/commit/2a626b2e5918fc68da227059e431b52277bf2853))
+
+- **deps-dev**: Bump pre-commit from 4.5.1 to 4.6.0
+  ([`3019d29`](https://github.com/touale/FrameX-kit/commit/3019d293d3121980a64ee0934abce5ab49a309d1))
+
+- **deps-dev**: Bump pytest-order from 1.3.0 to 1.4.0
+  ([`a5802cf`](https://github.com/touale/FrameX-kit/commit/a5802cfe5b5e0996a5c4444e389d518261e0cdee))
+
+- **deps-dev**: Bump ruff from 0.15.11 to 0.15.12
+  ([`0bd4864`](https://github.com/touale/FrameX-kit/commit/0bd4864029a056da60f094121536d044ea6ebb19))
+
+- **deps-dev**: Bump types-pytz
+  ([`906cdb0`](https://github.com/touale/FrameX-kit/commit/906cdb0639f78f95db6a2788f8478d264e2b57fb))
+
+- **deps-dev**: Bump types-pyyaml
+  ([`94fe7bc`](https://github.com/touale/FrameX-kit/commit/94fe7bc2c4d1a4bbbe75713a600beec7bfc16c62))
+
+### Documentation
+
+- Clarify action button boundaries and security
+  ([`c8b2858`](https://github.com/touale/FrameX-kit/commit/c8b28586f88bfa09635a7db13a9342216599e40b))
+
+
 ## v0.3.7 (2026-04-22)
 
 ### Bug Fixes
