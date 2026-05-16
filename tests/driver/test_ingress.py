@@ -108,3 +108,49 @@ def test_kwargs_are_passed_through(ingress, mock_app):
     _, kwargs = mock_app.add_api_route.call_args
     assert kwargs["tags"] == ["users"]
     assert "response_class" in kwargs
+
+
+def test_register_route_allows_business_params_named_request_and_response(ingress, mock_app):
+    handle = Mock()
+    handle.deployment_name = "demo.Deployment"
+    handle.echo = Mock()
+
+    registered = ingress.register_route(
+        "/echo",
+        ["POST"],
+        "echo",
+        [("request", str), ("response", str)],
+        handle,
+        auth_keys=None,
+    )
+
+    assert registered is True
+    endpoint = mock_app.add_api_route.call_args.args[1]
+    signature = endpoint.__signature__
+    assert "framex_request" in signature.parameters
+    assert "framex_response" in signature.parameters
+    assert "request" in signature.parameters
+    assert "response" in signature.parameters
+
+
+def test_register_route_internal_params_avoid_business_param_conflicts(ingress, mock_app):
+    handle = Mock()
+    handle.deployment_name = "demo.Deployment"
+    handle.echo = Mock()
+
+    registered = ingress.register_route(
+        "/echo",
+        ["POST"],
+        "echo",
+        [("framex_request", str), ("framex_response", str)],
+        handle,
+        auth_keys=None,
+    )
+
+    assert registered is True
+    endpoint = mock_app.add_api_route.call_args.args[1]
+    signature = endpoint.__signature__
+    assert "framex_request_" in signature.parameters
+    assert "framex_response_" in signature.parameters
+    assert "framex_request" in signature.parameters
+    assert "framex_response" in signature.parameters

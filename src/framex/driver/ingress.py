@@ -107,13 +107,22 @@ class APIIngress:
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
 
-            async def route_handler(request: Request, response: Response, **request_kwargs: Any) -> Any:
+            framex_request_param = self._internal_param_name("framex_request", params)
+            framex_response_param = self._internal_param_name(
+                "framex_response",
+                params,
+                reserved={framex_request_param},
+            )
+
+            async def route_handler(**request_kwargs: Any) -> Any:
+                framex_request: Request = request_kwargs.pop(framex_request_param)
+                framex_response: Response = request_kwargs.pop(framex_response_param)
                 c_handle = getattr(handle, func_name)
                 if not c_handle:
                     raise RuntimeError(
                         f"No handle found for api({methods}): {path} from {handle.deployment_name}.{func_name}"
                     )
-                response.headers["X-Raw-Output"] = str(direct_output)
+                framex_response.headers["X-Raw-Output"] = str(direct_output)
                 if stream:
                     gen = adapter._stream_call(c_handle, **request_kwargs)
                     return StreamingResponse(  # type: ignore
@@ -122,15 +131,15 @@ class APIIngress:
                     )
 
                 if cache is None:
-                    response.headers[CACHE_STATUS_HEADER] = CacheStatus.BYPASS
+                    framex_response.headers[CACHE_STATUS_HEADER] = CacheStatus.BYPASS
                     return await adapter._acall(c_handle, **request_kwargs)  # type: ignore
                 if not settings.cache.enabled:
-                    response.headers[CACHE_STATUS_HEADER] = CacheStatus.DISABLED
+                    framex_response.headers[CACHE_STATUS_HEADER] = CacheStatus.DISABLED
                     return await adapter._acall(c_handle, **request_kwargs)  # type: ignore
 
                 return await request_cache.call(
-                    request=request,
-                    response=response,
+                    request=framex_request,
+                    response=framex_response,
                     path=path,
                     cache_config=cache,
                     request_kwargs=request_kwargs,
@@ -140,12 +149,12 @@ class APIIngress:
             route_handler.__signature__ = inspect.Signature(  # type: ignore
                 [
                     inspect.Parameter(
-                        "request",
+                        framex_request_param,
                         inspect.Parameter.POSITIONAL_OR_KEYWORD,
                         annotation=Request,
                     ),
                     inspect.Parameter(
-                        "response",
+                        framex_response_param,
                         inspect.Parameter.POSITIONAL_OR_KEYWORD,
                         annotation=Response,
                     ),
@@ -200,6 +209,20 @@ class APIIngress:
                 f'<r>Failed to register api "{escape_tag(path)}" from {handle.deployment_name}</r>'
             )
         return False
+
+    @staticmethod
+    def _internal_param_name(
+        base_name: str,
+        params: list[tuple[str, type | Callable]],
+        reserved: set[str] | None = None,
+    ) -> str:
+        unavailable = {name for name, _ in params}
+        if reserved:
+            unavailable.update(reserved)
+        name = base_name
+        while name in unavailable:
+            name = f"{name}_"
+        return name
 
     @app.get("/ping")
     async def inner(self) -> str:  # pragma: no cover
