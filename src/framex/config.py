@@ -49,6 +49,14 @@ class ServerConfig(BaseModel):
     reversion: str = ""
 
 
+class CacheConfig(BaseModel):
+    enabled: bool = False
+    mode: Literal["memory", "file"] = "memory"
+    ttl: int = Field(default=60, gt=0)
+    max_size: int = Field(default=1000, gt=0)
+    file_dir: str = ".framex/cache"
+
+
 class TestConfig(BaseModel):
     disable_record_request: bool = False
     silent: bool = False
@@ -256,6 +264,7 @@ class Settings(BaseSettings):
     sentry: SentryConfig = Field(default_factory=SentryConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
     repository: RepositoryConfig = Field(default_factory=RepositoryConfig)
+    cache: CacheConfig = Field(default_factory=CacheConfig)
 
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`

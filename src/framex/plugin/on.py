@@ -95,6 +95,7 @@ def on_request(
     api_prefix: bool = True,
     raw_response: bool = False,
     tags: list[str] | None = None,
+    cache: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> Callable:
     if methods is None:
@@ -121,6 +122,11 @@ def on_request(
 
         if not path and call_type in [ApiType.HTTP, ApiType.ALL]:
             raise TypeError(f"@on_request({path!r}) requires a path when call_type is {call_type}")
+
+        if cache is not None:
+            from framex.driver.cache import normalize_cache_config
+
+            kwargs["cache"] = normalize_cache_config(cache)
 
         func._on_request = True  # type: ignore [attr-defined]
         func.__expose_path__ = path  # type: ignore [attr-defined]
