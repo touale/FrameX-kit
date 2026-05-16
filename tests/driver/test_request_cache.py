@@ -96,7 +96,7 @@ async def test_memory_cache_hits_same_request(cache):
 
 
 @pytest.mark.asyncio
-async def test_header_bypass_skips_read_but_writes(cache):
+async def test_header_bypass_skips_cache_without_writing(cache):
     calls = 0
 
     async def invoke() -> dict[str, int]:
@@ -132,8 +132,8 @@ async def test_header_bypass_skips_read_but_writes(cache):
     )
 
     assert bypassed == {"calls": 2}
-    assert cached == {"calls": 2}
-    assert bypass_response.headers[CACHE_STATUS_HEADER] == "MISS"
+    assert cached == {"calls": 1}
+    assert bypass_response.headers[CACHE_STATUS_HEADER] == "BYPASS"
     assert hit_response.headers[CACHE_STATUS_HEADER] == "HIT"
 
 
