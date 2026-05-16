@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 PROJECT_NAME = "FrameX"
 VERSION = "0.3.8"
 API_PRE_STR = "/api"
@@ -21,3 +23,22 @@ SEBTRY_BLOCK_URLS = [
 ]
 
 AUTH_COOKIE_NAME = "framex_token"
+
+CACHE_REQUEST_HEADER = "X-FrameX-Cache"
+CACHE_KEY_HEADER = "X-FrameX-Cache-Key"
+CACHE_STATUS_HEADER = "X-FrameX-Cache-Status"
+SUPPORTED_CACHE_METHODS = {"GET", "POST"}
+
+
+class CacheAction(StrEnum):
+    USE = "use"
+    BYPASS = "bypass"
+    REFRESH = "refresh"
+
+
+class CacheStatus(StrEnum):
+    DISABLED = "DISABLED"
+    BYPASS = "BYPASS"
+    HIT = "HIT"
+    MISS = "MISS"
+    REFRESH = "REFRESH"

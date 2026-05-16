@@ -1,4 +1,7 @@
-from framex.config import OauthConfig, RepositoryConfig
+import pytest
+from pydantic import ValidationError
+
+from framex.config import CacheConfig, OauthConfig, RepositoryConfig
 
 
 def test_config():
@@ -16,6 +19,25 @@ def test_oauth_config_callback_url_property():
         redirect_uri="/auth/callback",
     )
     assert cfg.call_back_url == "https://example.com/auth/callback"
+
+
+def test_cache_config_defaults():
+    cfg = CacheConfig()
+
+    assert cfg.enabled is False
+    assert cfg.mode == "memory"
+    assert cfg.ttl == 60
+    assert cfg.max_size == 1000
+    assert cfg.file_dir == ".framex/cache"
+
+
+def test_cache_config_validates_mode_ttl_and_max_size():
+    with pytest.raises(ValidationError):
+        CacheConfig(mode="redis")  # type: ignore[arg-type]
+    with pytest.raises(ValidationError):
+        CacheConfig(ttl=0)
+    with pytest.raises(ValidationError):
+        CacheConfig(max_size=0)
 
 
 def test_oauth_config_generates_default_urls_from_base_url():

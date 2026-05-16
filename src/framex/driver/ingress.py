@@ -10,9 +10,11 @@ from fastapi.routing import APIRoute
 from starlette.routing import Route
 
 from framex.adapter import get_adapter
-from framex.consts import BACKEND_NAME
+from framex.config import settings
+from framex.consts import BACKEND_NAME, CACHE_STATUS_HEADER, CacheStatus
 from framex.driver.application import create_fastapi_application
 from framex.driver.auth import api_key_header, auth_jwt
+from framex.driver.cache import request_cache
 from framex.driver.decorator import api_ingress
 from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi, RuntimePluginInfo
@@ -28,9 +30,6 @@ async def health() -> str:
 
 @app.get("/version")
 async def version() -> str:
-
-    from framex.config import settings
-
     return settings.server.reversion or os.getenv("REVERSION") or "unknown"
 
 
@@ -83,6 +82,7 @@ class APIIngress:
         description: str | None = None,
         auth_keys: list[str] | None = None,
         include_in_schema: bool = True,
+        cache: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> bool:
         from framex.log import logger
@@ -90,8 +90,6 @@ class APIIngress:
         if tags is None:
             tags = ["default"]
         if auth_keys is None:
-            from framex.config import settings
-
             auth_keys = settings.auth.get_auth_keys(path)
             logger.trace(f"API({path}) with tags {tags} requires auth_keys {auth_keys}")
         adapter = get_adapter()
@@ -109,7 +107,7 @@ class APIIngress:
             if (not path) or (not methods):
                 raise RuntimeError(f"Api({path}) or methods({methods}) is empty")
 
-            async def route_handler(response: Response, **request_kwargs: Any) -> Any:
+            async def route_handler(request: Request, response: Response, **request_kwargs: Any) -> Any:
                 c_handle = getattr(handle, func_name)
                 if not c_handle:
                     raise RuntimeError(
@@ -123,10 +121,29 @@ class APIIngress:
                         media_type="text/event-stream",
                     )
 
-                return await adapter._acall(c_handle, **request_kwargs)  # type: ignore
+                if cache is None:
+                    response.headers[CACHE_STATUS_HEADER] = CacheStatus.BYPASS
+                    return await adapter._acall(c_handle, **request_kwargs)  # type: ignore
+                if not settings.cache.enabled:
+                    response.headers[CACHE_STATUS_HEADER] = CacheStatus.DISABLED
+                    return await adapter._acall(c_handle, **request_kwargs)  # type: ignore
+
+                return await request_cache.call(
+                    request=request,
+                    response=response,
+                    path=path,
+                    cache_config=cache,
+                    request_kwargs=request_kwargs,
+                    invoke=lambda: adapter._acall(c_handle, **request_kwargs),  # type: ignore
+                )
 
             route_handler.__signature__ = inspect.Signature(  # type: ignore
                 [
+                    inspect.Parameter(
+                        "request",
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        annotation=Request,
+                    ),
                     inspect.Parameter(
                         "response",
                         inspect.Parameter.POSITIONAL_OR_KEYWORD,

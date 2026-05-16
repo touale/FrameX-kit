@@ -153,6 +153,33 @@ class TestCallPluginApi:
         assert inspect.isasyncgen(stream)
         assert [chunk async for chunk in stream] == ["a", "b"]
 
+    def test_on_request_preserves_cache_config(self):
+        from framex.plugin.on import on_request
+
+        def build_key(request, context):
+            return f"{request.url.path}:{len(context.keys())}"
+
+        @on_request("/demo", cache={"ttl": 30, "key_builder": build_key})
+        async def request_api(self):
+            return "ok"
+
+        assert getattr(request_api, "__kwargs")["cache"] == {"ttl": 30, "key_builder": build_key}
+
+    def test_on_request_rejects_invalid_cache_config(self):
+        from framex.plugin.on import on_request
+
+        with pytest.raises(ValueError, match="cache ttl"):
+
+            @on_request("/demo", cache={"ttl": 0})
+            async def request_api(self):
+                return "ok"
+
+        with pytest.raises(TypeError, match="key_builder"):
+
+            @on_request("/demo", cache={"key_builder": "module.func"})
+            async def request_api_with_bad_key(self):
+                return "ok"
+
     @pytest.mark.asyncio
     async def test_call_remote_api_uses_whitelist_via_request_context(self):
         from framex.plugin.base import BasePlugin
