@@ -87,6 +87,10 @@ class RequestCache:
             return await invoke()
 
         action = _cache_action(request)
+
+        if action == CacheAction.BYPASS:
+            response.headers[CACHE_STATUS_HEADER] = CacheStatus.BYPASS
+            return await invoke()
         if action == CacheAction.USE:
             try:
                 cached_value = await self.get(store_key)
@@ -292,7 +296,9 @@ def _stable_value(value: Any) -> Any:
         return _stable_value(value.model_dump(mode="json", by_alias=True))
     if isinstance(value, Mapping):
         return {str(key): _stable_value(val) for key, val in sorted(value.items(), key=lambda item: str(item[0]))}
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, set):
+        return [_stable_value(item) for item in sorted(value, key=repr)]
+    if isinstance(value, (list, tuple)):
         return [_stable_value(item) for item in value]
     try:
         json.dumps(value)
