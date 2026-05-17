@@ -401,10 +401,16 @@ def create_fastapi_application() -> FastAPI:
         response.body_iterator = iterate_in_threadpool(iter(response_body))
         response_body = json.loads(response_body[0].decode())
         timestamp = pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+        headers = {
+            key: value
+            for key, value in response.headers.items()
+            if key.lower() not in {"content-length", "content-type"}
+        }
 
         if isinstance(response_body, dict) and response_body.get("is_middleware_error", False):
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
+                headers=headers,
                 content={
                     "status": response_body["status"],
                     "message": response_body["message"],
@@ -413,6 +419,7 @@ def create_fastapi_application() -> FastAPI:
             )
         return JSONResponse(
             status_code=response.status_code,
+            headers=headers,
             content={
                 "status": response.status_code,
                 "message": "success" if response.status_code == 200 else "unexpected code",

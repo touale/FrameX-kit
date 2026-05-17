@@ -100,6 +100,7 @@ async def test_memory_cache_hits_same_request(cache):
     assert first_response.headers[CACHE_STATUS_HEADER] == "MISS"
     assert second_response.headers[CACHE_STATUS_HEADER] == "HIT"
     assert second_response.headers[CACHE_KEY_HEADER]
+    assert cache.metadata()[second_response.headers[CACHE_KEY_HEADER]].request_body == {"message": "a"}
 
 
 @pytest.mark.asyncio
@@ -127,6 +128,42 @@ async def test_memory_cache_preserves_pydantic_value(cache):
 
     assert isinstance(result[0], CacheTestModel)
     assert response.headers[CACHE_STATUS_HEADER] == "HIT"
+
+
+@pytest.mark.asyncio
+async def test_ttl_minus_one_never_expires(cache, monkeypatch):
+    monkeypatch.setattr(settings.cache, "ttl", -1)
+    calls = 0
+
+    async def invoke() -> dict[str, int]:
+        nonlocal calls
+        calls += 1
+        return {"calls": calls}
+
+    await cache.call(
+        request=_request(),
+        response=Response(),
+        path="/api/v1/cache-test",
+        cache_config={},
+        request_kwargs={"message": "forever"},
+        invoke=invoke,
+    )
+    await cache.cleanup()
+    response = Response()
+    result = await cache.call(
+        request=_request(),
+        response=response,
+        path="/api/v1/cache-test",
+        cache_config={},
+        request_kwargs={"message": "forever"},
+        invoke=invoke,
+    )
+
+    metadata = cache.metadata()[response.headers[CACHE_KEY_HEADER]]
+    assert result == {"calls": 1}
+    assert response.headers[CACHE_STATUS_HEADER] == "HIT"
+    assert metadata.ttl == -1
+    assert metadata.expires_at is None
 
 
 @pytest.mark.asyncio
@@ -301,6 +338,7 @@ async def test_file_cache_can_be_modified(cache, monkeypatch, tmp_path):
     payload = json.loads(raw_payload)
     assert isinstance(payload["metadata"]["created_at"], str)
     assert isinstance(payload["metadata"]["expires_at"], str)
+    assert payload["metadata"]["request_body"] == {}
     created_at = datetime.fromisoformat(payload["metadata"]["created_at"])
     expires_at = datetime.fromisoformat(payload["metadata"]["expires_at"])
     assert created_at.utcoffset() == timedelta(hours=8)

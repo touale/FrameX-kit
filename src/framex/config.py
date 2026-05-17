@@ -1,7 +1,7 @@
 import secrets
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -52,9 +52,16 @@ class ServerConfig(BaseModel):
 class CacheConfig(BaseModel):
     enabled: bool = False
     mode: Literal["memory", "file"] = "memory"
-    ttl: int = Field(default=60, gt=0)
+    ttl: int = 60
     max_size: int = Field(default=1000, gt=0)
     file_dir: str = ".framex/cache"
+
+    @field_validator("ttl")
+    @classmethod
+    def validate_ttl(cls, ttl: int) -> int:
+        if ttl != -1 and ttl <= 0:
+            raise ValueError("cache ttl must be -1 or a positive integer")
+        return ttl
 
 
 class TestConfig(BaseModel):

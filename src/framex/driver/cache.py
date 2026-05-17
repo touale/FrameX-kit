@@ -33,10 +33,11 @@ class CacheEntryMetadata(BaseModel):
     store_key: str
     store: CacheStore
     created_at: datetime
-    expires_at: datetime
-    ttl: int = Field(gt=0)
+    expires_at: datetime | None
+    ttl: int
     path: str
     method: str
+    request_body: dict[str, Any] = Field(default_factory=dict)
 
 
 class CacheContext:
@@ -113,10 +114,11 @@ class RequestCache:
             store_key=store_key,
             store=settings.cache.mode,
             created_at=created_at,
-            expires_at=created_at + timedelta(seconds=ttl),
+            expires_at=None if ttl == -1 else created_at + timedelta(seconds=ttl),
             ttl=ttl,
             path=path,
             method=request.method.upper(),
+            request_body=_stable_value(request_kwargs),
         )
         try:
             await self.set(store_key, result, entry_metadata)
@@ -143,7 +145,7 @@ class RequestCache:
     async def set(self, store_key: str, value: Any, metadata: CacheEntryMetadata) -> bool:
         if settings.cache.mode == "file":
             return self._file_set(store_key, value, metadata)
-        await self._memory_cache.set(store_key, value, ttl=metadata.ttl)
+        await self._memory_cache.set(store_key, value, ttl=None if metadata.ttl == -1 else metadata.ttl)
         self._memory_metadata[store_key] = metadata
         await self.cleanup()
         return True
@@ -174,7 +176,7 @@ class RequestCache:
     def _drop_expired_memory(self) -> None:
         now = datetime.now(REQUEST_CACHE_TIMEZONE)
         for key, metadata in list(self._memory_metadata.items()):
-            if metadata.expires_at <= now:
+            if metadata.expires_at is not None and metadata.expires_at <= now:
                 self._memory_metadata.pop(key, None)
 
     def _file_get(self, store_key: str) -> Any:
@@ -215,7 +217,7 @@ class RequestCache:
         entries: list[tuple[Path, CacheEntryMetadata]] = []
         for path in self._file_dir().glob("*.json"):
             entry = self._read_file(path)
-            if not entry or entry["metadata"].expires_at <= now:
+            if not entry or (entry["metadata"].expires_at is not None and entry["metadata"].expires_at <= now):
                 path.unlink(missing_ok=True)
                 continue
             entries.append((path, entry["metadata"]))
@@ -262,8 +264,8 @@ def _resolve_ttl(cache_config: dict[str, Any]) -> int:
 
 
 def _validate_ttl(ttl: Any) -> int:
-    if not isinstance(ttl, int) or isinstance(ttl, bool) or ttl <= 0:
-        raise ValueError("cache ttl must be a positive integer")
+    if not isinstance(ttl, int) or isinstance(ttl, bool) or (ttl != -1 and ttl <= 0):
+        raise ValueError("cache ttl must be -1 or a positive integer")
     return ttl
 
 

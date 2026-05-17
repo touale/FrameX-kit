@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from fastapi import Response
 from fastapi.testclient import TestClient
 from starlette import status
 from starlette.exceptions import HTTPException
@@ -140,6 +141,22 @@ class TestLogResponseMiddleware:
         assert data["message"] == "success"
         assert data["data"] == {"result": "ok"}
         assert "timestamp" in data
+
+    def test_api_response_wrapped_preserves_headers(self, app, client):
+        @app.get(f"{API_STR}/test-wrap-headers")
+        async def endpoint(response: Response) -> Any:
+            response.headers["X-FrameX-Cache-Key"] = "abc"
+            response.headers["X-FrameX-Cache-Status"] = "MISS"
+            response.headers["X-Custom-Header"] = "custom"
+            return {"result": "ok"}
+
+        response = client.get(f"{API_STR}/test-wrap-headers")
+
+        assert response.status_code == 200
+        assert response.headers["x-framex-cache-key"] == "abc"
+        assert response.headers["x-framex-cache-status"] == "MISS"
+        assert response.headers["x-custom-header"] == "custom"
+        assert response.json()["data"] == {"result": "ok"}
 
 
 class TestDocsActionButtons:

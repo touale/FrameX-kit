@@ -34,6 +34,7 @@ def test_cache_config_defaults():
 def test_cache_config_validates_mode_ttl_and_max_size():
     with pytest.raises(ValidationError):
         CacheConfig(mode="redis")  # type: ignore[arg-type]
+    assert CacheConfig(ttl=-1).ttl == -1
     with pytest.raises(ValidationError):
         CacheConfig(ttl=0)
     with pytest.raises(ValidationError):
