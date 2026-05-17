@@ -1,11 +1,14 @@
 import hashlib
+import inspect
 import json
-import time
 from collections.abc import Awaitable, Callable, Mapping
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
+from zoneinfo import ZoneInfo
 
 from aiocache import Cache
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 from starlette.requests import Request
 from starlette.responses import Response
@@ -22,14 +25,15 @@ from framex.consts import (
 from framex.log import logger
 
 CacheStore = Literal["memory", "file"]
+REQUEST_CACHE_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 
 class CacheEntryMetadata(BaseModel):
     key: str
     store_key: str
     store: CacheStore
-    created_at: float
-    expires_at: float
+    created_at: datetime
+    expires_at: datetime
     ttl: int = Field(gt=0)
     path: str
     method: str
@@ -40,13 +44,13 @@ class CacheContext:
         self._metadata: Mapping[str, CacheEntryMetadata] = metadata
 
     def keys(self) -> list[str]:
-        return list(self._metadata)
+        return [metadata.key for metadata in self._metadata.values()]
 
     def metadata(self) -> dict[str, CacheEntryMetadata]:
-        return dict(self._metadata)
+        return {metadata.key: metadata for metadata in self._metadata.values()}
 
     def get_metadata(self, key: str) -> CacheEntryMetadata | None:
-        return self._metadata.get(key)
+        return self.metadata().get(key)
 
 
 class RequestCache:
@@ -103,18 +107,19 @@ class RequestCache:
                 return await invoke()
 
         result = await invoke()
+        created_at = datetime.now(REQUEST_CACHE_TIMEZONE)
         entry_metadata = CacheEntryMetadata(
             key=key,
             store_key=store_key,
             store=settings.cache.mode,
-            created_at=time.time(),
-            expires_at=time.time() + ttl,
+            created_at=created_at,
+            expires_at=created_at + timedelta(seconds=ttl),
             ttl=ttl,
             path=path,
             method=request.method.upper(),
         )
         try:
-            await self.set(store_key, _cache_value(result), entry_metadata)
+            await self.set(store_key, result, entry_metadata)
         except Exception as exc:
             logger.warning(f"Failed to write request cache key {key!r}: {exc}")
 
@@ -167,7 +172,7 @@ class RequestCache:
         return self._memory
 
     def _drop_expired_memory(self) -> None:
-        now = time.time()
+        now = datetime.now(REQUEST_CACHE_TIMEZONE)
         for key, metadata in list(self._memory_metadata.items()):
             if metadata.expires_at <= now:
                 self._memory_metadata.pop(key, None)
@@ -181,13 +186,16 @@ class RequestCache:
 
     def _file_set(self, store_key: str, value: Any, metadata: CacheEntryMetadata) -> bool:
         try:
-            json.dumps(value)
+            cache_value = jsonable_encoder(value)
+            json.dumps(cache_value)
         except (TypeError, ValueError):
             logger.warning(f"Cache value for key {metadata.key!r} is not JSON serializable; skip file cache write.")
             return False
         self._file_dir().mkdir(parents=True, exist_ok=True)
         self._file_path(store_key).write_text(
-            json.dumps({"metadata": metadata.model_dump(), "value": value}, ensure_ascii=False, indent=2),
+            json.dumps(
+                {"metadata": metadata.model_dump(mode="json"), "value": cache_value}, ensure_ascii=False, indent=2
+            ),
             encoding="utf-8",
         )
         self._file_cleanup()
@@ -199,11 +207,11 @@ class RequestCache:
         for path in self._file_dir().glob("*.json"):
             entry = self._read_file(path)
             if entry:
-                metadata[entry["metadata"].key] = entry["metadata"]
+                metadata[entry["metadata"].store_key] = entry["metadata"]
         return metadata
 
     def _file_cleanup(self) -> None:
-        now = time.time()
+        now = datetime.now(REQUEST_CACHE_TIMEZONE)
         entries: list[tuple[Path, CacheEntryMetadata]] = []
         for path in self._file_dir().glob("*.json"):
             entry = self._read_file(path)
@@ -274,7 +282,7 @@ def _build_cache_key(
     metadata: Mapping[str, CacheEntryMetadata],
 ) -> str:
     if key_builder := cache_config.get("key_builder"):
-        key = key_builder(request, CacheContext(metadata))
+        key = _call_key_builder(key_builder, request, CacheContext(metadata), request_kwargs)
     else:
         key = json.dumps(
             {
@@ -291,6 +299,40 @@ def _build_cache_key(
     return key
 
 
+def _call_key_builder(
+    key_builder: Callable[..., Any],
+    request: Request,
+    cache_context: CacheContext,
+    request_kwargs: dict[str, Any],
+) -> Any:
+    signature = inspect.signature(key_builder)
+    parameters = list(signature.parameters.values())
+    if any(parameter.kind == inspect.Parameter.VAR_POSITIONAL for parameter in parameters):
+        return key_builder(request, cache_context, request_kwargs)
+    if any(
+        parameter.name == "request_kwargs"
+        and parameter.kind
+        in {
+            inspect.Parameter.KEYWORD_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        }
+        for parameter in parameters
+    ):
+        return key_builder(request, cache_context, request_kwargs=request_kwargs)
+    positional_parameters = [
+        parameter
+        for parameter in parameters
+        if parameter.kind
+        in {
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        }
+    ]
+    if len(positional_parameters) >= 3:
+        return key_builder(request, cache_context, request_kwargs)
+    return key_builder(request, cache_context)
+
+
 def _stable_value(value: Any) -> Any:
     if isinstance(value, BaseModel):
         return _stable_value(value.model_dump(mode="json", by_alias=True))
@@ -305,12 +347,6 @@ def _stable_value(value: Any) -> Any:
         return value
     except (TypeError, ValueError):
         return repr(value)
-
-
-def _cache_value(value: Any) -> Any:
-    if isinstance(value, BaseModel):
-        return value.model_dump(mode="json", by_alias=True)
-    return value
 
 
 def _hash_key(key: str) -> str:
