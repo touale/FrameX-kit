@@ -2,6 +2,77 @@
 
 <!-- version list -->
 
+## v0.3.9 (2026-05-18)
+
+### Bug Fixes
+
+- Optimize cache hit rules
+  ([`b2c27a5`](https://github.com/touale/FrameX-kit/commit/b2c27a5c4a516efecc6007c24ae547395d4bad1a))
+
+- Preserve user request params in on_request routes
+  ([`4177350`](https://github.com/touale/FrameX-kit/commit/41773503f02476bd4f108e977fbb561563fa9793))
+
+- Refine request cache metadata and headers
+  ([`288f38f`](https://github.com/touale/FrameX-kit/commit/288f38fcb7c41c84a27acbd6a521856da1d9426c))
+
+### Chores
+
+- **deps**: Bump gitpython from 3.1.47 to 3.1.49
+  ([`0d2a43a`](https://github.com/touale/FrameX-kit/commit/0d2a43ab23c3504648e7638001aa322f0a99e757))
+
+- **deps**: Bump gitpython from 3.1.49 to 3.1.50
+  ([`c0ab889`](https://github.com/touale/FrameX-kit/commit/c0ab8897db4a0b29849cf4c2824745fdfcd8e7a5))
+
+- **deps**: Bump pydantic-settings from 2.14.0 to 2.14.1
+  ([`033b9b8`](https://github.com/touale/FrameX-kit/commit/033b9b813ddab6df85f476f258e58598cffa91e4))
+
+- **deps**: Bump python-multipart from 0.0.27 to 0.0.28
+  ([`91609a5`](https://github.com/touale/FrameX-kit/commit/91609a5c035f8d8d93ff29f73521aa6f72caeb38))
+
+- **deps**: Bump pytz from 2026.1.post1 to 2026.2
+  ([`c2dc3fb`](https://github.com/touale/FrameX-kit/commit/c2dc3fbc2e74552be728f9c5ad055c7c83028e02))
+
+- **deps**: Bump urllib3 from 2.6.3 to 2.7.0
+  ([`66c327c`](https://github.com/touale/FrameX-kit/commit/66c327c32f65d8c439ad9ca65686beb33f64e21d))
+
+- **deps**: Bump uvicorn from 0.46.0 to 0.47.0
+  ([`c9c7086`](https://github.com/touale/FrameX-kit/commit/c9c7086b87f57fbc7ddd98e7bb256b51686231f7))
+
+- **deps-dev**: Bump coverage from 7.13.5 to 7.14.0
+  ([`b638e5a`](https://github.com/touale/FrameX-kit/commit/b638e5a3096582e3af29afa0c651a07f41da9a63))
+
+- **deps-dev**: Bump mypy from 1.20.2 to 2.0.0
+  ([`8a86088`](https://github.com/touale/FrameX-kit/commit/8a8608895175c3e848ef0d91499e29f492aec846))
+
+- **deps-dev**: Bump mypy from 2.0.0 to 2.1.0
+  ([`7e71556`](https://github.com/touale/FrameX-kit/commit/7e71556a71eacc967e038e2d0e7649f48453cab6))
+
+- **deps-dev**: Bump poethepoet from 0.45.0 to 0.46.0
+  ([`ba6f79e`](https://github.com/touale/FrameX-kit/commit/ba6f79ec01b47ece84a1c6980ab0138bc38429b3))
+
+- **deps-dev**: Bump ruff from 0.15.12 to 0.15.13
+  ([`e39d140`](https://github.com/touale/FrameX-kit/commit/e39d14092e7ececd6180aa95998181d9dcc01c94))
+
+- **deps-dev**: Bump types-pytz
+  ([`c90448a`](https://github.com/touale/FrameX-kit/commit/c90448a5acba80e54461d89490fef3e6f6feab19))
+
+- **deps-dev**: Bump types-pyyaml
+  ([`f3ba354`](https://github.com/touale/FrameX-kit/commit/f3ba35494487756a794d4a0db704cc8faf74a70d))
+
+### Features
+
+- Cache support
+  ([`3081c3b`](https://github.com/touale/FrameX-kit/commit/3081c3b1ae3874487022b059ee0942a16de2bb44))
+
+- Support customizable on_request caching
+  ([`6feedae`](https://github.com/touale/FrameX-kit/commit/6feedae7cdfcabb53006ea51b351998ef5faa3ec))
+
+### Testing
+
+- Update cache test
+  ([`992ff9b`](https://github.com/touale/FrameX-kit/commit/992ff9b2dbde512fc2b66c233abc943423563ffa))
+
+
 ## v0.3.8 (2026-05-08)
 
 ### Bug Fixes
