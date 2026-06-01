@@ -1,5 +1,7 @@
+import re
+
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from framex.config import CacheConfig, OauthConfig, RepositoryConfig
 
@@ -11,6 +13,53 @@ def test_config():
     cfg = get_plugin_config("proxy", ProxyPluginConfig)
     assert isinstance(cfg, ProxyPluginConfig)
     assert cfg.proxy_urls is not None
+
+
+def test_get_plugin_config_rejects_unknown_fields(monkeypatch):
+    from framex.config import settings
+    from framex.plugin import get_plugin_config
+
+    class PluginConfig(BaseModel):
+        enabled: bool = False
+        timeout: int = 30
+
+    monkeypatch.setitem(
+        settings.plugins,
+        "invalid_config",
+        {"unknown_z": True, "enabled": True, "unknown_a": False},
+    )
+    get_plugin_config.cache_clear()
+
+    try:
+        with pytest.raises(ValueError, match="unknown config fields") as exc_info:
+            get_plugin_config("invalid_config", PluginConfig)
+
+        assert str(exc_info.value) == (
+            "Plugin(invalid_config) has unknown config fields: unknown_a, unknown_z. "
+            "Only these fields are allowed: enabled, timeout"
+        )
+    finally:
+        get_plugin_config.cache_clear()
+
+
+@pytest.mark.parametrize(
+    ("toml_content", "unknown_field"),
+    [
+        ("unknown_option = true\n", "unknown_option"),
+        ("[server]\nunknown_option = true\n", "server.unknown_option"),
+    ],
+)
+def test_settings_rejects_unknown_toml_fields(tmp_path, toml_content, unknown_field):
+    from pydantic_settings import TomlConfigSettingsSource
+
+    from framex.config import Settings
+
+    toml_path = tmp_path / "config.toml"
+    toml_path.write_text(toml_content, encoding="utf-8")
+    toml_source = TomlConfigSettingsSource(Settings, toml_file=toml_path)
+
+    with pytest.raises(ValidationError, match=re.escape(unknown_field)):
+        Settings(_build_sources=((toml_source,), {}))
 
 
 def test_oauth_config_callback_url_property():
