@@ -296,8 +296,11 @@ def test_get_proxy_upload_openapi(client: TestClient):
     post = data["paths"]["/proxy/mock/upload"]["post"]
     ref = post["requestBody"]["content"]["multipart/form-data"]["schema"]["$ref"].split("/")[-1]
     schema = data["components"]["schemas"][ref]
-    assert schema["properties"]["ppt_file"]["format"] == "binary"
-    assert schema["properties"]["txt_file"]["format"] == "binary"
+    for field_name in ("ppt_file", "txt_file"):
+        file_schema = schema["properties"][field_name]
+        assert file_schema.get("format") == "binary" or (
+            file_schema.get("contentMediaType") == "application/octet-stream"
+        )
 
 
 def test_get_proxy_black_get(client: TestClient):
