@@ -1,5 +1,6 @@
 from contextvars import ContextVar
 from functools import lru_cache
+from inspect import signature
 from typing import Any, Optional, TypeVar
 
 from pydantic import BaseModel
@@ -28,7 +29,19 @@ def get_loaded_plugins() -> set["Plugin"]:
 @lru_cache
 def get_plugin_config(plugin_name: str, config_class: type[C]) -> C:
     if cfg := settings.plugins.get(plugin_name):
+        valid_fields = set(signature(config_class).parameters)
+        extra_fields = set(cfg) - valid_fields
+
+        if extra_fields:
+            raise ValueError(
+                f"Plugin({plugin_name}) has unknown config fields: "
+                f"{', '.join(sorted(extra_fields))}. "
+                f"Only these fields are allowed: "
+                f"{', '.join(sorted(valid_fields))}"
+            )
+
         return config_class(**cfg)
+
     logger.warning(f"Plugin({plugin_name}) config not found, use default config")
     return config_class()
 

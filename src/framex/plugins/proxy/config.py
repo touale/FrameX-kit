@@ -9,7 +9,7 @@ VERSION = "0.3.0"
 
 
 class ProxyUrlRuleConfig(BaseModel):
-    enable: list[str] = Field(default_factory=list)
+    enable: list[str] = Field(default_factory=lambda: ["*"])
     disable: list[str] = Field(default_factory=list)
 
 
@@ -18,8 +18,6 @@ class ProxyPluginConfig(BaseModel):
     force_stream_apis: list[str] = Field(default_factory=list)
     timeout: int = 600
     ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 60})
-
-    white_list: list[str] = Field(default=["/*"])
 
     auth: AuthConfig = Field(default_factory=AuthConfig)
 
@@ -40,13 +38,12 @@ class ProxyPluginConfig(BaseModel):
                 if self._match_rules(config.enable, path):
                     return True
 
-        # fallback global rule
-        return self._match_rules(self.white_list, path)
+        return False
 
     @staticmethod
-    def _match_rules(white_list: list[str], path: str) -> bool:
-        for rule in white_list:
-            if rule == "/*":
+    def _match_rules(rules: list[str], path: str) -> bool:
+        for rule in rules:
+            if rule == "/*" or rule == "*":
                 return True
             if rule == path:
                 return True
