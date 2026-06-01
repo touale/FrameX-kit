@@ -50,7 +50,7 @@ class TestCreateFastAPIApplication:
                 client_id="client",
                 client_secret="secret",  # noqa: S106
                 redirect_uri="/oauth/callback",
-                call_back_url="http://test/callback",
+                app_url="http://test",
                 jwt_secret="test-secret-with-enough-bytes-for-hs256",  # noqa
                 jwt_algorithm="HS256",
             ),

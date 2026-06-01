@@ -1,7 +1,7 @@
 import secrets
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -11,7 +11,11 @@ from pydantic_settings import (
 )
 
 
-class LogConfig(BaseModel):
+class StrictConfigModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class LogConfig(StrictConfigModel):
     simple_log: bool = True
     ignored_prefixes: tuple[str, ...] = (
         "Started executing request to method",
@@ -25,7 +29,7 @@ class LogConfig(BaseModel):
     ignored_contains: tuple[str, ...] = ("GET /ping", "GET /health")
 
 
-class SentryConfig(BaseModel):
+class SentryConfig(StrictConfigModel):
     enable: bool = False
     dsn: str = ""
     env: str = ""  # local, prod, dev
@@ -35,7 +39,7 @@ class SentryConfig(BaseModel):
     enable_logs: bool = False
 
 
-class ServerConfig(BaseModel):
+class ServerConfig(StrictConfigModel):
     host: str = "127.0.0.1"
     port: int = 8080
     dashboard_host: str = "127.0.0.1"
@@ -49,7 +53,7 @@ class ServerConfig(BaseModel):
     reversion: str = ""
 
 
-class CacheConfig(BaseModel):
+class CacheConfig(StrictConfigModel):
     enabled: bool = False
     mode: Literal["memory", "file"] = "memory"
     ttl: int = 60
@@ -64,12 +68,12 @@ class CacheConfig(BaseModel):
         return ttl
 
 
-class TestConfig(BaseModel):
+class TestConfig(StrictConfigModel):
     disable_record_request: bool = False
     silent: bool = False
 
 
-class OauthConfig(BaseModel):
+class OauthConfig(StrictConfigModel):
     provider: str = ""
     client_id: str = ""
     client_secret: str = ""
@@ -100,7 +104,7 @@ class OauthConfig(BaseModel):
             self.jwt_secret = secrets.token_urlsafe(32)
 
 
-class RepositoryProviderAuthConfig(BaseModel):
+class RepositoryProviderAuthConfig(StrictConfigModel):
     token: str = ""
     token_header: str = "Authorization"  # noqa
     token_scheme: str = "Bearer"  # noqa
@@ -154,16 +158,16 @@ class GitLabRepositoryAuthConfig(RepositoryProviderAuthConfig):
         return max(matches, key=lambda endpoint: len(endpoint.normalized_path_prefix))
 
 
-class RepositoryAuthConfig(BaseModel):
+class RepositoryAuthConfig(StrictConfigModel):
     github: RepositoryProviderAuthConfig = Field(default_factory=RepositoryProviderAuthConfig)
     gitlab: GitLabRepositoryAuthConfig = Field(default_factory=GitLabRepositoryAuthConfig)
 
 
-class RepositoryConfig(BaseModel):
+class RepositoryConfig(StrictConfigModel):
     auth: RepositoryAuthConfig = Field(default_factory=RepositoryAuthConfig)
 
 
-class DocsActionButtonInputConfig(BaseModel):
+class DocsActionButtonInputConfig(StrictConfigModel):
     name: str
     label: str
     placeholder: str = ""
@@ -172,16 +176,16 @@ class DocsActionButtonInputConfig(BaseModel):
     target: Literal["body", "query"] = "body"
 
 
-class DocsActionButtonNoAuthConfig(BaseModel):
+class DocsActionButtonNoAuthConfig(StrictConfigModel):
     type: Literal["none"] = "none"
 
 
-class DocsActionButtonOAuthAuthConfig(BaseModel):
+class DocsActionButtonOAuthAuthConfig(StrictConfigModel):
     type: Literal["oauth"] = "oauth"
     allowed_usernames: list[str] = Field(default_factory=lambda: ["*"])
 
 
-class DocsActionButtonPasswordAuthConfig(BaseModel):
+class DocsActionButtonPasswordAuthConfig(StrictConfigModel):
     type: Literal["password"] = "password"
     password: str
 
@@ -192,7 +196,7 @@ DocsActionButtonAuthConfig = Annotated[
 ]
 
 
-class DocsActionButtonConfig(BaseModel):
+class DocsActionButtonConfig(StrictConfigModel):
     title: str
     variant: Literal["default", "primary", "success", "warning", "danger"] = "default"
     requires_confirmation: bool = False
@@ -215,12 +219,12 @@ class DocsActionButtonConfig(BaseModel):
         return self
 
 
-class DocsConfig(BaseModel):
+class DocsConfig(StrictConfigModel):
     embedded_config_file_whitelist: list[str] = Field(default_factory=list)
     action_buttons: list[DocsActionButtonConfig] = Field(default_factory=list)
 
 
-class AuthConfig(BaseModel):
+class AuthConfig(StrictConfigModel):
     oauth: OauthConfig | None = Field(default=None)
     rules: dict[str, list[str]] = Field(default_factory=dict)
 
@@ -276,11 +280,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         # `.env.prod` takes priority over `.env`
         env_file=(".env", ".env.prod"),
-        extra="ignore",
         env_nested_delimiter="__",
         case_sensitive=False,
         pyproject_toml_table_header=("tool", "framex"),
         toml_file="config.toml",
+        extra="forbid",
     )
 
     @classmethod

@@ -129,7 +129,7 @@ class ProxyPlugin(BasePlugin):
                         continue
 
                     schema = body_content.get(content_type, {}).get("schema", {})
-                    if (schema_name := schema.get("$ref", {}).rsplit("/", 1)[-1]) and not (
+                    if (schema_name := schema.get("$ref", "").rsplit("/", 1)[-1]) and not (
                         model_schema := components.get(schema_name)
                     ):
                         logger.opt(colors=True).error(
