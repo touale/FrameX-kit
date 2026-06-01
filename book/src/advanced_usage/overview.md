@@ -18,6 +18,12 @@ Use it when your service needs upstream API integration, distributed execution, 
 - [Security & Authorization](./authentication.md)
   Control access to routes, docs, and APIs with FrameX authentication rules.
 
+- [Docs UI & Operations](./docs_ui.md)
+  Add protected operations to Swagger UI and inspect plugin releases or sanitized config.
+
+- [Request Caching](./request_cache.md)
+  Opt selected plugin routes into memory or file-backed request caching.
+
 - [Concurrency & Ingress Configuration](./concurrency_and_ingress.md)
   Tune ingress and execution behavior for higher traffic or lower latency requirements.
 

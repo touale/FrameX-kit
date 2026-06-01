@@ -23,6 +23,10 @@
 
   - [Security & Authorization](./advanced_usage/authentication.md)
 
+  - [Docs UI & Operations](./advanced_usage/docs_ui.md)
+
+  - [Request Caching](./advanced_usage/request_cache.md)
+
   - [Concurrency & Ingress Configuration](./advanced_usage/concurrency_and_ingress.md)
 
   - [Proxy Function & Remote Invocation](./advanced_usage/proxy_function.md)

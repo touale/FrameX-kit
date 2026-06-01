@@ -8,6 +8,15 @@
 
 It is designed for services that are growing beyond a single cohesive code path and need clearer capability boundaries without forcing teams to build a custom platform first.
 
+Core capabilities:
+
+- plugin registration and discovery
+- FastAPI route generation from plugin methods
+- internal plugin API calls
+- optional Ray Serve execution
+- built-in example and proxy plugins
+- configuration from environment variables, TOML, and `pyproject.toml`
+
 ![FrameX architecture](./img/framex-architecture.svg)
 
 ## What Problem It Solves
@@ -25,18 +34,6 @@ Use it when you need to:
 - start with simple local execution and scale to Ray when needed
 - keep the system extensible as capabilities, teams, and traffic grow
 
-## Core Concepts
-
-FrameX is built around a few core ideas:
-
-- `Plugin`: a capability package with its own code, metadata, and API surface
-- `@on_register()`: registers a plugin class as a runtime unit
-- `@on_request(...)`: exposes plugin methods as HTTP APIs, internal callable APIs, or both
-- `required_remote_apis`: declares which other plugin or HTTP APIs a plugin depends on
-- `call_plugin_api(...)`: lets one capability call another through a stable service interface
-- `@remote()`: keeps the same call style across local execution and Ray execution
-- `proxy` plugin: makes upstream OpenAPI services look like part of the same service surface
-
 ## Why FrameX Instead Of Plain FastAPI
 
 Plain FastAPI is a good choice for a single cohesive application. FrameX is better when the real problem is not route handling, but service decomposition, team boundaries, and cross-service integration.
@@ -51,20 +48,3 @@ Compared with plain FastAPI, FrameX gives you:
 - the ability to start locally and move to Ray-backed execution without rewriting plugin code
 
 If you only need a small application with a stable route surface and one codebase, plain FastAPI is usually simpler.
-
-## Where It Fits Best
-
-FrameX is a good fit when you want to:
-
-- build modular service capabilities as plugins
-- support multi-person or multi-team parallel development
-- reduce cross-team code familiarity requirements
-- expose local modules and upstream APIs behind one consistent service surface
-- start with a simple deployment model and scale execution later
-
-Typical scenarios include:
-
-- multi-team service development with stable interfaces and private implementation boundaries
-- capability-oriented service splitting inside one growing service
-- transparent upstream HTTP integration through the same service boundary
-- gradual scaling from local execution to Ray-backed execution

@@ -55,6 +55,7 @@ rules = {
 }
 
 [auth.oauth]
+provider = "gitlab"
 base_url = "https://gitlab.example.com"
 client_id = "your-client-id"
 client_secret = "your-client-secret"
@@ -87,9 +88,6 @@ load_builtin_plugins = ["proxy"]
 [server]
 enable_proxy = true
 
-[plugins.proxy]
-white_list = ["/api/v1/*"]
-
 [plugins.proxy.proxy_urls."http://127.0.0.1:9000"]
 enable = ["/api/v1/*"]
 disable = []
@@ -113,6 +111,14 @@ One important detail from the current implementation: the proxy plugin uses only
 So if you configure multiple keys in one rule, the first one is the key that will actually be forwarded upstream.
 
 For proxy-specific usage patterns, see [System Proxy Plugin (Fastapi API Compatibility)](./system_proxy_plugin.md).
+
+## Docs Operations And Plugin Config Views
+
+OAuth sessions are also used by optional `/docs` operations and sanitized plugin configuration views.
+
+The plugin config view requires OAuth even for public repositories. For private repositories, FrameX additionally checks that the logged-in user's OAuth provider matches the repository provider and that the user's OAuth token can access the repository.
+
+For the complete `/docs` feature set, see [Docs UI & Operations](./docs_ui.md).
 
 ## Rule Of Thumb
 

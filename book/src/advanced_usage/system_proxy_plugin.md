@@ -23,7 +23,6 @@ load_builtin_plugins = ["proxy"]
 enable_proxy = true
 
 [plugins.proxy]
-white_list = ["/*"]
 force_stream_apis = ["/api/v1/chat/stream"]
 timeout = 600
 
@@ -32,9 +31,9 @@ enable = ["/api/v1/*"]
 disable = []
 ```
 
-This `proxy_urls` mapping is the current full config form in the codebase.
+Use the `proxy_urls` mapping form for route forwarding. Each upstream URL owns its own allow rules.
 
-The older list form still exists in the type definition, but if you want per-upstream control, use the dict form shown above.
+The legacy list form is still accepted as input, but it does not define route allow rules. Use the mapping form shown above when you want routes to be registered.
 
 ### How It Works
 
@@ -92,17 +91,11 @@ That is the key point: the calling side does not need to change just because the
 
 ## Proxy URL Rules
 
-The proxy plugin supports two rule levels:
-
-- global rules through `white_list`
-- per-upstream rules through `proxy_urls.<base_url>.enable` and `proxy_urls.<base_url>.disable`
+The proxy plugin applies rules per upstream URL through `proxy_urls.<base_url>.enable` and `proxy_urls.<base_url>.disable`.
 
 Example:
 
 ```toml
-[plugins.proxy]
-white_list = ["/api/v1/*"]
-
 [plugins.proxy.proxy_urls."http://127.0.0.1:9000"]
 enable = ["/api/v1/*"]
 disable = ["/api/v1/internal/*"]
@@ -112,7 +105,8 @@ Rule order in the code is:
 
 1. per-URL `disable`
 1. per-URL `enable`
-1. global `white_list`
+
+If a path does not match an `enable` rule, it is not registered. Both `"*"` and `"/*"` allow every route for one upstream URL.
 
 ## Streaming APIs
 
