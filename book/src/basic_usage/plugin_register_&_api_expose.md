@@ -44,6 +44,8 @@ __plugin_meta__ = PluginMetadata(
 
 This metadata is used for plugin discovery, dependency resolution, and runtime registration.
 
+The `url` field also powers `/docs` integrations. FrameX can use supported GitHub or GitLab repository URLs to check for newer plugin releases and to authorize access to sanitized plugin configuration views.
+
 ## Register the Plugin Class
 
 A plugin class is registered with `@on_register()` and usually inherits from `BasePlugin`.
@@ -147,6 +149,9 @@ The current implementation has a few rules worth knowing:
 - a handler may declare at most one `BaseModel` parameter
 - `stream=True` creates a streaming endpoint
 - `raw_response=True` bypasses the default response wrapper
+- `cache={...}` opts a `GET` or `POST` handler into request caching when global caching is enabled
+
+For cache configuration and request headers, see [Request Caching](../advanced_usage/request_cache.md).
 
 ### Streaming example
 

@@ -48,6 +48,9 @@ The most common top-level fields are:
 - `server`
 - `plugins`
 - `auth`
+- `docs`
+- `cache`
+- `repository`
 
 ## Most Common Runtime Settings
 
@@ -132,6 +135,29 @@ timeout = 30
 ```
 
 That block is what `get_plugin_config("foo", FooConfig)` reads.
+
+## Unknown Fields Are Rejected
+
+FrameX rejects unknown fields in global configuration blocks such as `server`, `auth`, `docs`, and `cache`.
+
+For example, this fails at startup because `server.potr` is not a valid field:
+
+```toml
+[server]
+potr = 8080
+```
+
+Typed plugin configuration is also strict when it is read with `get_plugin_config(...)`.
+
+```toml
+[plugins.foo]
+debug = true
+unknown_option = true
+```
+
+If `FooConfig` does not define `unknown_option`, `get_plugin_config("foo", FooConfig)` raises an error listing the unknown fields and the accepted fields.
+
+This makes configuration typos fail early instead of being silently ignored.
 
 ## Environment Variables
 

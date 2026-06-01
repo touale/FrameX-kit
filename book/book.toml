@@ -3,21 +3,21 @@ authors = ["touale"]
 language = "en"
 src = "src"
 title = "FrameX: The Plug-In Paradigm for Algorithmic Development"
-multilingual = false
+# multilingual = false
 
 [preprocessor.toc]
 command = "mdbook-toc"
 renderer = ["html"]
 
 [output.html]
-additional-css = ["theme/pagetoc.css", "theme/last-changed.css"]
-additional-js = ["theme/pagetoc.js"]
+# additional-css = ["theme/pagetoc.css", "theme/last-changed.css"]
+# additional-js = ["theme/pagetoc.js"]
 git-repository-url = "https://github.com/touale/FrameX-kit"
 edit-url-template = "https://github.com/touale/FrameX-kit/edit/master/book/{path}"
 
 [preprocessor.katex]
 after = ["links"]
 
-[preprocessor.last-changed]
-command = "mdbook-last-changed"
-renderer = ["html"]
+# [preprocessor.last-changed]
+# command = "mdbook-last-changed"
+# renderer = ["html"]

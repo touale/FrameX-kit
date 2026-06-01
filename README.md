@@ -217,9 +217,11 @@ load_builtin_plugins = ["proxy"]
 enable_proxy = true
 
 [plugins.proxy]
-proxy_urls = ["http://127.0.0.1:9000"]
-white_list = ["/*"]
 timeout = 600
+
+[plugins.proxy.proxy_urls."http://127.0.0.1:9000"]
+enable = ["/*"]
+disable = []
 ```
 
 Start from the CLI:
