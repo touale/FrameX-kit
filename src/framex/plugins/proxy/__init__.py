@@ -55,7 +55,7 @@ class ProxyPlugin(BasePlugin):
 
         for url in settings.proxy_url_list:
             logger.info(f"Try to parse openapi docs from {url}")
-            await self._parse_openai_docs(url)
+            await self._parse_openai_docs(url, settings.docs_path)
 
         if settings.proxy_functions:
             for url, funcs in settings.proxy_functions.items():
@@ -84,9 +84,9 @@ class ProxyPlugin(BasePlugin):
             response.raise_for_status()
             return cast(dict[str, Any], response.json())
 
-    async def _parse_openai_docs(self, url: str) -> None:
+    async def _parse_openai_docs(self, url: str, docs_path: str = "/api/v1/openapi.json") -> None:
         adapter: BaseAdapter = get_adapter()
-        openapi_data = await self._get_openai_docs(url)
+        openapi_data = await self._get_openai_docs(url, docs_path)
         paths = openapi_data.get("paths", {})
         components = openapi_data.get("components", {}).get("schemas", {})
         for path, details in paths.items():

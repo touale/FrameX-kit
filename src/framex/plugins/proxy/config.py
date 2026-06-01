@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 from framex.config import AuthConfig
 from framex.plugin import get_plugin_config
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 
 class ProxyUrlRuleConfig(BaseModel):
@@ -14,6 +14,7 @@ class ProxyUrlRuleConfig(BaseModel):
 
 
 class ProxyPluginConfig(BaseModel):
+    docs_path: str = "/api/v1/openapi.json"
     proxy_urls: list[str] | dict[str, ProxyUrlRuleConfig] = Field(default_factory=list)
     force_stream_apis: list[str] = Field(default_factory=list)
     timeout: int = 600
