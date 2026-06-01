@@ -297,3 +297,47 @@ async def test_on_proxy_remote_call():
         "b_int": 123,
         "c_model": ExchangeModel(id="id_1", name=100, model=SubModel(id=1, name="sub_name")),
     }
+
+
+async def test_proxy_stream_closes_client_when_iteration_fails(monkeypatch):
+    proxy_module = importlib.import_module("framex.plugins.proxy")
+    proxy_plugin_class = getattr(proxy_module, "ProxyPlugin")
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        async def aiter_text(self):
+            yield "first"
+            raise RuntimeError("upstream failed")
+
+    class FakeStreamContext:
+        async def __aenter__(self):
+            return FakeResponse()
+
+        async def __aexit__(self, *_):
+            return False
+
+    class FakeClient:
+        def __init__(self):
+            self.exited = False
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            self.exited = True
+
+        def stream(self, **_):
+            return FakeStreamContext()
+
+    client = FakeClient()
+    monkeypatch.setattr(proxy_module.httpx, "AsyncClient", lambda **_: client)
+    plugin = proxy_plugin_class.__new__(proxy_plugin_class)
+    plugin.time_out = 1
+
+    stream = await plugin.fetch_response(stream=True, method="GET", url="https://example.com/stream")
+
+    with pytest.raises(RuntimeError, match="upstream failed"):
+        [chunk async for chunk in stream]
+    assert client.exited is True
