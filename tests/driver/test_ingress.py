@@ -1,9 +1,13 @@
+import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
+from fastapi import Response
 from fastapi.routing import APIRoute
 from starlette.routing import Route
 
+from framex.config import settings
+from framex.driver.auth import api_key_header
 from framex.driver.ingress import APIIngress
 
 # ---------- helpers ----------
@@ -154,3 +158,103 @@ def test_register_route_internal_params_avoid_business_param_conflicts(ingress, 
     assert "framex_response_" in signature.parameters
     assert "framex_request" in signature.parameters
     assert "framex_response" in signature.parameters
+
+
+def register_stream_endpoint(ingress, mock_app, adapter, auth_keys=None):
+    handle = Mock()
+    handle.deployment_name = "demo.Deployment"
+    handle.stream = Mock()
+
+    with (
+        patch("framex.driver.ingress.get_adapter", return_value=adapter),
+        patch.object(type(settings.auth), "get_auth_keys", return_value=auth_keys),
+    ):
+        registered = ingress.register_route(
+            "/stream",
+            ["GET"],
+            "stream",
+            [],
+            handle,
+            stream=True,
+            auth_keys=auth_keys,
+        )
+
+    assert registered is True
+    return mock_app.add_api_route.call_args.args[1]
+
+
+async def collect_stream_response(endpoint):
+    response = await endpoint(framex_request=Mock(), framex_response=Response())
+    return [chunk async for chunk in response.body_iterator]
+
+
+async def test_register_route_stream_converts_iteration_error_to_sse_event(ingress, mock_app):
+    async def failing_stream():
+        yield "first"
+        raise RuntimeError("sensitive details")
+
+    adapter = Mock()
+    adapter._stream_call.return_value = failing_stream()
+    endpoint = register_stream_endpoint(ingress, mock_app, adapter)
+
+    chunks = await collect_stream_response(endpoint)
+
+    assert chunks == [
+        "first",
+        'event: error\ndata: {"status": 500, "message": "sensitive details"}\n\n',
+    ]
+
+
+async def test_register_route_stream_awaits_generator_factory(ingress, mock_app):
+    async def stream_factory(*_, **__):
+        async def gen():
+            yield "chunk"
+
+        return gen()
+
+    adapter = Mock()
+    adapter._stream_call.side_effect = stream_factory
+    endpoint = register_stream_endpoint(ingress, mock_app, adapter)
+
+    assert await collect_stream_response(endpoint) == ["chunk"]
+
+
+async def test_register_route_stream_preserves_sync_generator_support(ingress, mock_app):
+    def sync_stream():
+        yield "chunk"
+
+    adapter = Mock()
+    adapter._stream_call.return_value = sync_stream()
+    endpoint = register_stream_endpoint(ingress, mock_app, adapter)
+
+    assert await collect_stream_response(endpoint) == ["chunk"]
+
+
+async def test_register_route_stream_propagates_cancellation(ingress, mock_app):
+    async def cancelled_stream():
+        raise asyncio.CancelledError
+        yield  # pragma: no cover
+
+    adapter = Mock()
+    adapter._stream_call.return_value = cancelled_stream()
+    endpoint = register_stream_endpoint(ingress, mock_app, adapter)
+
+    with pytest.raises(asyncio.CancelledError):
+        await collect_stream_response(endpoint)
+
+
+async def test_register_route_stream_converts_auth_error_to_sse_event(ingress, mock_app):
+    adapter = Mock()
+    endpoint = register_stream_endpoint(ingress, mock_app, adapter, auth_keys=["valid-key"])
+    dependency = mock_app.add_api_route.call_args.kwargs["dependencies"][0]
+    assert dependency.dependency is api_key_header
+    request = Mock(headers={})
+
+    with patch("framex.driver.ingress.auth_jwt", return_value=False):
+        response = await endpoint(framex_request=request, framex_response=Response())
+        chunks = [chunk async for chunk in response.body_iterator]
+
+    assert chunks == [
+        'event: error\ndata: {"status": 401, "message": "Invalid API Key(None) for API(/stream)"}\n\n',
+    ]
+    adapter._stream_call.assert_not_called()

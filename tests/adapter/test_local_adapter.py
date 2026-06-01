@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from framex.adapter.base import AdapterMode
 from framex.adapter.local_adapter import LocalAdapter
+from framex.plugin.model import PluginApi
 
 
 class TestLocalAdapter:
@@ -326,3 +327,19 @@ class TestLocalAdapter:
 
         result = await adapter._invoke(async_func, a=1, b=2, c=3)
         assert result == {"a": 1, "b": 2, "c": 3}
+
+    async def test_call_func_awaits_stream_generator_factory(self):
+        """Test call_func consumes a coroutine that returns an async stream."""
+        adapter = LocalAdapter()
+
+        async def stream_factory(**kwargs):
+            async def stream():
+                yield kwargs["value"]
+
+            return stream()
+
+        api = PluginApi(deployment_name="demo", func_name="stream", stream=True)
+        with patch.object(adapter, "get_handle_func", return_value=stream_factory):
+            result = await adapter.call_func(api, value="chunk")
+
+        assert result == ["chunk"]

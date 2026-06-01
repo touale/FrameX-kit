@@ -1,12 +1,13 @@
 import inspect
 import os
 import re
-from collections.abc import Callable
+from collections.abc import AsyncIterable, Callable
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRoute
+from starlette.concurrency import iterate_in_threadpool
 from starlette.routing import Route
 
 from framex.adapter import get_adapter
@@ -18,7 +19,8 @@ from framex.driver.cache import request_cache
 from framex.driver.decorator import api_ingress
 from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi, RuntimePluginInfo
-from framex.utils import escape_tag, shorten_str
+from framex.utils import StreamEnventType, escape_tag, make_stream_event, shorten_str
+from framex.utils.common import safe_error_message
 
 app = create_fastapi_application()
 
@@ -114,6 +116,16 @@ class APIIngress:
                 reserved={framex_request_param},
             )
 
+            def _verify_api_key(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
+                if auth_keys is not None and (api_key is None or api_key not in auth_keys) and (not auth_jwt(request)):
+                    logger.opt(colors=True).error(
+                        f"<r>Unauthorized access attempt with API Key({api_key}) for API({path})</r>"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail=f"Invalid API Key({api_key}) for API({path})",
+                    )
+
             async def route_handler(**request_kwargs: Any) -> Any:
                 framex_request: Request = request_kwargs.pop(framex_request_param)
                 framex_response: Response = request_kwargs.pop(framex_response_param)
@@ -124,9 +136,38 @@ class APIIngress:
                     )
                 framex_response.headers["X-Raw-Output"] = str(direct_output)
                 if stream:
-                    gen = adapter._stream_call(c_handle, **request_kwargs)
+
+                    async def stream_with_error() -> AsyncIterable[Any]:
+                        try:
+                            if auth_keys is not None:
+                                _verify_api_key(framex_request, framex_request.headers.get("Authorization"))
+                            gen = adapter._stream_call(c_handle, **request_kwargs)
+                            if inspect.isawaitable(gen):
+                                gen = await gen
+                            chunks = gen if isinstance(gen, AsyncIterable) else iterate_in_threadpool(iter(gen))
+                            async for chunk in chunks:
+                                yield chunk
+                        except HTTPException as e:
+                            logger.opt(exception=e, colors=True).error(
+                                f"<r>Failed to stream api({methods}): {path} "
+                                f"from {handle.deployment_name}.{func_name}</r>"
+                            )
+                            yield make_stream_event(
+                                StreamEnventType.ERROR,
+                                {"status": e.status_code, "message": e.detail},
+                            )
+                        except Exception as e:
+                            logger.opt(exception=e, colors=True).error(
+                                f"<r>Failed to stream api({methods}): {path} "
+                                f"from {handle.deployment_name}.{func_name}</r>"
+                            )
+                            yield make_stream_event(
+                                StreamEnventType.ERROR,
+                                {"status": 500, "message": safe_error_message(e)},
+                            )
+
                     return StreamingResponse(  # type: ignore
-                        gen,
+                        stream_with_error(),
                         media_type="text/event-stream",
                     )
 
@@ -174,18 +215,7 @@ class APIIngress:
             dependencies = []
             if auth_keys is not None:
                 logger.trace(f"API({path}) with tags {tags} requires auth.")
-
-                def _verify_api_key(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
-                    if (api_key is None or api_key not in auth_keys) and (not auth_jwt(request)):
-                        logger.opt(colors=True).error(
-                            f"<r>Unauthorized access attempt with API Key({api_key}) for API({path})</r>"
-                        )
-                        raise HTTPException(
-                            status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail=f"Invalid API Key({api_key}) for API({path})",
-                        )
-
-                dependencies.append(Depends(_verify_api_key))
+                dependencies.append(Depends(api_key_header if stream else _verify_api_key))
 
             self.add_api_route(
                 path,

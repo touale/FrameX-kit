@@ -1,4 +1,5 @@
 import abc
+import inspect
 from collections.abc import Callable
 from enum import StrEnum
 from typing import Any, cast
@@ -37,7 +38,10 @@ class BaseAdapter(abc.ABC):
         func = self.get_handle_func(api.deployment_name, api.func_name)
         stream = await self._resolve_stream(api, kwargs)
         if stream:
-            return [chunk async for chunk in self._stream_call(func, **kwargs)]
+            gen = self._stream_call(func, **kwargs)
+            if inspect.isawaitable(gen):
+                gen = await gen
+            return [chunk async for chunk in gen]
         return await self._invoke(func, **kwargs)
 
     def get_handle_func(self, deployment_name: str, func_name: str) -> Any:
@@ -65,5 +69,6 @@ class BaseAdapter(abc.ABC):
 
     @abc.abstractmethod
     async def _acall(self, func: Callable[..., Any], **kwargs: Any) -> Any: ...
+
     @abc.abstractmethod
     def _call(self, func: Callable[..., Any], **kwargs: Any) -> Any: ...

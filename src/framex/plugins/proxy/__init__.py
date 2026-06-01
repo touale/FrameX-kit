@@ -247,14 +247,15 @@ class ProxyPlugin(BasePlugin):
         **kwargs: Any,
     ) -> AsyncGenerator[str, None] | dict | str:
         if stream:
-            client = httpx.AsyncClient(timeout=self.time_out)
 
             async def stream_generator() -> AsyncGenerator[str, None]:
-                async with client.stream(**kwargs) as response:
+                async with (
+                    httpx.AsyncClient(timeout=self.time_out) as client,
+                    client.stream(**kwargs) as response,
+                ):
                     response.raise_for_status()
                     async for chunk in response.aiter_text():
                         yield chunk
-                await client.aclose()
 
             return stream_generator()
         async with httpx.AsyncClient(timeout=self.time_out) as client:
