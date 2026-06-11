@@ -2,6 +2,94 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-06-11)
+
+### Bug Fixes
+
+- Fix an instance destruction issue caused by health checks with excessively short timeout
+  thresholds. ([#182](https://github.com/touale/FrameX-kit/pull/182),
+  [`a645f67`](https://github.com/touale/FrameX-kit/commit/a645f677fc9b157817d689b927b5d56b677872de))
+
+### Chores
+
+- **deps**: Bump codecov/codecov-action from 6 to 7
+  ([`ea099c3`](https://github.com/touale/FrameX-kit/commit/ea099c30bd444974a29ce4936a20679c16f7eae9))
+
+- **deps**: Bump fastapi from 0.120.4 to 0.136.3
+  ([`b3084fd`](https://github.com/touale/FrameX-kit/commit/b3084fdfd8c48c6bdc3c092c3031d1af2d4297df))
+
+- **deps**: Bump idna from 3.11 to 3.15
+  ([`45b0566`](https://github.com/touale/FrameX-kit/commit/45b0566b7a8bbf15190b8fc6926b61a40daf9137))
+
+- **deps**: Bump pydantic from 2.13.3 to 2.13.4
+  ([`426ee1c`](https://github.com/touale/FrameX-kit/commit/426ee1cc39a41f9e82724f3ee710eab6eeee241d))
+
+- **deps**: Bump pyjwt from 2.12.1 to 2.13.0
+  ([`6ebf4c8`](https://github.com/touale/FrameX-kit/commit/6ebf4c8d4ba05841090e9b25950e06e599226499))
+
+- **deps**: Bump python-multipart from 0.0.28 to 0.0.32
+  ([`1d8876b`](https://github.com/touale/FrameX-kit/commit/1d8876bf863ee28f26824866b77b6b92ce5f5aab))
+
+- **deps**: Bump starlette from 0.49.3 to 1.0.1
+  ([`328b436`](https://github.com/touale/FrameX-kit/commit/328b436c4066ef89093fbfe14e98c198174e7eff))
+
+- **deps**: Bump uvicorn from 0.47.0 to 0.48.0
+  ([`86f263c`](https://github.com/touale/FrameX-kit/commit/86f263c379737ae6e6eb8773389a17570b00620f))
+
+- **deps**: Bump uvicorn from 0.48.0 to 0.49.0
+  ([`a9bcd7c`](https://github.com/touale/FrameX-kit/commit/a9bcd7c9988b9c676ef44a377646bfec7bb3bf4d))
+
+- **deps-dev**: Bump coverage from 7.14.0 to 7.14.1
+  ([`471df05`](https://github.com/touale/FrameX-kit/commit/471df0582ff82263bb9c1c77d997197d1f29335d))
+
+- **deps-dev**: Bump pytest-asyncio from 1.3.0 to 1.4.0
+  ([`3165336`](https://github.com/touale/FrameX-kit/commit/316533639b75598a7b56851c832d4b676d4cb6ff))
+
+- **deps-dev**: Bump ruff from 0.15.13 to 0.15.14
+  ([`e11cda0`](https://github.com/touale/FrameX-kit/commit/e11cda07ef820de25a7dbf867f58362bc075766c))
+
+- **deps-dev**: Bump ruff from 0.15.14 to 0.15.16
+  ([`853c124`](https://github.com/touale/FrameX-kit/commit/853c124ceb617b8b2508256fc4f410051c09517e))
+
+- **deps-dev**: Bump types-pytz
+  ([`77b1795`](https://github.com/touale/FrameX-kit/commit/77b1795e3a07f74aa9af23129aa3d36c76e16fb5))
+
+- **deps-dev**: Bump types-pyyaml
+  ([`98522b6`](https://github.com/touale/FrameX-kit/commit/98522b6d6d46c703eef4ff1963af390d0fd7ea5a))
+
+### Documentation
+
+- Import ui and cache docs
+  ([`19b145a`](https://github.com/touale/FrameX-kit/commit/19b145abc31ef7d5d4f627d3c50f52024f0145ea))
+
+- Refactor readme.md
+  ([`5d2ae5e`](https://github.com/touale/FrameX-kit/commit/5d2ae5ef5cea974ad9e7128eb49835edbadf98c8))
+
+### Features
+
+- Support custom docs_path in proxy plugin
+  ([`8f3ad03`](https://github.com/touale/FrameX-kit/commit/8f3ad03329fc85e562dd3f905cab4697ef63bdc8))
+
+- Supports custom doc_path in proxy plugins
+  ([`3e74bcb`](https://github.com/touale/FrameX-kit/commit/3e74bcb343ef3b6b897fded426acc994204b924d))
+
+- **config**: Reject unknown configuration fields
+  ([`74ae490`](https://github.com/touale/FrameX-kit/commit/74ae49096fee9f6cacc9de2ea757da2ca0b763c2))
+
+- **proxy**: Support per-url proxy allow rules
+  ([`2667db8`](https://github.com/touale/FrameX-kit/commit/2667db877ad3a5536a7041465cab6f2ba8f91f9d))
+
+### Testing
+
+- Fix test(test_get_proxy_upload_openapi)
+  ([`bfac45a`](https://github.com/touale/FrameX-kit/commit/bfac45a43cc8bc052d9de55c0b3f75b2635a2f10))
+
+### Update
+
+- Handle errors in streaming responses
+  ([`c14a1e1`](https://github.com/touale/FrameX-kit/commit/c14a1e19a4fdcd4b642656e3067de0746e2c74e6))
+
+
 ## v0.3.9 (2026-05-18)
 
 ### Bug Fixes
