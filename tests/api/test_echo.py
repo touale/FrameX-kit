@@ -30,10 +30,10 @@ def test_echo_with_error_api_key(client: TestClient):
 
 def test_echo_model(client: TestClient):
     params = {"message": "hello world"}
-    data = {"id": 1, "name": "原神"}
+    data = {"id": 1, "name": "test name"}
     res = client.post(f"{API_STR}/echo_model", params=params, json=data).json()
     assert res["status"] == 200
-    assert res["data"] == "hello world,{'id': 1, 'name': '原神'}"
+    assert res["data"] == "hello world,{'id': 1, 'name': 'test name'}"
 
 
 def test_echo_stream(client: TestClient):
@@ -53,4 +53,4 @@ def test_echo_stream(client: TestClient):
                         chunks.append(content)
 
         assert events == {"finish", "message_chunk"}
-        assert "".join(chunks) == f"原神真好玩呀, {params['message']}"
+        assert "".join(chunks) == f"This message is being streamed., {params['message']}"

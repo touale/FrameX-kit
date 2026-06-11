@@ -12,8 +12,8 @@ from framex.utils import StreamEnventType, make_stream_event
 __plugin_meta__ = PluginMetadata(
     name="echo",
     version=VERSION,
-    description="原神会重复你说的话",
-    author="原神",
+    description="A plugin for repetitive output",
+    author="echo author",
     url="https://github.com/touale/FrameX-kit",
     required_remote_apis=[],
 )
@@ -21,7 +21,7 @@ __plugin_meta__ = PluginMetadata(
 
 class EchoModel(BaseModel):
     id: int
-    name: str = "原神"
+    name: str = "echo"
 
 
 @on_register()
@@ -39,7 +39,7 @@ class EchoPlugin(BasePlugin):
 
     @on_request("/api/v1/echo_stream", methods=["GET"], stream=True)
     async def echo_stream(self, message: str) -> AsyncGenerator[str, None]:
-        for char in f"原神真好玩呀, {message}":
+        for char in f"This message is being streamed., {message}":
             yield make_stream_event(StreamEnventType.MESSAGE_CHUNK, char)
             await asyncio.sleep(0.1)
         yield make_stream_event(StreamEnventType.FINISH)
@@ -47,4 +47,4 @@ class EchoPlugin(BasePlugin):
     @on_request(call_type=ApiType.FUNC)
     async def confess(self, message: str, call_back: Callable) -> str:
         call_back_result = call_back(message)
-        return f"我是原神哟! 收到message={message},call_back_result={call_back_result}"
+        return f"I am calling with message={message},call_back_result={call_back_result}"

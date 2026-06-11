@@ -55,7 +55,7 @@ class ProxyPlugin(BasePlugin):
 
         for url in settings.proxy_url_list:
             logger.info(f"Try to parse openapi docs from {url}")
-            await self._parse_openai_docs(url, settings.docs_path)
+            await self._parse_openai_docs(url, settings.get_docs_path(url))
 
         if settings.proxy_functions:
             for url, funcs in settings.proxy_functions.items():

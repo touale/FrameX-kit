@@ -13,9 +13,9 @@ def test_evoke_echo(client: TestClient) -> None:
     assert len(res["data"]) == 7
     assert res["data"][:5] == [
         params["message"],
-        f"原神真好玩呀, {params['message']}",
-        f"我是原神哟! 收到message={params['message']},call_back_result=hello{params['message']}",
-        "hello world,{'id': 1, 'name': '原神'}",
+        f"This message is being streamed., {params['message']}",
+        f"I am calling with message={params['message']},call_back_result=hello{params['message']}",
+        "hello world,{'id': 1, 'name': 'test name'}",
         "remote_sleepremote_func_with_params: 123remote_func_asyncremote_func_async_with_params: 100,abc",
     ]
     assert res["data"][5] == {

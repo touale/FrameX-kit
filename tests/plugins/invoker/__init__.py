@@ -7,8 +7,8 @@ from framex.plugin import BasePlugin, PluginMetadata, on_register, on_request, r
 __plugin_meta__ = PluginMetadata(
     name="invoker",
     version=VERSION,
-    description="原神会调用远程方法哟",
-    author="原神",
+    description="A plugin for invoking remote methods",
+    author="caller",
     url="https://github.com/touale/FrameX-kit",
     required_remote_apis=[
         "/api/v1/echo",
@@ -67,7 +67,7 @@ class InvokerPlugin(BasePlugin):
         stream_text = "".join([extract_content(c) for c in stream if "message_chunk" in c])
         confess = await self._call_remote_api("echo.EchoPlugin.confess", message=message, call_back=call_back)
         echo_model = await self._call_remote_api(
-            "/api/v1/echo_model", message=message, model={"id": 1, "name": "原神"}
+            "/api/v1/echo_model", message=message, model={"id": 1, "name": "test name"}
         )
         alias_user_info = await self._call_remote_api("/api/v1/alias/info")
         alias_func_user_info = await self._call_remote_api("alias_model.AliasDemoPlugin.get_user_info")

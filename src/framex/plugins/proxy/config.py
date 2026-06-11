@@ -3,6 +3,7 @@ from typing import Any, Self
 from pydantic import BaseModel, Field, model_validator
 
 from framex.config import AuthConfig
+from framex.consts import OPENAPI_URL
 from framex.plugin import get_plugin_config
 
 VERSION = "0.4.0"
@@ -11,10 +12,10 @@ VERSION = "0.4.0"
 class ProxyUrlRuleConfig(BaseModel):
     enable: list[str] = Field(default_factory=lambda: ["*"])
     disable: list[str] = Field(default_factory=list)
+    docs_path: str = "/api/v1/openapi.json"
 
 
 class ProxyPluginConfig(BaseModel):
-    docs_path: str = "/api/v1/openapi.json"
     proxy_urls: list[str] | dict[str, ProxyUrlRuleConfig] = Field(default_factory=list)
     force_stream_apis: list[str] = Field(default_factory=list)
     timeout: int = 600
@@ -59,6 +60,11 @@ class ProxyPluginConfig(BaseModel):
         if isinstance(self.proxy_urls, dict):
             return list(self.proxy_urls.keys())
         raise TypeError("Invalid proxy_urls type")  # pragma: no cover
+
+    def get_docs_path(self, base_url: str) -> str:
+        if isinstance(self.proxy_urls, dict):
+            return self.proxy_urls.get(base_url, ProxyUrlRuleConfig()).docs_path
+        return OPENAPI_URL
 
     @model_validator(mode="after")
     def validate_proxy_functions(self) -> Self:

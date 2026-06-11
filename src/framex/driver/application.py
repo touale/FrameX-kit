@@ -347,8 +347,18 @@ def create_fastapi_application() -> FastAPI:
         current_version = current_version if current_version.startswith("v") else f"v{current_version}"
         latest_version = await get_latest_repository_version(repo_url)
         if not latest_version or not has_newer_release_version(current_version, latest_version):
-            return {"has_update": False, "latest_version": None, "repo_url": repo_url}
-        return {"has_update": True, "latest_version": latest_version, "repo_url": repo_url}
+            return {
+                "has_update": False,
+                "current_version": current_version,
+                "latest_version": latest_version,
+                "repo_url": repo_url,
+            }
+        return {
+            "has_update": True,
+            "current_version": current_version,
+            "latest_version": latest_version,
+            "repo_url": repo_url,
+        }
 
     @application.get(REDOC_URL, include_in_schema=False)
     async def get_redoc_documentation(_: Annotated[str, Depends(authenticate)]) -> HTMLResponse:

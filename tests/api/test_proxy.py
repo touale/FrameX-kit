@@ -128,6 +128,7 @@ def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == {
+        "current_version": "v0.4.0",
         "has_update": True,
         "latest_version": "v9.9.9",
         "repo_url": "https://github.com/touale/FrameX-kit",
@@ -147,6 +148,7 @@ def test_get_plugin_release_documentation_uses_runtime_plugin_info_when_registry
     assert response.status_code == 200
     assert response.json() == {
         "has_update": True,
+        "current_version": "v0.4.0",
         "latest_version": "v9.9.9",
         "repo_url": "https://github.com/touale/FrameX-kit",
     }
