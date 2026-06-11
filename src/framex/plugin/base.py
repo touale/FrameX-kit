@@ -73,3 +73,7 @@ class BasePlugin:
 
     def _post_call_remote_api_hook(self, data: Any) -> Any:
         return data
+
+    def check_health(self) -> None:
+        # Called by Serve to check the replica's health.
+        pass

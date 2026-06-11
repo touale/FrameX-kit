@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 import framex
 from framex.consts import PROXY_PLUGIN_NAME, VERSION
-from framex.plugin import call_plugin_api
+from framex.plugin import BasePlugin, call_plugin_api
 from framex.plugin.model import ApiType, PluginApi
 from framex.plugin.resolver import reset_current_remote_apis, set_current_remote_apis
 
@@ -20,6 +20,12 @@ def test_get_plugin():
 
     assert plugin.config
     assert plugin.config.model_dump() == {"id": 123, "name": "test"}
+
+
+def test_base_plugin_check_health_noops_by_default():
+    plugin = BasePlugin()
+
+    plugin.check_health()
 
 
 class SampleModel(BaseModel):

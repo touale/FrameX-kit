@@ -260,7 +260,9 @@ class AuthConfig(StrictConfigModel):
 
 class Settings(BaseSettings):
     # Global config
-    base_ingress_config: dict[str, Any] = Field(default_factory=lambda: {"max_ongoing_requests": 10})
+    base_ingress_config: dict[str, Any] = Field(
+        default_factory=lambda: {"max_ongoing_requests": 10, "health_check_period_s": 15, "health_check_timeout_s": 60}
+    )
 
     server: ServerConfig = Field(default_factory=ServerConfig)
     log: LogConfig = Field(default_factory=LogConfig)

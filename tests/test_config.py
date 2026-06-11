@@ -3,7 +3,7 @@ import re
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from framex.config import CacheConfig, OauthConfig, RepositoryConfig
+from framex.config import CacheConfig, OauthConfig, RepositoryConfig, Settings
 
 
 def test_config():
@@ -78,6 +78,16 @@ def test_cache_config_defaults():
     assert cfg.ttl == 60
     assert cfg.max_size == 1000
     assert cfg.file_dir == ".framex/cache"
+
+
+def test_settings_base_ingress_config_defaults_include_health_checks():
+    default_config = Settings.model_fields["base_ingress_config"].get_default(call_default_factory=True)
+
+    assert default_config == {
+        "max_ongoing_requests": 10,
+        "health_check_period_s": 15,
+        "health_check_timeout_s": 60,
+    }
 
 
 def test_cache_config_validates_mode_ttl_and_max_size():
