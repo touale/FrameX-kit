@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.4.1 (2026-06-12)
+
+### Bug Fixes
+
+- Handle Ray Serve streaming response generator correctly
+  ([#190](https://github.com/touale/FrameX-kit/pull/190),
+  [`0b280ae`](https://github.com/touale/FrameX-kit/commit/0b280ae9bbe8a7ecf24d291d92807bc58716f536))
+
+- Return SSE errors for stream route validation
+  ([`16c6ded`](https://github.com/touale/FrameX-kit/commit/16c6ded8608fa4d1cf99f736227ec98b23ab2886))
+
+
 ## v0.4.0 (2026-06-11)
 
 ### Bug Fixes
