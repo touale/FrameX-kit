@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from starlette import status
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
+from starlette.responses import StreamingResponse
 
 import framex.driver.application as application_module
 from framex.config import DocsActionButtonConfig, DocsActionButtonInputConfig, OauthConfig, settings
@@ -157,6 +158,34 @@ class TestLogResponseMiddleware:
         assert response.headers["x-framex-cache-status"] == "MISS"
         assert response.headers["x-custom-header"] == "custom"
         assert response.json()["data"] == {"result": "ok"}
+
+    def test_stream_validation_error_returns_sse_error(self, app, client):
+        @app.get(f"{API_STR}/test-stream-validation", response_class=StreamingResponse)
+        async def endpoint(message: str) -> StreamingResponse:
+            return StreamingResponse(iter([message]), media_type="text/event-stream")
+
+        response = client.get(f"{API_STR}/test-stream-validation")
+
+        assert response.status_code == 422
+        assert response.headers["content-type"].startswith("text/event-stream")
+        assert "event: error" in response.text
+        assert '"status": 422' in response.text
+        assert "Request validation failed" in response.text
+        assert "message" in response.text
+
+    def test_non_stream_validation_error_keeps_json_wrapper(self, app, client):
+        @app.get(f"{API_STR}/test-json-validation")
+        async def endpoint(message: str) -> dict[str, str]:
+            return {"message": message}
+
+        response = client.get(f"{API_STR}/test-json-validation")
+        data = response.json()
+
+        assert response.status_code == 422
+        assert response.headers["content-type"].startswith("application/json")
+        assert data["status"] == 422
+        assert data["message"] == "unexpected code"
+        assert data["data"]["detail"][0]["loc"] == ["query", "message"]
 
 
 class TestDocsActionButtons:

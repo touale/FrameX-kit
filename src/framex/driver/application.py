@@ -13,6 +13,9 @@ from zoneinfo import ZoneInfo
 import httpx
 import pytz
 from fastapi import Body, Depends, FastAPI
+from fastapi.encoders import jsonable_encoder
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -22,7 +25,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, StreamingResponse
 
 from framex.config import settings
 from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
@@ -34,12 +37,14 @@ from framex.repository import (
     is_private_repository,
 )
 from framex.utils import (
+    StreamEnventType,
     build_docs_action_button_views,
     build_plugin_config_html,
     build_swagger_ui_html,
     collect_embedded_config_files,
     extract_docs_action_response_open_url,
     format_uptime,
+    make_stream_event,
     safe_error_message,
 )
 
@@ -66,6 +71,30 @@ def build_openapi_description() -> str:
 
 ---
 """
+
+
+def _is_stream_route(request: Request) -> bool:
+    route = request.scope.get("route")
+    response_class = getattr(route, "response_class", None)
+    return isinstance(response_class, type) and issubclass(response_class, StreamingResponse)
+
+
+def _stream_error_response(
+    status_code: int,
+    message: Any,
+    *,
+    detail: Any | None = None,
+    headers: dict[str, str] | None = None,
+) -> StreamingResponse:
+    data = {"status": status_code, "message": message}
+    if detail is not None:
+        data["detail"] = detail
+    return StreamingResponse(
+        iter([make_stream_event(StreamEnventType.ERROR, data)]),
+        media_type="text/event-stream",
+        status_code=status_code,
+        headers=headers,
+    )
 
 
 def create_fastapi_application() -> FastAPI:
@@ -374,9 +403,21 @@ def create_fastapi_application() -> FastAPI:
             tags=application.state.tags_metadata_map,
         )
 
+    @application.exception_handler(RequestValidationError)
+    async def _request_validation_exception_handler(request, exc):  # noqa
+        if _is_stream_route(request):
+            return _stream_error_response(
+                422,
+                "Request validation failed",
+                detail=jsonable_encoder(exc.errors()),
+            )
+        return await request_validation_exception_handler(request, exc)
+
     @application.exception_handler(HTTPException)
     async def _http_exception_handler(request, exc):  # noqa
         headers = getattr(exc, "headers", None)
+        if _is_stream_route(request):
+            return _stream_error_response(exc.status_code, exc.detail, headers=headers)
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -389,6 +430,11 @@ def create_fastapi_application() -> FastAPI:
 
     @application.exception_handler(Exception)
     async def _general_exception_handler(request, exc):  # noqa
+        if _is_stream_route(request):
+            return _stream_error_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                safe_error_message(exc),
+            )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
