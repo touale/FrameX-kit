@@ -188,6 +188,32 @@ async def collect_stream_response(endpoint):
     return [chunk async for chunk in response.body_iterator]
 
 
+class AwaitableAsyncStream:
+    def __init__(self, chunks):
+        self._chunks = iter(chunks)
+
+    def __await__(self):
+        raise RuntimeError("stream response should not be awaited")
+        yield  # pragma: no cover
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._chunks)
+        except StopIteration as exc:
+            raise StopAsyncIteration from exc
+
+
+async def test_register_route_stream_does_not_await_async_iterable_response(ingress, mock_app):
+    adapter = Mock()
+    adapter._stream_call.return_value = AwaitableAsyncStream(["chunk"])
+    endpoint = register_stream_endpoint(ingress, mock_app, adapter)
+
+    assert await collect_stream_response(endpoint) == ["chunk"]
+
+
 async def test_register_route_stream_converts_iteration_error_to_sse_event(ingress, mock_app):
     async def failing_stream():
         yield "first"

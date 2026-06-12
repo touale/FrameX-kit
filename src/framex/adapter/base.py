@@ -1,6 +1,6 @@
 import abc
 import inspect
-from collections.abc import Callable
+from collections.abc import AsyncIterable, Callable
 from enum import StrEnum
 from typing import Any, cast
 
@@ -39,7 +39,7 @@ class BaseAdapter(abc.ABC):
         stream = await self._resolve_stream(api, kwargs)
         if stream:
             gen = self._stream_call(func, **kwargs)
-            if inspect.isawaitable(gen):
+            if not isinstance(gen, AsyncIterable) and inspect.isawaitable(gen):
                 gen = await gen
             return [chunk async for chunk in gen]
         return await self._invoke(func, **kwargs)

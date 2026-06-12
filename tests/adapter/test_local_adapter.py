@@ -9,6 +9,24 @@ from framex.adapter.local_adapter import LocalAdapter
 from framex.plugin.model import PluginApi
 
 
+class AwaitableAsyncStream:
+    def __init__(self, chunks):
+        self._chunks = iter(chunks)
+
+    def __await__(self):
+        raise RuntimeError("stream response should not be awaited")
+        yield  # pragma: no cover
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._chunks)
+        except StopIteration as exc:
+            raise StopAsyncIteration from exc
+
+
 class TestLocalAdapter:
     """Tests for LocalAdapter class."""
 
@@ -246,6 +264,18 @@ class TestLocalAdapter:
         values = list(result)
         assert "value1" in values
         assert "value2" in values
+
+    async def test_call_func_stream_does_not_await_async_iterable_response(self):
+        adapter = LocalAdapter()
+        api = PluginApi(deployment_name="demo", func_name="stream", stream=True)
+
+        with (
+            patch.object(adapter, "get_handle_func", return_value=MagicMock()),
+            patch.object(adapter, "_stream_call", return_value=AwaitableAsyncStream(["chunk"])),
+        ):
+            result = await adapter.call_func(api)
+
+        assert result == ["chunk"]
 
     async def test_stream_call_with_async_generator(self):
         """Test _stream_call works with async generators."""
