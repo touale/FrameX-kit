@@ -142,7 +142,7 @@ class APIIngress:
                             if auth_keys is not None:
                                 _verify_api_key(framex_request, framex_request.headers.get("Authorization"))
                             gen = adapter._stream_call(c_handle, **request_kwargs)
-                            if inspect.isawaitable(gen):
+                            if not isinstance(gen, AsyncIterable) and inspect.isawaitable(gen):
                                 gen = await gen
                             chunks = gen if isinstance(gen, AsyncIterable) else iterate_in_threadpool(iter(gen))
                             async for chunk in chunks:
