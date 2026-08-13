@@ -93,7 +93,8 @@ class APIIngress:
             tags = ["default"]
         if auth_keys is None:
             auth_keys = settings.auth.get_auth_keys(path)
-            logger.trace(f"API({path}) with tags {tags} requires auth_keys {auth_keys}")
+            if auth_keys is not None:
+                logger.trace(f"API({path}) with tags {tags} requires auth")
         adapter = get_adapter()
 
         try:
@@ -118,12 +119,10 @@ class APIIngress:
 
             def _verify_api_key(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
                 if auth_keys is not None and (api_key is None or api_key not in auth_keys) and (not auth_jwt(request)):
-                    logger.opt(colors=True).error(
-                        f"<r>Unauthorized access attempt with API Key({api_key}) for API({path})</r>"
-                    )
+                    logger.opt(colors=True).error(f"<r>Unauthorized access attempt for API({path})</r>")
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail=f"Invalid API Key({api_key}) for API({path})",
+                        detail=f"Invalid API Key for API({path})",
                     )
 
             async def route_handler(**request_kwargs: Any) -> Any:

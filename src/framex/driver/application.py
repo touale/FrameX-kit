@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
-from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -29,7 +28,12 @@ from starlette.responses import JSONResponse, StreamingResponse
 
 from framex.config import settings
 from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
-from framex.driver.auth import authenticate, get_auth_payload, oauth_callback
+from framex.driver.auth import (
+    authenticate,
+    create_oauth_redirect,
+    get_auth_payload,
+    oauth_callback,
+)
 from framex.repository import (
     can_access_repository,
     get_latest_repository_version,
@@ -178,20 +182,13 @@ def create_fastapi_application() -> FastAPI:
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="OAuth authentication required",
                     )
-                redirect_query = urlencode(
-                    {
-                        "client_id": oauth.client_id,
-                        "response_type": "code",
-                        "redirect_uri": oauth.call_back_url,
-                        "scope": "read_user read_api",
-                        "state": DOCS_URL,
-                    }
-                )
+                redirect_url, state_cookie = create_oauth_redirect(DOCS_URL)
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="OAuth authentication required",
                     headers={
-                        "X-FrameX-OAuth-Redirect": f"{oauth.authorization_url}?{redirect_query}",
+                        "X-FrameX-OAuth-Redirect": redirect_url,
+                        "Set-Cookie": state_cookie,
                     },
                 )
             if (

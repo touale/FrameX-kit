@@ -77,6 +77,8 @@ For targeted work, prefer commands like `.venv/bin/pytest tests/api/test_proxy.p
 
 Use 4-space indentation, type hints on functions and methods, and English for comments and technical docs. Keep functions short and direct. Prefer explicit names over abbreviations. Follow current APIs, e.g. `model_dump()` for Pydantic models. Use `ruff format` and `ruff check` for formatting and linting, and `mypy` for type validation. Module names use `snake_case`; classes use `PascalCase`; tests use `test_*.py` and `test_*` function names.
 
+Do not introduce unrelated code for the sake of review or testing.
+
 ## Testing Guidelines
 
 Pytest is the test runner, with `pytest-asyncio`, `pytest-cov`, `pytest-order`, and `pytest-recording` enabled. Add tests next to the affected area: API behavior in `tests/api/`, auth and app wiring in `tests/driver/`, and repository/provider logic in `tests/test_utils.py` or `tests/test_config.py`. Keep fixtures sanitized; do not use real internal hosts, project names, or secrets in tests.

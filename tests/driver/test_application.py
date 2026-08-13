@@ -3,6 +3,7 @@
 import json
 from typing import Any
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi import Response
@@ -14,7 +15,7 @@ from starlette.responses import StreamingResponse
 
 import framex.driver.application as application_module
 from framex.config import DocsActionButtonConfig, DocsActionButtonInputConfig, OauthConfig, settings
-from framex.consts import API_STR, AUTH_COOKIE_NAME
+from framex.consts import API_STR, AUTH_COOKIE_NAME, OAUTH_STATE_COOKIE_NAME
 from framex.driver.application import create_fastapi_application
 from framex.driver.auth import create_auth_session, create_jwt
 
@@ -459,7 +460,9 @@ class TestDocsActionButtons:
         assert exc_info.value.detail == "OAuth authentication required"
         assert exc_info.value.headers is not None
         assert "X-FrameX-OAuth-Redirect" in exc_info.value.headers
-        assert "state=%2Fdocs" in exc_info.value.headers["X-FrameX-OAuth-Redirect"]
+        redirect_state = parse_qs(urlparse(exc_info.value.headers["X-FrameX-OAuth-Redirect"]).query)["state"][0]
+        assert redirect_state != "/docs"
+        assert OAUTH_STATE_COOKIE_NAME in exc_info.value.headers["Set-Cookie"]
 
     @pytest.mark.asyncio
     async def test_invoke_action_button_allows_oauth_wildcard_user(self, monkeypatch):
@@ -641,7 +644,9 @@ class TestDocsActionButtons:
         assert exc_info.value.detail == "OAuth authentication required"
         assert exc_info.value.headers is not None
         assert "X-FrameX-OAuth-Redirect" in exc_info.value.headers
-        assert "state=%2Fdocs" in exc_info.value.headers["X-FrameX-OAuth-Redirect"]
+        redirect_state = parse_qs(urlparse(exc_info.value.headers["X-FrameX-OAuth-Redirect"]).query)["state"][0]
+        assert redirect_state != "/docs"
+        assert OAUTH_STATE_COOKIE_NAME in exc_info.value.headers["Set-Cookie"]
 
     @pytest.mark.asyncio
     async def test_open_link_action_button_rejects_oauth_user_not_in_whitelist(self, monkeypatch):

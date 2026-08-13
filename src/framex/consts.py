@@ -23,6 +23,7 @@ SEBTRY_BLOCK_URLS = [
 ]
 
 AUTH_COOKIE_NAME = "framex_token"
+OAUTH_STATE_COOKIE_NAME = "framex_oauth_state"
 
 CACHE_REQUEST_HEADER = "X-FrameX-Cache"
 CACHE_KEY_HEADER = "X-FrameX-Cache-Key"

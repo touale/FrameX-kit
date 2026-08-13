@@ -17,7 +17,7 @@ def test_echo_with_no_api_key(client: TestClient):
     params = {"message": "hello world"}
     res = client.get(f"{API_STR}/echo", params=params).json()
     assert res["status"] == 401
-    assert res["message"] == "Invalid API Key(None) for API(/api/v1/echo)"
+    assert res["message"] == "Invalid API Key for API(/api/v1/echo)"
 
 
 def test_echo_with_error_api_key(client: TestClient):
@@ -25,7 +25,8 @@ def test_echo_with_error_api_key(client: TestClient):
     headers = {"Authorization": "error_key"}
     res = client.get(url=f"{API_STR}/echo", params=params, headers=headers).json()
     assert res["status"] == 401
-    assert res["message"] == "Invalid API Key(error_key) for API(/api/v1/echo)"
+    assert res["message"] == "Invalid API Key for API(/api/v1/echo)"
+    assert headers["Authorization"] not in json.dumps(res)
 
 
 def test_echo_model(client: TestClient):

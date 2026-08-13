@@ -1,5 +1,5 @@
-import secrets
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import (
@@ -85,12 +85,23 @@ class OauthConfig(StrictConfigModel):
     user_info_url: str = ""
     app_url: str = ""
 
-    jwt_secret: str = ""
+    jwt_secret: str
     jwt_algorithm: str = "HS256"
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def validate_jwt_secret(cls, jwt_secret: str) -> str:
+        if not jwt_secret.strip() or len(jwt_secret.encode("utf-8")) < 32:
+            raise ValueError("auth.oauth.jwt_secret must contain at least 32 UTF-8 bytes")
+        return jwt_secret
 
     @property
     def call_back_url(self) -> str:
         return f"{self.app_url}{self.redirect_uri}"
+
+    @property
+    def use_secure_cookie(self) -> bool:
+        return urlsplit(self.app_url).scheme.lower() == "https"
 
     def model_post_init(self, context: Any) -> None:
         super().model_post_init(context)
@@ -100,8 +111,6 @@ class OauthConfig(StrictConfigModel):
             self.token_url = f"{self.base_url}/oauth/token"
         if not self.user_info_url:
             self.user_info_url = f"{self.base_url}/api/v4/user"
-        if not self.jwt_secret:
-            self.jwt_secret = secrets.token_urlsafe(32)
 
 
 class RepositoryProviderAuthConfig(StrictConfigModel):

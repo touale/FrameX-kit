@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
 from typing import Any
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import httpx
 import jwt
@@ -11,10 +11,12 @@ from fastapi.security import APIKeyHeader
 from starlette.requests import Request
 
 from framex.config import settings
-from framex.consts import AUTH_COOKIE_NAME, DOCS_URL
+from framex.consts import AUTH_COOKIE_NAME, DOCS_URL, OAUTH_STATE_COOKIE_NAME
 
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
 SESSION_LIFETIME = timedelta(hours=24)
+OAUTH_STATE_LIFETIME = timedelta(minutes=10)
+OAUTH_REDIRECT_MAX_LENGTH = 2048
 _AUTH_SESSIONS: dict[str, dict[str, Any]] = {}
 
 
@@ -102,13 +104,101 @@ def auth_jwt(request: Request) -> bool:
 
 
 def _get_post_auth_redirect_url(state: str | None) -> str:
-    if not state:
+    if not state or len(state) > OAUTH_REDIRECT_MAX_LENGTH:
         return DOCS_URL
 
     parsed = urlsplit(state)
     if parsed.scheme or parsed.netloc or not state.startswith("/") or state.startswith("//"):
         return DOCS_URL
     return state
+
+
+def _get_canonical_oauth_request_url(request: Request) -> str | None:
+    oauth = settings.auth.oauth
+    if oauth is None:
+        return None
+
+    app_url = urlsplit(oauth.app_url)
+    request_url = urlsplit(str(request.url))
+    if not app_url.scheme or not app_url.netloc:
+        return None
+    if (app_url.scheme.lower(), app_url.netloc.lower()) == (
+        request_url.scheme.lower(),
+        request_url.netloc.lower(),
+    ):
+        return None
+
+    base_path = app_url.path.rstrip("/")
+    canonical_path = f"{base_path}{request_url.path}" or "/"
+    return urlunsplit(
+        (
+            app_url.scheme,
+            app_url.netloc,
+            canonical_path,
+            request_url.query,
+            "",
+        )
+    )
+
+
+def create_oauth_redirect(post_auth_redirect: str | None = None) -> tuple[str, str]:
+    oauth = settings.auth.oauth
+    if oauth is None:
+        raise RuntimeError("OAuth not configured")
+
+    state = token_urlsafe(32)
+    state_cookie = jwt.encode(
+        {
+            "state": state,
+            "redirect_url": _get_post_auth_redirect_url(post_auth_redirect),
+            "exp": _now_utc() + OAUTH_STATE_LIFETIME,
+        },
+        oauth.jwt_secret,
+        algorithm=oauth.jwt_algorithm,
+    )
+    cookie_response = Response()
+    cookie_response.set_cookie(
+        OAUTH_STATE_COOKIE_NAME,
+        state_cookie,
+        max_age=int(OAUTH_STATE_LIFETIME.total_seconds()),
+        path="/",
+        secure=oauth.use_secure_cookie,
+        httponly=True,
+        samesite="lax",
+    )
+    query = urlencode(
+        {
+            "client_id": oauth.client_id,
+            "response_type": "code",
+            "redirect_uri": oauth.call_back_url,
+            "scope": "read_user read_api",
+            "state": state,
+        }
+    )
+    return (
+        f"{oauth.authorization_url}?{query}",
+        cookie_response.headers["set-cookie"],
+    )
+
+
+def _consume_oauth_state(request: Request, state: str | None) -> str:
+    oauth = settings.auth.oauth
+    state_cookie = request.cookies.get(OAUTH_STATE_COOKIE_NAME)
+    if oauth is None or not state or not state_cookie:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OAuth state")
+
+    try:
+        state_payload = jwt.decode(state_cookie, oauth.jwt_secret, algorithms=[oauth.jwt_algorithm])
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OAuth state",
+        ) from None
+
+    redirect_url = state_payload.get("redirect_url")
+    if state_payload.get("state") != state or not isinstance(redirect_url, str):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OAuth state")
+    return redirect_url
 
 
 def authenticate(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
@@ -119,27 +209,28 @@ def authenticate(request: Request, api_key: str | None = Depends(api_key_header)
         if api_key and api_key in (settings.auth.get_auth_keys(request.url.path) or []):
             return
 
-        state = f"{request.url.path}?{request.url.query}" if request.url.query else request.url.path
-        query = urlencode(
-            {
-                "client_id": settings.auth.oauth.client_id,
-                "response_type": "code",
-                "redirect_uri": settings.auth.oauth.call_back_url,
-                "scope": "read_user read_api",
-                "state": state,
-            }
-        )
+        if canonical_url := _get_canonical_oauth_request_url(request):
+            raise HTTPException(
+                status_code=status.HTTP_302_FOUND,
+                headers={"Location": canonical_url},
+            )
+
+        redirect_path = f"{request.url.path}?{request.url.query}" if request.url.query else request.url.path
+        redirect_url, state_cookie = create_oauth_redirect(redirect_path)
         raise HTTPException(
             status_code=status.HTTP_302_FOUND,
             headers={
-                "Location": f"{settings.auth.oauth.authorization_url}?{query}",
+                "Location": redirect_url,
+                "Set-Cookie": state_cookie,
             },
         )
 
 
-async def oauth_callback(code: str, state: str | None = None) -> Response:
+async def oauth_callback(request: Request, code: str, state: str | None = None) -> Response:
     if not settings.auth.oauth:  # pragma: no cover
         raise RuntimeError("OAuth not configured")
+
+    redirect_url = _consume_oauth_state(request, state)
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -179,7 +270,7 @@ async def oauth_callback(code: str, state: str | None = None) -> Response:
     session_id = create_auth_session(user_info)
 
     res = RedirectResponse(
-        url=_get_post_auth_redirect_url(state),
+        url=redirect_url,
         status_code=status.HTTP_302_FOUND,
     )
     res.set_cookie(
@@ -196,4 +287,5 @@ async def oauth_callback(code: str, state: str | None = None) -> Response:
         httponly=True,
         samesite="lax",
     )
+    res.delete_cookie(OAUTH_STATE_COOKIE_NAME)
     return res
