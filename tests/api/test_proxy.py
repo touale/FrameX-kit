@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from framex.consts import API_STR
 from framex.driver.auth import create_auth_session, create_jwt
+from framex.repository import RepositoryRelease
 from framex.utils import cache_decode, cache_encode
 from tests.test_plugins import ExchangeModel, SubModel, local_exchange_key_value
 
@@ -119,10 +120,13 @@ def test_openapi_tag_description_hides_plugin_config_without_auth(client: TestCl
 
 
 def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
-    async def fake_get_latest_repository_version(_: str) -> str:
-        return "v9.9.9"
+    async def fake_get_latest_repository_release(_: str) -> RepositoryRelease:
+        return RepositoryRelease(
+            version="v9.9.9",
+            released_at="2026-08-12T09:30:00Z",
+        )
 
-    monkeypatch.setattr("framex.driver.application.get_latest_repository_version", fake_get_latest_repository_version)
+    monkeypatch.setattr("framex.driver.application.get_latest_repository_release", fake_get_latest_repository_release)
 
     response = client.get("/docs/plugin-release", params={"plugin": "proxy"})
 
@@ -131,6 +135,7 @@ def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
         "current_version": "v0.4.0",
         "has_update": True,
         "latest_version": "v9.9.9",
+        "released_at": "2026-08-12T09:30:00Z",
         "repo_url": "https://github.com/touale/FrameX-kit",
     }
 
@@ -138,10 +143,10 @@ def test_get_plugin_release_documentation(client: TestClient, monkeypatch):
 def test_get_plugin_release_documentation_uses_runtime_plugin_info_when_registry_missing(
     client: TestClient, monkeypatch
 ):
-    async def fake_get_latest_repository_version(_: str) -> str:
-        return "v9.9.9"
+    async def fake_get_latest_repository_release(_: str) -> RepositoryRelease:
+        return RepositoryRelease(version="v9.9.9")
 
-    monkeypatch.setattr("framex.driver.application.get_latest_repository_version", fake_get_latest_repository_version)
+    monkeypatch.setattr("framex.driver.application.get_latest_repository_release", fake_get_latest_repository_release)
 
     response = client.get("/docs/plugin-release", params={"plugin": "proxy"})
 
@@ -150,6 +155,7 @@ def test_get_plugin_release_documentation_uses_runtime_plugin_info_when_registry
         "has_update": True,
         "current_version": "v0.4.0",
         "latest_version": "v9.9.9",
+        "released_at": None,
         "repo_url": "https://github.com/touale/FrameX-kit",
     }
 

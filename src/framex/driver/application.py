@@ -46,7 +46,7 @@ from framex.driver.auth import (
 )
 from framex.repository import (
     can_access_repository,
-    get_latest_repository_version,
+    get_latest_repository_release,
     has_newer_release_version,
     is_private_repository,
 )
@@ -394,18 +394,22 @@ def create_fastapi_application() -> FastAPI:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plugin not found: {plugin}")
 
         current_version = current_version if current_version.startswith("v") else f"v{current_version}"
-        latest_version = await get_latest_repository_version(repo_url)
+        latest_release = await get_latest_repository_release(repo_url)
+        latest_version = latest_release.version if latest_release else None
+        released_at = latest_release.released_at if latest_release else None
         if not latest_version or not has_newer_release_version(current_version, latest_version):
             return {
                 "has_update": False,
                 "current_version": current_version,
                 "latest_version": latest_version,
+                "released_at": released_at,
                 "repo_url": repo_url,
             }
         return {
             "has_update": True,
             "current_version": current_version,
             "latest_version": latest_version,
+            "released_at": released_at,
             "repo_url": repo_url,
         }
 

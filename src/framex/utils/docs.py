@@ -838,6 +838,31 @@ def build_swagger_ui_html(
             return link instanceof HTMLAnchorElement ? link : null;
         }}
 
+        function formatReleaseDate(releasedAt) {{
+            if (!releasedAt) return "";
+
+            const releaseDate = new Date(releasedAt);
+            if (Number.isNaN(releaseDate.getTime())) return "";
+
+            const today = new Date();
+            const todayValue = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+            const releaseValue = Date.UTC(
+                releaseDate.getFullYear(),
+                releaseDate.getMonth(),
+                releaseDate.getDate()
+            );
+            const daysAgo = Math.round((todayValue - releaseValue) / 86400000);
+            if (daysAgo < 0) return "";
+            if (daysAgo === 0) return "Today";
+            if (daysAgo === 1) return "Yesterday";
+            if (daysAgo <= 7) return daysAgo + " days ago";
+
+            const year = releaseDate.getFullYear();
+            const month = String(releaseDate.getMonth() + 1).padStart(2, "0");
+            const day = String(releaseDate.getDate()).padStart(2, "0");
+            return year + "-" + month + "-" + day;
+        }}
+
         function hydrateLatestReleaseLinks() {{
             const releaseLinks = document.querySelectorAll('.swagger-ui .opblock-tag small a[href*="/docs/plugin-release?plugin="]');
             releaseLinks.forEach((link) => {{
@@ -854,7 +879,9 @@ def build_swagger_ui_html(
                             return;
                         }}
 
-                        link.textContent = "⬆️ 发现新版本: " + data.latest_version;
+                        const releaseDate = formatReleaseDate(data.released_at);
+                        link.textContent = "⬆️ 发现新版本: " + data.latest_version
+                            + (releaseDate ? " (" + releaseDate + ")" : "");
                         if (data.repo_url) {{
                             link.href = data.repo_url;
                         }}

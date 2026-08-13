@@ -4,7 +4,7 @@ from urllib.parse import ParseResult, quote
 
 from framex.config import settings
 
-from .base import RepositoryVersionProvider
+from .base import RepositoryRelease, RepositoryVersionProvider
 
 GITLAB_PRIMARY_HOST = "gitlab.com"
 GITLAB_HOST_SUFFIX = ".gitlab.com"
@@ -24,7 +24,7 @@ class GitLabRepositoryVersionProvider(RepositoryVersionProvider):
             or host in settings.repository.auth.gitlab.configured_hosts()
         )
 
-    async def get_latest_version(self, parsed_url: ParseResult) -> str | None:
+    async def get_latest_release(self, parsed_url: ParseResult) -> RepositoryRelease | None:
         headers = settings.repository.auth.gitlab.build_headers_for_url(parsed_url.netloc, parsed_url.path) or None
         project_path = await self._resolve_project_path(parsed_url, headers=headers, require_fetch=False)
         if project_path is None:
@@ -32,7 +32,14 @@ class GitLabRepositoryVersionProvider(RepositoryVersionProvider):
 
         api_url = self._build_release_api_url(parsed_url, project_path)
         payload = await self.fetch_json(api_url, headers=headers)
-        return self.extract_version(payload)
+        version = self.extract_version(payload)
+        if payload is None or version is None:
+            return None
+
+        return RepositoryRelease(
+            version=version,
+            released_at=self.normalize_text(payload.get("released_at")),
+        )
 
     async def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
         return await self.can_fetch(self._build_repository_web_url(parsed_url), follow_redirects=False)
