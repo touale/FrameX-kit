@@ -99,6 +99,16 @@ def get_auth_payload(request: Request) -> dict[str, Any] | None:
     return decode_auth_token(request.cookies.get(AUTH_COOKIE_NAME))
 
 
+def delete_auth_session(request: Request) -> None:
+    auth_payload = get_auth_payload(request)
+    if auth_payload is None:
+        return
+
+    session_id = auth_payload.get("session_id")
+    if isinstance(session_id, str):
+        _AUTH_SESSIONS.pop(session_id, None)
+
+
 def auth_jwt(request: Request) -> bool:
     return get_auth_payload(request) is not None
 

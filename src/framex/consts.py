@@ -6,6 +6,7 @@ API_PRE_STR = "/api"
 API_STR = f"{API_PRE_STR}/v1"
 OPENAPI_URL = f"{API_STR}/openapi.json"
 DOCS_URL = "/docs"
+LOGOUT_URL = "/auth/logout"
 REDOC_URL = "/redoc"
 
 BACKEND_NAME = "backend"

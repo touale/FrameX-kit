@@ -19,6 +19,7 @@ from .config_docs import (
 )
 from .docs import (
     build_docs_action_button_views,
+    build_logout_html,
     build_plugin_description,
     build_swagger_ui_html,
     extract_docs_action_response_open_url,
@@ -27,6 +28,7 @@ from .docs import (
 __all__ = [
     "StreamEnventType",
     "build_docs_action_button_views",
+    "build_logout_html",
     "build_plugin_config_html",
     "build_plugin_description",
     "build_swagger_ui_html",

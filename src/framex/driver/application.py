@@ -27,10 +27,20 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 
 from framex.config import settings
-from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
+from framex.consts import (
+    API_PRE_STR,
+    AUTH_COOKIE_NAME,
+    DOCS_URL,
+    LOGOUT_URL,
+    OPENAPI_URL,
+    PROJECT_NAME,
+    REDOC_URL,
+    VERSION,
+)
 from framex.driver.auth import (
     authenticate,
     create_oauth_redirect,
+    delete_auth_session,
     get_auth_payload,
     oauth_callback,
 )
@@ -43,6 +53,7 @@ from framex.repository import (
 from framex.utils import (
     StreamEnventType,
     build_docs_action_button_views,
+    build_logout_html,
     build_plugin_config_html,
     build_swagger_ui_html,
     collect_embedded_config_files,
@@ -207,9 +218,21 @@ def create_fastapi_application() -> FastAPI:
             openapi_url=OPENAPI_URL,
             title="FrameX Docs",
             action_buttons=build_docs_action_button_views(settings.docs.action_buttons),
+            show_logout=settings.auth.oauth is not None,
         )
         response.headers["Cache-Control"] = "no-store"
         return response
+
+    @application.post(LOGOUT_URL, include_in_schema=False)
+    async def logout(request: Request) -> RedirectResponse:
+        delete_auth_session(request)
+        response = RedirectResponse(url=LOGOUT_URL, status_code=status.HTTP_303_SEE_OTHER)
+        response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+        return response
+
+    @application.get(LOGOUT_URL, include_in_schema=False)
+    async def get_logout_page() -> HTMLResponse:
+        return build_logout_html()
 
     @application.post("/docs/action-buttons/{button_index}/invoke", include_in_schema=False)
     async def invoke_docs_action_button(

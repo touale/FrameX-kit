@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 from framex.config import AuthConfig
-from framex.consts import AUTH_COOKIE_NAME, DOCS_URL, OAUTH_STATE_COOKIE_NAME
+from framex.consts import AUTH_COOKIE_NAME, DOCS_URL, LOGOUT_URL, OAUTH_STATE_COOKIE_NAME
 from framex.driver.application import create_fastapi_application
 from framex.driver.auth import (
     auth_jwt,
@@ -321,6 +321,13 @@ class TestOAuthCallback:
 
 
 class TestAuthenticationIntegration:
+    def test_docs_without_oauth_hides_logout(self):
+        with patch("framex.config.settings.auth.oauth", None):
+            response = TestClient(create_fastapi_application()).get(DOCS_URL)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "const logoutEnabled = false;" in response.text
+
     def test_docs_redirects_when_not_authenticated(self):
         with patch("framex.config.settings.auth.oauth", fake_oauth()):
             app = create_fastapi_application()
@@ -346,3 +353,44 @@ class TestAuthenticationIntegration:
             assert resp.status_code == status.HTTP_200_OK
             assert ".swagger-ui .scheme-container .auth-wrapper" in resp.text
             assert ".swagger-ui .scheme-container .authorize" in resp.text
+            assert "const logoutEnabled = true;" in resp.text
+
+    def test_logout_clears_session_and_cookie(self):
+        with patch("framex.config.settings.auth.oauth", fake_oauth()):
+            app = create_fastapi_application()
+            client = TestClient(app)
+            session_id = create_auth_session({"username": "test"})
+            token = create_jwt({"username": "test", "session_id": session_id})
+            client.cookies.set(AUTH_COOKIE_NAME, token)
+
+            response = client.post(LOGOUT_URL, follow_redirects=False)
+
+            assert response.status_code == status.HTTP_303_SEE_OTHER
+            assert response.headers["location"] == LOGOUT_URL
+            assert f"{AUTH_COOKIE_NAME}=" in response.headers["set-cookie"]
+            assert "Max-Age=0" in response.headers["set-cookie"]
+            assert decode_auth_token(token) is None
+            assert client.get(DOCS_URL, follow_redirects=False).status_code == status.HTTP_302_FOUND
+
+    @pytest.mark.parametrize("token", [None, "invalid-token"])
+    def test_logout_is_idempotent(self, token):
+        with patch("framex.config.settings.auth.oauth", fake_oauth()):
+            client = TestClient(create_fastapi_application())
+            if token is not None:
+                client.cookies.set(AUTH_COOKIE_NAME, token)
+
+            response = client.post(LOGOUT_URL, follow_redirects=False)
+
+        assert response.status_code == status.HTTP_303_SEE_OTHER
+        assert response.headers["location"] == LOGOUT_URL
+
+    def test_logout_page_does_not_require_authentication(self):
+        with patch("framex.config.settings.auth.oauth", fake_oauth()):
+            response = TestClient(create_fastapi_application()).get(LOGOUT_URL)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["cache-control"] == "no-store"
+        assert 'class="logout-brand">FrameX Docs</p>' in response.text
+        assert "Signed out" in response.text
+        assert 'class="login-link" href="/docs"' in response.text
+        assert "Sign in again" in response.text

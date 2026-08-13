@@ -18,6 +18,7 @@ from framex.repository import can_access_repository, get_latest_repository_versi
 from framex.utils import (
     StreamEnventType,
     build_docs_action_button_views,
+    build_logout_html,
     build_plugin_config_html,
     build_plugin_description,
     build_swagger_ui_html,
@@ -467,6 +468,39 @@ def test_build_swagger_ui_html_renders_oauth_action_redirect_behaviors():
     assert 'window.open("/docs/action-buttons/" + buttonConfig.index + "/open"' in html_text
     assert "Your login session has expired. You will be redirected to sign in again." in html_text
     assert 'response.headers.get("X-FrameX-OAuth-Redirect")' in html_text
+
+
+def test_build_swagger_ui_html_renders_logout_button_conditionally():
+    enabled_html = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        show_logout=True,
+    ).body.decode()  # type: ignore[union-attr]
+    disabled_html = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert "const logoutEnabled = true;" in enabled_html
+    assert 'form.method = "post"' in enabled_html
+    assert 'form.action = "/auth/logout"' in enabled_html
+    assert 'window.confirm("Are you sure you want to sign out?")' in enabled_html
+    assert 'button.textContent = "Sign out"' in enabled_html
+    assert "let swaggerReady = false;" in enabled_html
+    assert "if (!swaggerReady || !logoutEnabled" in enabled_html
+    assert "swaggerReady = true;" in enabled_html
+    assert "const logoutEnabled = false;" in disabled_html
+
+
+def test_build_logout_html_returns_no_store_page():
+    response = build_logout_html()
+    html_text = response.body.decode()  # type: ignore[union-attr]
+
+    assert response.headers["cache-control"] == "no-store"
+    assert 'class="logout-brand">FrameX Docs</p>' in html_text
+    assert "Signed out" in html_text
+    assert 'class="login-link" href="/docs"' in html_text
+    assert "Sign in again" in html_text
 
 
 def test_collect_embedded_config_files_reads_yaml_and_toml(tmp_path):

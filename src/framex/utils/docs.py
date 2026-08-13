@@ -5,6 +5,7 @@ from urllib.parse import quote
 from fastapi.responses import HTMLResponse
 
 from framex.config import DocsActionButtonConfig, settings
+from framex.consts import DOCS_URL, LOGOUT_URL
 
 
 def build_docs_action_button_views(action_buttons: list["DocsActionButtonConfig"]) -> list[dict[str, Any]]:
@@ -55,8 +56,10 @@ def build_swagger_ui_html(
     openapi_url: str,
     title: str,
     action_buttons: list[dict[str, Any]] | None = None,
+    show_logout: bool = False,
 ) -> HTMLResponse:
     docs_action_buttons = json.dumps(action_buttons or [], ensure_ascii=False)
+    logout_enabled = json.dumps(show_logout)
     return HTMLResponse(
         f"""
 <!DOCTYPE html>
@@ -108,6 +111,35 @@ def build_swagger_ui_html(
 
         .swagger-ui .info {{
             margin: 0 0 14px 0;
+        }}
+
+        .swagger-ui .info.docs-info-with-logout {{
+            position: relative;
+            padding-right: 116px;
+        }}
+
+        .swagger-ui .docs-logout-form {{
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+        }}
+
+        .swagger-ui .docs-logout-button {{
+            appearance: none;
+            border: 1px solid #fda29b;
+            border-radius: 8px;
+            background: #fff;
+            color: #b42318;
+            padding: 7px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--fx-shadow);
+        }}
+
+        .swagger-ui .docs-logout-button:hover {{
+            background: #fef3f2;
         }}
 
         .swagger-ui .info .title {{
@@ -427,6 +459,15 @@ def build_swagger_ui_html(
         }}
 
         @media (max-width: 900px) {{
+            .swagger-ui .info.docs-info-with-logout {{
+                padding-right: 0;
+            }}
+
+            .swagger-ui .docs-logout-form {{
+                position: static;
+                margin-top: 10px;
+            }}
+
             .swagger-ui .opblock-tag {{
                 grid-template-columns: 1fr;
                 row-gap: 6px;
@@ -451,7 +492,9 @@ def build_swagger_ui_html(
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
     <script>
         let allExpanded = false;
+        let swaggerReady = false;
         const docsActionButtons = {docs_action_buttons};
+        const logoutEnabled = {logout_enabled};
 
         function getTagSections() {{
             return Array.from(document.querySelectorAll(".swagger-ui .opblock-tag-section"));
@@ -765,6 +808,31 @@ def build_swagger_ui_html(
             syncToolbarText();
         }}
 
+        function insertLogoutButton() {{
+            if (!swaggerReady || !logoutEnabled || document.getElementById("docs-logout-form")) return;
+
+            const info = document.querySelector(".swagger-ui .info");
+            if (!info) return;
+
+            const form = document.createElement("form");
+            form.id = "docs-logout-form";
+            form.className = "docs-logout-form";
+            form.method = "post";
+            form.action = "{LOGOUT_URL}";
+            form.addEventListener("submit", (event) => {{
+                if (!window.confirm("Are you sure you want to sign out?")) event.preventDefault();
+            }});
+
+            const button = document.createElement("button");
+            button.type = "submit";
+            button.className = "docs-logout-button";
+            button.textContent = "Sign out";
+            form.appendChild(button);
+
+            info.classList.add("docs-info-with-logout");
+            info.appendChild(form);
+        }}
+
         function getTagDescriptionLink(target) {{
             const link = target.closest(".swagger-ui .opblock-tag small a");
             return link instanceof HTMLAnchorElement ? link : null;
@@ -833,12 +901,15 @@ def build_swagger_ui_html(
             ],
             layout: "BaseLayout",
             onComplete: function() {{
+                swaggerReady = true;
+                insertLogoutButton();
                 insertToolbar();
                 hydrateLatestReleaseLinks();
             }}
         }});
 
         const observer = new MutationObserver(() => {{
+            insertLogoutButton();
             insertToolbar();
             hydrateLatestReleaseLinks();
         }});
@@ -851,6 +922,102 @@ def build_swagger_ui_html(
 </body>
 </html>
         """
+    )
+
+
+def build_logout_html() -> HTMLResponse:
+    return HTMLResponse(
+        f"""
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Signed out - FrameX</title>
+    <style>
+        :root {{
+            --fx-bg: #f6f8fb;
+            --fx-text: #1f2a37;
+            --fx-text-soft: #475467;
+            --fx-text-muted: #98a2b3;
+            --fx-link: #6d9ae7;
+            --fx-link-hover: #1849a9;
+        }}
+
+        * {{ box-sizing: border-box; }}
+
+        html, body {{ margin: 0; min-height: 100%; }}
+
+        body {{
+            background: var(--fx-bg);
+            color: var(--fx-text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }}
+
+        .logout-page {{
+            display: grid;
+            min-height: 100svh;
+            place-items: center;
+            padding: 24px;
+        }}
+
+        .logout-content {{
+            width: min(360px, 100%);
+            text-align: center;
+        }}
+
+        .logout-brand {{
+            margin: 0 0 16px;
+            color: var(--fx-text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+        }}
+
+        h1 {{
+            margin: 0 0 8px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            line-height: 1.3;
+        }}
+
+        .logout-description {{
+            margin: 0 0 24px;
+            color: var(--fx-text-soft);
+            font-size: 13px;
+            line-height: 1.6;
+        }}
+
+        .login-link {{
+            display: inline-block;
+            padding: 8px 14px;
+            border: 1px solid var(--fx-link);
+            border-radius: 8px;
+            background: var(--fx-link);
+            color: #fff;
+            font-size: 12.5px;
+            font-weight: 600;
+            text-decoration: none;
+        }}
+
+        .login-link:hover {{ background: var(--fx-link-hover); }}
+        .login-link:focus-visible {{ outline: 2px solid var(--fx-link-hover); outline-offset: 2px; }}
+    </style>
+</head>
+<body>
+    <main class="logout-page">
+        <section class="logout-content" aria-labelledby="logout-title">
+            <p class="logout-brand">FrameX Docs</p>
+            <h1 id="logout-title">Signed out</h1>
+            <p class="logout-description">Your FrameX session has ended.</p>
+            <a class="login-link" href="{DOCS_URL}">Sign in again</a>
+        </section>
+    </main>
+</body>
+</html>
+        """,
+        headers={"Cache-Control": "no-store"},
     )
 
 
