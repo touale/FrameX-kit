@@ -21,7 +21,7 @@ repos:
       - id: check-case-conflict
       - id: detect-private-key
       - id: name-tests-test
-        files: ^tests/(?!plugins/).+\.py$
+        files: ^tests/(?!plugins/|ray_plugins/).+\.py$
         exclude: ^tests/(consts|mock)\.py$
         args:
           - "--pytest-test-first"

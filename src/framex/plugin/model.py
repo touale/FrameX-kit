@@ -45,6 +45,7 @@ class RuntimePluginInfo(BaseModel):
     metadata_name: str | None = None
     version: str | None = None
     repo_url: str | None = None
+    load_error: str | None = None
 
 
 @dataclass(eq=False)

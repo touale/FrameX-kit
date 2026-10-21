@@ -14,6 +14,7 @@ from framex.config import (
     GitLabRepositoryAuthEndpointConfig,
     settings,
 )
+from framex.plugin.model import RuntimePluginInfo
 from framex.repository import (
     RepositoryRelease,
     can_access_repository,
@@ -495,6 +496,56 @@ def test_build_swagger_ui_html_renders_logout_button_conditionally():
     assert "if (!swaggerReady || !logoutEnabled" in enabled_html
     assert "swaggerReady = true;" in enabled_html
     assert "const logoutEnabled = false;" in disabled_html
+
+
+def test_build_swagger_ui_html_renders_loaded_plugin_count_without_failures():
+    html_text = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        plugin_infos={
+            "with_api": RuntimePluginInfo(plugin_id="with_api"),
+            "without_api": RuntimePluginInfo(plugin_id="without_api"),
+        },
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert "Plugins: 2 loaded · 0 failed" in html_text
+    assert '<div id="docs-plugin-status" class="docs-plugin-status"' in html_text
+    assert 'aria-label="Plugins: 2 loaded · 0 failed"' in html_text
+
+
+def test_build_swagger_ui_html_renders_compact_runtime_status_layout():
+    html_text = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert 'class="docs-runtime-header"' in html_text
+    assert 'class="docs-status-label">Plugins</span>' in html_text
+    assert "header.prepend(...Array.from(runtimeStatus.children));" in html_text
+    assert "runtimeStatus.appendChild(status);" in html_text
+
+
+def test_build_swagger_ui_html_renders_sorted_escaped_plugin_failures():
+    html_text = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        plugin_infos={
+            "loaded": RuntimePluginInfo(plugin_id="loaded"),
+            "zeta": RuntimePluginInfo(plugin_id="zeta", load_error="RuntimeError: second"),
+            "alpha": RuntimePluginInfo(
+                plugin_id="alpha<script>",
+                load_error="ValueError: invalid <value>",
+            ),
+        },
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert "Plugins: 1 loaded · 2 failed" in html_text
+    assert '<details id="docs-plugin-status"' in html_text
+    assert "alpha&lt;script&gt;" in html_text
+    assert "ValueError: invalid &lt;value&gt;" in html_text
+    assert "alpha<script>" not in html_text
+    assert html_text.index("alpha&lt;script&gt;") < html_text.index("zeta")
+    assert "insertPluginStatus();" in html_text
 
 
 def test_build_swagger_ui_html_formats_release_dates():

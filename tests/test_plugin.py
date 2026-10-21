@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 import framex
 from framex.consts import PROXY_PLUGIN_NAME, VERSION
-from framex.plugin import BasePlugin, call_plugin_api
+from framex.plugin import BasePlugin, call_plugin_api, get_runtime_plugin_infos
+from framex.plugin.manage import _summarize_plugin_load_error
 from framex.plugin.model import ApiType, PluginApi
 from framex.plugin.resolver import reset_current_remote_apis, set_current_remote_apis
 
@@ -20,6 +21,22 @@ def test_get_plugin():
 
     assert plugin.config
     assert plugin.config.model_dump() == {"id": 123, "name": "test"}
+
+
+def test_runtime_plugin_infos_include_import_failures():
+    plugin_infos = get_runtime_plugin_infos()
+
+    assert plugin_infos["export"].load_error is None
+    assert plugin_infos["error_import"].load_error == "Exception: This is an exception"
+
+
+def test_plugin_load_error_summary_is_bounded_and_collapses_whitespace():
+    summary = _summarize_plugin_load_error(RuntimeError(f"first\n  second {'x' * 400}"))
+
+    assert summary.startswith("RuntimeError: first second ")
+    assert "\n" not in summary
+    assert len(summary) == 300
+    assert summary.endswith("...")
 
 
 def test_base_plugin_check_health_noops_by_default():

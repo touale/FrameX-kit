@@ -58,33 +58,24 @@ from framex.utils import (
     build_swagger_ui_html,
     collect_embedded_config_files,
     extract_docs_action_response_open_url,
-    format_uptime,
     make_stream_event,
     safe_error_message,
 )
 
 FRAME_START_TIME = datetime.now(tz=UTC)
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
+
 REVERSION = settings.server.reversion or os.getenv("REVERSION")
 
 
 def build_openapi_description() -> str:
-    now = datetime.now(tz=UTC)
-    uptime = format_uptime(now - FRAME_START_TIME)
     started_at = FRAME_START_TIME.astimezone(SHANGHAI_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
+    service_version = f"v{REVERSION}" if REVERSION else "—"
     return f"""
----
+**Runtime** `{service_version}`
 
-**🟢 Runtime Status**
-
-| Metric | Value |
-|--------|-------|
-| Started At | `{started_at}` |
-| Uptime | `{uptime}` |
-| Service-Version | `v{REVERSION}` |
-| FrameX-Version | `v{VERSION}` |
-
----
+**Started At** `{started_at}`
 """
 
 
@@ -157,6 +148,7 @@ def create_fastapi_application() -> FastAPI:
     )
 
     application.state.tags_metadata_map = []
+    application.state.plugin_info_map = {}
 
     if settings.auth.oauth:
         application.add_api_route(
@@ -219,6 +211,7 @@ def create_fastapi_application() -> FastAPI:
             title="FrameX Docs",
             action_buttons=build_docs_action_button_views(settings.docs.action_buttons),
             show_logout=settings.auth.oauth is not None,
+            plugin_infos=application.state.plugin_info_map,
         )
         response.headers["Cache-Control"] = "no-store"
         return response

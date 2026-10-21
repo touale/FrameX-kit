@@ -30,9 +30,13 @@ def test_use_ray_nested_service_call_uses_remote_apis() -> None:
 
     launch_code = """
 import asyncio
+import httpx
 import json
+import os
 import time
 from pathlib import Path
+
+os.environ["AUTH__OAUTH"] = "null"
 
 import framex
 import ray
@@ -66,7 +70,19 @@ async def main() -> None:
     while time.time() < deadline:
         try:
             result = await handle.service_echo.remote(message="ray-ok")
-            output_path.write_text(json.dumps({"result": result}), encoding="utf-8")
+            async with httpx.AsyncClient() as client:
+                docs_response = await client.get("http://127.0.0.1:__SERVER_PORT__/docs")
+                docs_response.raise_for_status()
+            output_path.write_text(
+                json.dumps(
+                    {
+                        "result": result,
+                        "plugin_status": "Plugins: 2 loaded · 1 failed" in docs_response.text,
+                        "plugin_error": "RuntimeError: Ray plugin import failed" in docs_response.text,
+                    }
+                ),
+                encoding="utf-8",
+            )
             return
         except Exception as exc:
             last_error = exc
@@ -116,6 +132,8 @@ finally:
 
             payload = json.loads(output_path.read_text(encoding="utf-8"))
             assert payload["result"] == "ray-ok"
+            assert payload["plugin_status"] is True
+            assert payload["plugin_error"] is True
         finally:
             if proc.poll() is None:
                 proc.terminate()

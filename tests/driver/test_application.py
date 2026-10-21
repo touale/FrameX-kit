@@ -16,8 +16,20 @@ from starlette.responses import StreamingResponse
 import framex.driver.application as application_module
 from framex.config import DocsActionButtonConfig, DocsActionButtonInputConfig, OauthConfig, settings
 from framex.consts import API_STR, AUTH_COOKIE_NAME, OAUTH_STATE_COOKIE_NAME
-from framex.driver.application import create_fastapi_application
+from framex.driver.application import build_openapi_description, create_fastapi_application
 from framex.driver.auth import create_auth_session, create_jwt
+from framex.plugin.model import RuntimePluginInfo
+
+
+def test_build_openapi_description_uses_compact_runtime_status_content():
+    description = build_openapi_description()
+
+    assert description.startswith("\n**Runtime** `")
+    assert "\n\n**Started At** `" in description
+    assert "FrameX Version" not in description
+    assert "vNone" not in description
+    assert "🟢" not in description
+    assert "\n---\n" not in description
 
 
 class TestCreateFastAPIApplication:
@@ -68,6 +80,19 @@ class TestCreateFastAPIApplication:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.headers["cache-control"] == "no-store"
+
+    def test_docs_response_uses_runtime_plugin_status(self):
+        app = create_fastapi_application()
+        app.state.plugin_info_map = {
+            "loaded": RuntimePluginInfo(plugin_id="loaded"),
+            "failed": RuntimePluginInfo(plugin_id="failed", load_error="ImportError: unavailable"),
+        }
+
+        response = TestClient(app).get("/docs")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "Plugins: 1 loaded · 1 failed" in response.text
+        assert "ImportError: unavailable" in response.text
 
 
 class TestExceptionHandlers:

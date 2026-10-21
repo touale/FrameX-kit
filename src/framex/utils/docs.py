@@ -1,4 +1,6 @@
+import html
 import json
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import quote
 
@@ -6,6 +8,7 @@ from fastapi.responses import HTMLResponse
 
 from framex.config import DocsActionButtonConfig, settings
 from framex.consts import DOCS_URL, LOGOUT_URL
+from framex.plugin.model import RuntimePluginInfo
 
 
 def build_docs_action_button_views(action_buttons: list["DocsActionButtonConfig"]) -> list[dict[str, Any]]:
@@ -52,14 +55,58 @@ def extract_docs_action_response_open_url(response_text: str, path: str) -> str 
     return current
 
 
+def _build_plugin_status_html(plugin_infos: Mapping[str, RuntimePluginInfo] | None) -> str:
+    infos = list((plugin_infos or {}).values())
+    failed_plugins = sorted(
+        (plugin_info for plugin_info in infos if plugin_info.load_error),
+        key=lambda plugin_info: plugin_info.plugin_id,
+    )
+    loaded_count = len(infos) - len(failed_plugins)
+    summary = f"Plugins: {loaded_count} loaded · {len(failed_plugins)} failed"
+    overview = (
+        '<span class="docs-plugin-overview">'
+        '<span class="docs-status-label">Plugins</span>'
+        '<span class="docs-plugin-counts">'
+        f'<span class="docs-plugin-loaded">{loaded_count} loaded</span>'
+        '<span class="docs-status-separator" aria-hidden="true"> · </span>'
+        f'<span class="{"docs-plugin-failed" if failed_plugins else "docs-plugin-empty"}">'
+        f"{len(failed_plugins)} failed</span>"
+        "</span></span>"
+    )
+    if not failed_plugins:
+        return (
+            f'<div id="docs-plugin-status" class="docs-plugin-status" aria-label="{summary}">'
+            f'<div class="docs-runtime-header">{overview}</div>'
+            "</div>"
+        )
+
+    failure_items = "".join(
+        (
+            '<li class="docs-plugin-failure">'
+            f'<code class="docs-plugin-failure-name">{html.escape(plugin_info.plugin_id)}</code>'
+            f'<span class="docs-plugin-failure-message">{html.escape(plugin_info.load_error or "")}</span>'
+            "</li>"
+        )
+        for plugin_info in failed_plugins
+    )
+    return (
+        '<details id="docs-plugin-status" class="docs-plugin-status docs-plugin-status-failed">'
+        f'<summary class="docs-runtime-header" aria-label="{summary}">{overview}</summary>'
+        f'<ul class="docs-plugin-failures">{failure_items}</ul>'
+        "</details>"
+    )
+
+
 def build_swagger_ui_html(
     openapi_url: str,
     title: str,
     action_buttons: list[dict[str, Any]] | None = None,
     show_logout: bool = False,
+    plugin_infos: Mapping[str, RuntimePluginInfo] | None = None,
 ) -> HTMLResponse:
     docs_action_buttons = json.dumps(action_buttons or [], ensure_ascii=False)
     logout_enabled = json.dumps(show_logout)
+    plugin_status_html = _build_plugin_status_html(plugin_infos)
     return HTMLResponse(
         f"""
 <!DOCTYPE html>
@@ -142,11 +189,171 @@ def build_swagger_ui_html(
             background: #fef3f2;
         }}
 
+        .swagger-ui .docs-plugin-status {{
+            width: 100%;
+            box-sizing: border-box;
+            margin: 0;
+        }}
+
+        .swagger-ui .docs-runtime-header {{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px 20px;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0;
+            padding: 3px 0;
+            list-style: none;
+        }}
+
+        .swagger-ui .docs-runtime-header::-webkit-details-marker {{
+            display: none;
+        }}
+
+        .swagger-ui .docs-plugin-status-failed > summary {{
+            cursor: pointer;
+        }}
+
+        .swagger-ui .docs-plugin-status-failed > summary:hover .docs-plugin-failed {{
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }}
+
+        .swagger-ui .docs-plugin-status-failed > summary:focus-visible {{
+            outline: 2px solid var(--fx-link);
+            outline-offset: 3px;
+        }}
+
+        .swagger-ui .docs-plugin-overview {{
+            display: inline-flex;
+            align-items: baseline;
+            gap: 8px;
+            padding-left: 20px;
+            border-left: 1px solid var(--fx-border);
+        }}
+
+        .swagger-ui .docs-runtime-header .docs-status-label,
+        .swagger-ui .docs-runtime-header > p strong {{
+            margin: 0;
+            color: #667085;
+            font-size: 12.5px;
+            font-weight: 500;
+            line-height: 20px;
+        }}
+
+        .swagger-ui .docs-plugin-counts {{
+            color: var(--fx-text-soft);
+            font-size: 12.5px;
+            font-weight: 400;
+            line-height: 20px;
+            white-space: nowrap;
+        }}
+
+        .swagger-ui .docs-plugin-loaded {{
+            color: var(--fx-text-soft);
+        }}
+
+        .swagger-ui .docs-plugin-failed {{
+            color: #b42318;
+            font-weight: 500;
+        }}
+
+        .swagger-ui .docs-status-separator,
+        .swagger-ui .docs-plugin-empty {{
+            color: #667085;
+        }}
+
+        .swagger-ui .docs-plugin-status-failed .docs-plugin-overview::after {{
+            align-self: center;
+            width: 6px;
+            height: 6px;
+            margin: -3px 2px 0 1px;
+            border-right: 1.5px solid #667085;
+            border-bottom: 1.5px solid #667085;
+            content: "";
+            transform: rotate(45deg);
+            transition: transform 120ms ease;
+        }}
+
+        .swagger-ui .docs-plugin-status-failed[open] .docs-plugin-overview::after {{
+            transform: rotate(225deg);
+        }}
+
+        .swagger-ui .docs-plugin-failures {{
+            width: 100%;
+            box-sizing: border-box;
+            margin: 8px 0 0;
+            padding: 10px 12px;
+            list-style: none;
+            border: 1px solid var(--fx-border);
+            border-radius: 6px;
+            background: var(--fx-card);
+        }}
+
+        .swagger-ui .docs-plugin-failures > li {{
+            display: grid;
+            grid-template-columns: minmax(100px, 180px) minmax(0, 1fr);
+            gap: 3px 12px;
+            margin: 0;
+            color: var(--fx-text-soft);
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 18px;
+            overflow-wrap: anywhere;
+        }}
+
+        .swagger-ui .docs-plugin-failure + .docs-plugin-failure {{
+            margin-top: 4px;
+        }}
+
+        .swagger-ui .docs-plugin-failures .docs-plugin-failure-name {{
+            padding: 0;
+            background: transparent;
+            color: #b42318;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: normal;
+        }}
+
         .swagger-ui .info .title {{
             color: var(--fx-text);
             font-size: 26px;
             font-weight: 700;
             letter-spacing: 0.2px;
+        }}
+
+        .swagger-ui .info .description {{
+            margin: 8px 0 0;
+        }}
+
+        .swagger-ui .info .description .renderedMarkdown {{
+            margin: 0;
+        }}
+
+        .swagger-ui .info .docs-runtime-header > p {{
+            display: inline-flex;
+            align-items: baseline;
+            gap: 8px;
+            min-width: 0;
+            max-width: 100%;
+            margin: 0;
+        }}
+
+        .swagger-ui .info .docs-runtime-header > p code {{
+            min-width: 0;
+            padding: 0;
+            background: transparent;
+            color: var(--fx-text);
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: 12.5px;
+            font-weight: 400;
+            line-height: 20px;
+            overflow-wrap: anywhere;
+        }}
+
+        .swagger-ui .info .docs-runtime-header > p:first-child code {{
+            font-weight: 500;
         }}
 
         .swagger-ui .scheme-container {{
@@ -468,6 +675,19 @@ def build_swagger_ui_html(
                 margin-top: 10px;
             }}
 
+            .swagger-ui .docs-runtime-header {{
+                gap: 5px 16px;
+            }}
+
+            .swagger-ui .docs-plugin-overview {{
+                padding-left: 0;
+                border: 0;
+            }}
+
+            .swagger-ui .docs-plugin-failures > li {{
+                grid-template-columns: 1fr;
+            }}
+
             .swagger-ui .opblock-tag {{
                 grid-template-columns: 1fr;
                 row-gap: 6px;
@@ -483,9 +703,11 @@ def build_swagger_ui_html(
                 justify-self: end !important;
             }}
         }}
+
     </style>
 </head>
 <body>
+    <template id="docs-plugin-status-template">{plugin_status_html}</template>
     <div id="swagger-ui"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js"></script>
@@ -833,6 +1055,23 @@ def build_swagger_ui_html(
             info.appendChild(form);
         }}
 
+        function insertPluginStatus() {{
+            if (!swaggerReady || document.getElementById("docs-plugin-status")) return;
+
+            const info = document.querySelector(".swagger-ui .info");
+            const template = document.getElementById("docs-plugin-status-template");
+            if (!info || !(template instanceof HTMLTemplateElement)) return;
+
+            const status = template.content.firstElementChild?.cloneNode(true);
+            if (!status) return;
+
+            const runtimeStatus = info.querySelector(".description .renderedMarkdown");
+            const header = status.querySelector(".docs-runtime-header");
+            if (!runtimeStatus || !header) return;
+            header.prepend(...Array.from(runtimeStatus.children));
+            runtimeStatus.appendChild(status);
+        }}
+
         function getTagDescriptionLink(target) {{
             const link = target.closest(".swagger-ui .opblock-tag small a");
             return link instanceof HTMLAnchorElement ? link : null;
@@ -930,6 +1169,7 @@ def build_swagger_ui_html(
             onComplete: function() {{
                 swaggerReady = true;
                 insertLogoutButton();
+                insertPluginStatus();
                 insertToolbar();
                 hydrateLatestReleaseLinks();
             }}
@@ -937,6 +1177,7 @@ def build_swagger_ui_html(
 
         const observer = new MutationObserver(() => {{
             insertLogoutButton();
+            insertPluginStatus();
             insertToolbar();
             hydrateLatestReleaseLinks();
         }});
