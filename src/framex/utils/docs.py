@@ -115,7 +115,7 @@ def build_swagger_ui_html(
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.15/swagger-ui.css" />
     <style>
         :root {{
             --fx-bg: #f6f8fb;
@@ -710,8 +710,8 @@ def build_swagger_ui_html(
     <template id="docs-plugin-status-template">{plugin_status_html}</template>
     <div id="swagger-ui"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.15/swagger-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.15/swagger-ui-standalone-preset.js"></script>
     <script>
         let swaggerReady = false;
         const docsActionButtons = {docs_action_buttons};
@@ -1151,7 +1151,7 @@ def build_swagger_ui_html(
         window.ui = SwaggerUIBundle({{
             url: "{openapi_url}",
             dom_id: "#swagger-ui",
-            deepLinking: true,
+            deepLinking: false,
             docExpansion: "none",
             defaultModelsExpandDepth: -1,
             displayRequestDuration: true,
