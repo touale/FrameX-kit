@@ -2,6 +2,108 @@
 
 <!-- version list -->
 
+## v0.4.2 (2026-10-21)
+
+### Bug Fixes
+
+- Expand all docs tags across virtualized lists
+  ([`a10e1a0`](https://github.com/touale/FrameX-kit/commit/a10e1a0c6c0d32fd37929afc2a33f4f70e832c83))
+
+- Harden OAuth state and credential handling
+  ([`533d4a5`](https://github.com/touale/FrameX-kit/commit/533d4a5b385d2f4a251c23bb8334dbe055b7d241))
+
+- Restore docs search and prevent automatic scrolling
+  ([`32d946e`](https://github.com/touale/FrameX-kit/commit/32d946e71b9c418512215d4f694b0dac4c23c0de))
+
+### Chores
+
+- **deps**: Bump actions/checkout from 6 to 7
+  ([`0b18f4f`](https://github.com/touale/FrameX-kit/commit/0b18f4ff31677ac0a0b6ba92490611a82ffd7c81))
+
+- **deps**: Bump actions/setup-python from 6 to 7
+  ([`5c8e84b`](https://github.com/touale/FrameX-kit/commit/5c8e84b8263fc4a87b6988229695328bb7abb077))
+
+- **deps**: Bump aiohttp from 3.13.4 to 3.14.1
+  ([`670b125`](https://github.com/touale/FrameX-kit/commit/670b125c27721743282ab4b2aac9a35b36691a4f))
+
+- **deps**: Bump click from 8.1.8 to 8.4.2
+  ([`935a654`](https://github.com/touale/FrameX-kit/commit/935a654c2df0a4be63f55923b4ce4d4e062aaecc))
+
+- **deps**: Bump msgpack from 1.1.2 to 1.2.1
+  ([`48c4253`](https://github.com/touale/FrameX-kit/commit/48c42534458f77d495e0a1207f4fadd6a02d78a5))
+
+- **deps**: Bump pyasn1 in the uv group across 1 directory
+  ([`0aace60`](https://github.com/touale/FrameX-kit/commit/0aace60e350f2c25a3b18491e5c7b3907bf42d4b))
+
+- **deps**: Bump pydantic-settings from 2.14.1 to 2.14.2
+  ([`66b38df`](https://github.com/touale/FrameX-kit/commit/66b38df47aeeff6dbac55349a1b7cf9bb6925a00))
+
+- **deps**: Bump python-semantic-release from 10.5.3 to 10.6.1
+  ([`3e484bc`](https://github.com/touale/FrameX-kit/commit/3e484bcba31a09c191432ba024f799264130ff65))
+
+- **deps**: Bump python-semantic-release/publish-action
+  ([`a86907b`](https://github.com/touale/FrameX-kit/commit/a86907bd5adf39db67ee8eb7a313b891dadb7ca9))
+
+- **deps**: Bump python-semantic-release/python-semantic-release
+  ([`73f7a52`](https://github.com/touale/FrameX-kit/commit/73f7a524e48ce461266499aaa9b812580893c462))
+
+- **deps**: Bump starlette from 1.0.1 to 1.3.1
+  ([`fe5ce94`](https://github.com/touale/FrameX-kit/commit/fe5ce9403e770d371391fb108b6c120a42331d98))
+
+- **deps**: Bump the uv group across 1 directory with 2 updates
+  ([`dde8a29`](https://github.com/touale/FrameX-kit/commit/dde8a2941a8aed4e9a8133352631697a391fd720))
+
+- **deps**: Bump the uv group across 1 directory with 2 updates
+  ([`e5d833e`](https://github.com/touale/FrameX-kit/commit/e5d833ea2ad14c5e68c35f34e51fc002a42c8ccf))
+
+- **deps**: Bump the uv group across 1 directory with 7 updates
+  ([`8367ae1`](https://github.com/touale/FrameX-kit/commit/8367ae12ae18e8e257cedada033a498bbe74d00b))
+
+- **deps**: Bump uvicorn from 0.49.0 to 0.50.0
+  ([`dd82845`](https://github.com/touale/FrameX-kit/commit/dd8284585aee502f2e24d09f46aca605835163a4))
+
+- **deps**: Bump vcrpy from 5.1.0 to 8.2.1
+  ([`5084a06`](https://github.com/touale/FrameX-kit/commit/5084a06e48fefefcdb10258d4c79ddacb4a480ce))
+
+- **deps-dev**: Bump coverage from 7.14.1 to 7.14.3
+  ([`52c52f4`](https://github.com/touale/FrameX-kit/commit/52c52f4ef562995925c6b538d0fbd276783c6e3d))
+
+- **deps-dev**: Bump coverage from 7.14.3 to 7.15.4
+  ([`80a4853`](https://github.com/touale/FrameX-kit/commit/80a4853883b3d3a34be9a32b768b70154110d7a6))
+
+- **deps-dev**: Bump poethepoet from 0.46.0 to 0.47.0
+  ([`49c9dc0`](https://github.com/touale/FrameX-kit/commit/49c9dc0e31c4bd2696bbad7c1399a9bb32855f5e))
+
+- **deps-dev**: Bump poethepoet from 0.47.0 to 0.48.0
+  ([`befc4fc`](https://github.com/touale/FrameX-kit/commit/befc4fce7db380ca5d2a1e6364d81fedae92ba5d))
+
+- **deps-dev**: Bump pytest from 9.0.3 to 9.1.0
+  ([`6bf35de`](https://github.com/touale/FrameX-kit/commit/6bf35dea9ba4f642036170cbfc0999b64358867a))
+
+- **deps-dev**: Bump pytest from 9.1.0 to 9.1.1
+  ([`d0af86e`](https://github.com/touale/FrameX-kit/commit/d0af86ed0459a270b160cff0a2af9c728afa3626))
+
+- **deps-dev**: Bump pytest-order from 1.4.0 to 1.5.0
+  ([`7462867`](https://github.com/touale/FrameX-kit/commit/7462867f643fc8feb9a0e090315be1bc5459d9cf))
+
+- **deps-dev**: Bump ruff from 0.15.16 to 0.15.17
+  ([`c63da0b`](https://github.com/touale/FrameX-kit/commit/c63da0bc8b8c5af211e9549c84724ed98115e96c))
+
+- **deps-dev**: Bump ruff from 0.15.17 to 0.15.20
+  ([`7b10c98`](https://github.com/touale/FrameX-kit/commit/7b10c98ad55c1241897eae0bd9b8b95d16721e46))
+
+### Features
+
+- Add sign-out flow to docs
+  ([`97d6592`](https://github.com/touale/FrameX-kit/commit/97d659248391df42fee932727d559cb138928d5a))
+
+- Show plugin load failures in docs
+  ([`cda6705`](https://github.com/touale/FrameX-kit/commit/cda67055e9419e8af38014df435e7500b216e384))
+
+- Show release dates in docs update notices
+  ([`cbcd473`](https://github.com/touale/FrameX-kit/commit/cbcd4732978fb153a608a57fc7ca8a926e4e9fe8))
+
+
 ## v0.4.1 (2026-06-12)
 
 ### Bug Fixes
