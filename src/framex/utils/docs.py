@@ -713,39 +713,33 @@ def build_swagger_ui_html(
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
     <script>
-        let allExpanded = false;
         let swaggerReady = false;
         const docsActionButtons = {docs_action_buttons};
         const logoutEnabled = {logout_enabled};
 
-        function getTagSections() {{
-            return Array.from(document.querySelectorAll(".swagger-ui .opblock-tag-section"));
-        }}
-
-        function isExpanded(section) {{
-            return !!section.querySelector(".opblock");
-        }}
-
-        function toggleTag(section, expand) {{
-            const expanded = isExpanded(section);
-            if (expanded === expand) return;
-
-            const btn = section.querySelector(".opblock-tag > button");
-            if (btn) btn.click();
+        function getTagExpansionState() {{
+            const tags = window.ui.specSelectors.taggedOperations().keySeq();
+            const allExpanded = tags.size > 0 && tags.every((tag) =>
+                window.ui.layoutSelectors.isShown(["operations-tag", tag], false)
+            );
+            return {{ tags, allExpanded }};
         }}
 
         function syncToolbarText() {{
             const btn = document.getElementById("toggle-all-tags");
-            if (!btn) return;
-            btn.innerText = allExpanded ? "收起全部" : "展开全部";
+            if (!swaggerReady || !btn) return;
+
+            const {{ allExpanded }} = getTagExpansionState();
+            const text = allExpanded ? "收起全部" : "展开全部";
+            if (btn.textContent !== text) btn.textContent = text;
         }}
 
         function toggleAllTags() {{
-            const sections = getTagSections();
-            allExpanded = !allExpanded;
+            if (!swaggerReady) return;
 
-            sections.forEach((section, index) => {{
-                setTimeout(() => toggleTag(section, allExpanded), index * 20);
+            const {{ tags, allExpanded }} = getTagExpansionState();
+            tags.forEach((tag) => {{
+                window.ui.layoutActions.show(["operations-tag", tag], !allExpanded);
             }});
 
             syncToolbarText();
@@ -1000,10 +994,10 @@ def build_swagger_ui_html(
         }}
 
         function insertToolbar() {{
-            if (document.querySelector(".swagger-ui .tag-toolbar")) return;
+            if (!swaggerReady || document.querySelector(".swagger-ui .tag-toolbar")) return;
 
-            const firstTagSection = document.querySelector(".swagger-ui .opblock-tag-section");
-            if (!firstTagSection) return;
+            const container = document.querySelector(".swagger-ui .information-container");
+            if (!container) return;
 
             const toolbar = document.createElement("div");
             toolbar.className = "tag-toolbar";
@@ -1023,7 +1017,7 @@ def build_swagger_ui_html(
             toggleButton.textContent = "展开全部";
             toolbar.appendChild(toggleButton);
 
-            firstTagSection.parentNode.insertBefore(toolbar, firstTagSection);
+            container.appendChild(toolbar);
 
             toggleButton.addEventListener("click", toggleAllTags);
 
@@ -1179,6 +1173,7 @@ def build_swagger_ui_html(
             insertLogoutButton();
             insertPluginStatus();
             insertToolbar();
+            syncToolbarText();
             hydrateLatestReleaseLinks();
         }});
 
