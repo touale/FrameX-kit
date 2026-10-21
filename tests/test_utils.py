@@ -3,6 +3,7 @@ import importlib
 import json
 from datetime import datetime, timedelta
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -766,7 +767,8 @@ async def test_get_latest_repository_release_uses_github_auth_token(monkeypatch)
 
 async def test_get_latest_repository_release_extracts_provider_dates(monkeypatch):
     async def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
-        if "api.github.com" in url:
+        host = urlparse(url).hostname
+        if host == "api.github.com":
             return {
                 "tag_name": "v1.2.3",
                 "published_at": "2026-08-12T09:30:00Z",
