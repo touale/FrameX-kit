@@ -3,7 +3,7 @@
 import re
 from urllib.parse import ParseResult, urlparse
 
-from framex.repository.providers.base import RepositoryVersionProvider
+from framex.repository.providers.base import RepositoryRelease, RepositoryVersionProvider
 
 from .providers import REPOSITORY_VERSION_PROVIDERS
 
@@ -16,11 +16,11 @@ def _get_provider_for_url(repo_url: str) -> tuple[RepositoryVersionProvider | No
     return provider, parsed_url
 
 
-async def get_latest_repository_version(repo_url: str) -> str | None:
+async def get_latest_repository_release(repo_url: str) -> RepositoryRelease | None:
     provider, parsed_url = _get_provider_for_url(repo_url)
     if provider is None:
         return None
-    return await provider.get_latest_version(parsed_url)
+    return await provider.get_latest_release(parsed_url)
 
 
 async def is_private_repository(repo_url: str) -> bool | None:

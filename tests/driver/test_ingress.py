@@ -274,13 +274,15 @@ async def test_register_route_stream_converts_auth_error_to_sse_event(ingress, m
     endpoint = register_stream_endpoint(ingress, mock_app, adapter, auth_keys=["valid-key"])
     dependency = mock_app.add_api_route.call_args.kwargs["dependencies"][0]
     assert dependency.dependency is api_key_header
-    request = Mock(headers={})
+    submitted_key = "submitted-secret-api-key"
+    request = Mock(headers={"Authorization": submitted_key})
 
     with patch("framex.driver.ingress.auth_jwt", return_value=False):
         response = await endpoint(framex_request=request, framex_response=Response())
         chunks = [chunk async for chunk in response.body_iterator]
 
     assert chunks == [
-        'event: error\ndata: {"status": 401, "message": "Invalid API Key(None) for API(/stream)"}\n\n',
+        'event: error\ndata: {"status": 401, "message": "Invalid API Key for API(/stream)"}\n\n',
     ]
+    assert submitted_key not in "".join(chunks)
     adapter._stream_call.assert_not_called()

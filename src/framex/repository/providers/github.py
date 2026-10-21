@@ -4,7 +4,7 @@ from urllib.parse import ParseResult
 
 from framex.config import settings
 
-from .base import RepositoryVersionProvider
+from .base import RepositoryRelease, RepositoryVersionProvider
 
 GITHUB_HOSTS = frozenset({"github.com", "www.github.com"})
 GITHUB_API_HEADERS = {
@@ -21,7 +21,7 @@ class GitHubRepositoryVersionProvider(RepositoryVersionProvider):
     def matches(self, parsed_url: ParseResult) -> bool:
         return parsed_url.netloc in GITHUB_HOSTS
 
-    async def get_latest_version(self, parsed_url: ParseResult) -> str | None:
+    async def get_latest_release(self, parsed_url: ParseResult) -> RepositoryRelease | None:
         repository = self._extract_owner_and_repository(parsed_url)
         if repository is None:
             return None
@@ -30,7 +30,14 @@ class GitHubRepositoryVersionProvider(RepositoryVersionProvider):
         api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         headers = {**GITHUB_API_HEADERS, **settings.repository.auth.github.build_headers()}
         payload = await self.fetch_json(api_url, headers=headers)
-        return self.extract_version(payload)
+        version = self.extract_version(payload)
+        if payload is None or version is None:
+            return None
+
+        return RepositoryRelease(
+            version=version,
+            released_at=self.normalize_text(payload.get("published_at")),
+        )
 
     async def is_public_repository(self, parsed_url: ParseResult) -> bool | None:
         repository = self._extract_owner_and_repository(parsed_url)

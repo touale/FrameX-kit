@@ -18,11 +18,21 @@ from types import ModuleType
 from framex.config import settings
 from framex.log import logger
 from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
-from framex.utils import escape_tag, path_to_module_name
+from framex.utils import escape_tag, path_to_module_name, shorten_str
+
+_PLUGIN_LOAD_ERROR_MAX_LENGTH = 300
 
 
 def _module_name_to_plugin_name(module_name: str) -> str:
     return module_name.rsplit(".", 1)[-1]
+
+
+def _summarize_plugin_load_error(error: Exception) -> str:
+    reason = " ".join(str(error).split())
+    summary = type(error).__name__
+    if reason:
+        summary = f"{summary}: {reason}"
+    return shorten_str(summary, _PLUGIN_LOAD_ERROR_MAX_LENGTH)
 
 
 class PluginManager:
@@ -35,6 +45,7 @@ class PluginManager:
 
         self._plugins: dict[str, Plugin] = {}
         self._plugin_apis: dict[ApiType, dict[str, PluginApi]] = defaultdict(dict)
+        self._plugin_load_errors: dict[str, str] = {}
 
     @property
     def all_plugin_apis(self) -> dict[ApiType, dict[str, PluginApi]]:
@@ -166,8 +177,10 @@ class PluginManager:
             logger.opt(colors=True).success(
                 f'Succeeded to load plugin "<g>{escape_tag(plugin.name)}</g>" from {plugin.module_name}'
             )
+            self._plugin_load_errors.pop(name, None)
             return plugin  # type: ignore
         except Exception as e:
+            self._plugin_load_errors[name] = _summarize_plugin_load_error(e)
             logger.opt(colors=True, exception=e if not self.silent else False).error(
                 f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>, reason: {e}'
             )

@@ -3,6 +3,7 @@ import importlib
 import json
 from datetime import datetime, timedelta
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -14,10 +15,17 @@ from framex.config import (
     GitLabRepositoryAuthEndpointConfig,
     settings,
 )
-from framex.repository import can_access_repository, get_latest_repository_version, has_newer_release_version
+from framex.plugin.model import RuntimePluginInfo
+from framex.repository import (
+    RepositoryRelease,
+    can_access_repository,
+    get_latest_repository_release,
+    has_newer_release_version,
+)
 from framex.utils import (
     StreamEnventType,
     build_docs_action_button_views,
+    build_logout_html,
     build_plugin_config_html,
     build_plugin_description,
     build_swagger_ui_html,
@@ -469,6 +477,103 @@ def test_build_swagger_ui_html_renders_oauth_action_redirect_behaviors():
     assert 'response.headers.get("X-FrameX-OAuth-Redirect")' in html_text
 
 
+def test_build_swagger_ui_html_renders_logout_button_conditionally():
+    enabled_html = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        show_logout=True,
+    ).body.decode()  # type: ignore[union-attr]
+    disabled_html = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert "const logoutEnabled = true;" in enabled_html
+    assert 'form.method = "post"' in enabled_html
+    assert 'form.action = "/auth/logout"' in enabled_html
+    assert 'window.confirm("Are you sure you want to sign out?")' in enabled_html
+    assert 'button.textContent = "Sign out"' in enabled_html
+    assert "let swaggerReady = false;" in enabled_html
+    assert "if (!swaggerReady || !logoutEnabled" in enabled_html
+    assert "swaggerReady = true;" in enabled_html
+    assert "const logoutEnabled = false;" in disabled_html
+
+
+def test_build_swagger_ui_html_renders_loaded_plugin_count_without_failures():
+    html_text = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        plugin_infos={
+            "with_api": RuntimePluginInfo(plugin_id="with_api"),
+            "without_api": RuntimePluginInfo(plugin_id="without_api"),
+        },
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert "Plugins: 2 loaded · 0 failed" in html_text
+    assert '<div id="docs-plugin-status" class="docs-plugin-status"' in html_text
+    assert 'aria-label="Plugins: 2 loaded · 0 failed"' in html_text
+
+
+def test_build_swagger_ui_html_renders_compact_runtime_status_layout():
+    html_text = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert 'class="docs-runtime-header"' in html_text
+    assert 'class="docs-status-label">Plugins</span>' in html_text
+    assert "header.prepend(...Array.from(runtimeStatus.children));" in html_text
+    assert "runtimeStatus.appendChild(status);" in html_text
+
+
+def test_build_swagger_ui_html_renders_sorted_escaped_plugin_failures():
+    html_text = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+        plugin_infos={
+            "loaded": RuntimePluginInfo(plugin_id="loaded"),
+            "zeta": RuntimePluginInfo(plugin_id="zeta", load_error="RuntimeError: second"),
+            "alpha": RuntimePluginInfo(
+                plugin_id="alpha<script>",
+                load_error="ValueError: invalid <value>",
+            ),
+        },
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert "Plugins: 1 loaded · 2 failed" in html_text
+    assert '<details id="docs-plugin-status"' in html_text
+    assert "alpha&lt;script&gt;" in html_text
+    assert "ValueError: invalid &lt;value&gt;" in html_text
+    assert "alpha<script>" not in html_text
+    assert html_text.index("alpha&lt;script&gt;") < html_text.index("zeta")
+    assert "insertPluginStatus();" in html_text
+
+
+def test_build_swagger_ui_html_formats_release_dates():
+    html_text = build_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title="FrameX Docs",
+    ).body.decode()  # type: ignore[union-attr]
+
+    assert 'if (daysAgo === 0) return "Today";' in html_text
+    assert 'if (daysAgo === 1) return "Yesterday";' in html_text
+    assert 'if (daysAgo <= 7) return daysAgo + " days ago";' in html_text
+    assert 'return year + "-" + month + "-" + day;' in html_text
+    assert '(releaseDate ? " (" + releaseDate + ")" : "")' in html_text
+    assert "if (data.repo_url)" in html_text
+
+
+def test_build_logout_html_returns_no_store_page():
+    response = build_logout_html()
+    html_text = response.body.decode()  # type: ignore[union-attr]
+
+    assert response.headers["cache-control"] == "no-store"
+    assert 'class="logout-brand">FrameX Docs</p>' in html_text
+    assert "Signed out" in html_text
+    assert 'class="login-link" href="/docs"' in html_text
+    assert "Sign in again" in html_text
+
+
 def test_collect_embedded_config_files_reads_yaml_and_toml(tmp_path):
     yaml_path = tmp_path / "demo.yaml"
     yaml_path.write_text("name: demo\n", encoding="utf-8")
@@ -640,7 +745,7 @@ def test_has_newer_release_version():
     assert not has_newer_release_version("v0.3.4", "invalid")
 
 
-async def test_get_latest_repository_version_uses_github_auth_token(monkeypatch):
+async def test_get_latest_repository_release_uses_github_auth_token(monkeypatch):
     monkeypatch.setattr(settings.repository.auth.github, "token", "gh-private-token")
 
     captured_headers: dict[str, str | None] = {}
@@ -654,13 +759,44 @@ async def test_get_latest_repository_version_uses_github_auth_token(monkeypatch)
         staticmethod(fake_fetch_json),
     )
 
-    version = await get_latest_repository_version("https://github.com/example/private-repo")
+    release = await get_latest_repository_release("https://github.com/example/private-repo")
 
-    assert version == "v1.2.3"
+    assert release == RepositoryRelease(version="v1.2.3")
     assert captured_headers["authorization"] == "Bearer gh-private-token"
 
 
-async def test_get_latest_repository_version_uses_gitlab_private_token(monkeypatch):
+async def test_get_latest_repository_release_extracts_provider_dates(monkeypatch):
+    async def fake_fetch_json(url: str, headers: dict[str, str] | None = None):
+        host = urlparse(url).hostname
+        if host == "api.github.com":
+            return {
+                "tag_name": "v1.2.3",
+                "published_at": "2026-08-12T09:30:00Z",
+            }
+        return {
+            "tag_name": "v2.0.0",
+            "released_at": "2026-08-11T08:15:00Z",
+        }
+
+    monkeypatch.setattr(
+        "framex.repository.providers.base.RepositoryVersionProvider.fetch_json",
+        staticmethod(fake_fetch_json),
+    )
+
+    github_release = await get_latest_repository_release("https://github.com/example/repo")
+    gitlab_release = await get_latest_repository_release("https://gitlab.com/example/repo")
+
+    assert github_release == RepositoryRelease(
+        version="v1.2.3",
+        released_at="2026-08-12T09:30:00Z",
+    )
+    assert gitlab_release == RepositoryRelease(
+        version="v2.0.0",
+        released_at="2026-08-11T08:15:00Z",
+    )
+
+
+async def test_get_latest_repository_release_uses_gitlab_private_token(monkeypatch):
     monkeypatch.setattr(settings.repository.auth.gitlab, "token", "gitlab-private-token")
     monkeypatch.setattr(
         settings.repository.auth.gitlab,
@@ -679,13 +815,13 @@ async def test_get_latest_repository_version_uses_gitlab_private_token(monkeypat
         staticmethod(fake_fetch_json),
     )
 
-    version = await get_latest_repository_version("https://gitlab.com/example/private-repo")
+    release = await get_latest_repository_release("https://gitlab.com/example/private-repo")
 
-    assert version == "v2.0.0"
+    assert release == RepositoryRelease(version="v2.0.0")
     assert captured_headers["private_token"] == "gitlab-private-token"  # noqa
 
 
-async def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypatch):
+async def test_get_latest_repository_release_uses_gitlab_endpoint_token(monkeypatch):
     monkeypatch.setattr(
         settings.repository.auth.gitlab,
         "endpoints",
@@ -709,13 +845,13 @@ async def test_get_latest_repository_version_uses_gitlab_endpoint_token(monkeypa
         staticmethod(fake_fetch_json),
     )
 
-    version = await get_latest_repository_version("https://gitlab.internal.test/team-a/private-repo")
+    release = await get_latest_repository_release("https://gitlab.internal.test/team-a/private-repo")
 
-    assert version == "v3.0.0"
+    assert release == RepositoryRelease(version="v3.0.0")
     assert captured_headers["private_token"] == "team-a-token"  # noqa
 
 
-async def test_get_latest_repository_version_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
+async def test_get_latest_repository_release_resolves_gitlab_project_from_subdirectory_url(monkeypatch):
     monkeypatch.setattr(settings.repository.auth.gitlab, "token", "gitlab-private-token")
     monkeypatch.setattr(
         settings.repository.auth.gitlab,
@@ -742,11 +878,11 @@ async def test_get_latest_repository_version_resolves_gitlab_project_from_subdir
         staticmethod(fake_fetch_json),
     )
 
-    version = await get_latest_repository_version(
+    release = await get_latest_repository_release(
         "https://gitlab.example.test/example-group/example-repo/plugins/example-plugin"
     )
 
-    assert version == "v4.0.0"
+    assert release == RepositoryRelease(version="v4.0.0")
     assert any(url.endswith("/api/v4/projects/example-group%2Fexample-repo") for url in captured_urls)
     assert any(
         url.endswith("/api/v4/projects/example-group%2Fexample-repo/releases/permalink/latest")

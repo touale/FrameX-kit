@@ -6,6 +6,7 @@ API_PRE_STR = "/api"
 API_STR = f"{API_PRE_STR}/v1"
 OPENAPI_URL = f"{API_STR}/openapi.json"
 DOCS_URL = "/docs"
+LOGOUT_URL = "/auth/logout"
 REDOC_URL = "/redoc"
 
 BACKEND_NAME = "backend"
@@ -23,6 +24,7 @@ SEBTRY_BLOCK_URLS = [
 ]
 
 AUTH_COOKIE_NAME = "framex_token"
+OAUTH_STATE_COOKIE_NAME = "framex_oauth_state"
 
 CACHE_REQUEST_HEADER = "X-FrameX-Cache"
 CACHE_KEY_HEADER = "X-FrameX-Cache-Key"

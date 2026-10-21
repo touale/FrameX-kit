@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
-from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -28,48 +27,55 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 
 from framex.config import settings
-from framex.consts import API_PRE_STR, DOCS_URL, OPENAPI_URL, PROJECT_NAME, REDOC_URL, VERSION
-from framex.driver.auth import authenticate, get_auth_payload, oauth_callback
+from framex.consts import (
+    API_PRE_STR,
+    AUTH_COOKIE_NAME,
+    DOCS_URL,
+    LOGOUT_URL,
+    OPENAPI_URL,
+    PROJECT_NAME,
+    REDOC_URL,
+    VERSION,
+)
+from framex.driver.auth import (
+    authenticate,
+    create_oauth_redirect,
+    delete_auth_session,
+    get_auth_payload,
+    oauth_callback,
+)
 from framex.repository import (
     can_access_repository,
-    get_latest_repository_version,
+    get_latest_repository_release,
     has_newer_release_version,
     is_private_repository,
 )
 from framex.utils import (
     StreamEnventType,
     build_docs_action_button_views,
+    build_logout_html,
     build_plugin_config_html,
     build_swagger_ui_html,
     collect_embedded_config_files,
     extract_docs_action_response_open_url,
-    format_uptime,
     make_stream_event,
     safe_error_message,
 )
 
 FRAME_START_TIME = datetime.now(tz=UTC)
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
+
 REVERSION = settings.server.reversion or os.getenv("REVERSION")
 
 
 def build_openapi_description() -> str:
-    now = datetime.now(tz=UTC)
-    uptime = format_uptime(now - FRAME_START_TIME)
     started_at = FRAME_START_TIME.astimezone(SHANGHAI_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
+    service_version = f"v{REVERSION}" if REVERSION else "—"
     return f"""
----
+**Runtime** `{service_version}`
 
-**🟢 Runtime Status**
-
-| Metric | Value |
-|--------|-------|
-| Started At | `{started_at}` |
-| Uptime | `{uptime}` |
-| Service-Version | `v{REVERSION}` |
-| FrameX-Version | `v{VERSION}` |
-
----
+**Started At** `{started_at}`
 """
 
 
@@ -142,6 +148,7 @@ def create_fastapi_application() -> FastAPI:
     )
 
     application.state.tags_metadata_map = []
+    application.state.plugin_info_map = {}
 
     if settings.auth.oauth:
         application.add_api_route(
@@ -178,20 +185,13 @@ def create_fastapi_application() -> FastAPI:
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="OAuth authentication required",
                     )
-                redirect_query = urlencode(
-                    {
-                        "client_id": oauth.client_id,
-                        "response_type": "code",
-                        "redirect_uri": oauth.call_back_url,
-                        "scope": "read_user read_api",
-                        "state": DOCS_URL,
-                    }
-                )
+                redirect_url, state_cookie = create_oauth_redirect(DOCS_URL)
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="OAuth authentication required",
                     headers={
-                        "X-FrameX-OAuth-Redirect": f"{oauth.authorization_url}?{redirect_query}",
+                        "X-FrameX-OAuth-Redirect": redirect_url,
+                        "Set-Cookie": state_cookie,
                     },
                 )
             if (
@@ -210,9 +210,22 @@ def create_fastapi_application() -> FastAPI:
             openapi_url=OPENAPI_URL,
             title="FrameX Docs",
             action_buttons=build_docs_action_button_views(settings.docs.action_buttons),
+            show_logout=settings.auth.oauth is not None,
+            plugin_infos=application.state.plugin_info_map,
         )
         response.headers["Cache-Control"] = "no-store"
         return response
+
+    @application.post(LOGOUT_URL, include_in_schema=False)
+    async def logout(request: Request) -> RedirectResponse:
+        delete_auth_session(request)
+        response = RedirectResponse(url=LOGOUT_URL, status_code=status.HTTP_303_SEE_OTHER)
+        response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+        return response
+
+    @application.get(LOGOUT_URL, include_in_schema=False)
+    async def get_logout_page() -> HTMLResponse:
+        return build_logout_html()
 
     @application.post("/docs/action-buttons/{button_index}/invoke", include_in_schema=False)
     async def invoke_docs_action_button(
@@ -374,18 +387,22 @@ def create_fastapi_application() -> FastAPI:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plugin not found: {plugin}")
 
         current_version = current_version if current_version.startswith("v") else f"v{current_version}"
-        latest_version = await get_latest_repository_version(repo_url)
+        latest_release = await get_latest_repository_release(repo_url)
+        latest_version = latest_release.version if latest_release else None
+        released_at = latest_release.released_at if latest_release else None
         if not latest_version or not has_newer_release_version(current_version, latest_version):
             return {
                 "has_update": False,
                 "current_version": current_version,
                 "latest_version": latest_version,
+                "released_at": released_at,
                 "repo_url": repo_url,
             }
         return {
             "has_update": True,
             "current_version": current_version,
             "latest_version": latest_version,
+            "released_at": released_at,
             "repo_url": repo_url,
         }
 

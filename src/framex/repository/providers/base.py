@@ -1,12 +1,21 @@
 """Base types and shared helpers for repository version providers."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import ParseResult
 
 import httpx
 
 DEFAULT_HTTP_TIMEOUT = 15
+
+
+@dataclass(frozen=True, slots=True)
+class RepositoryRelease:
+    """Published repository release metadata."""
+
+    version: str
+    released_at: str | None = None
 
 
 class RepositoryVersionProvider(ABC):
@@ -19,8 +28,8 @@ class RepositoryVersionProvider(ABC):
         """Return whether this provider can handle the parsed repository URL."""
 
     @abstractmethod
-    async def get_latest_version(self, parsed_url: ParseResult) -> str | None:
-        """Return the latest published version for the repository URL."""
+    async def get_latest_release(self, parsed_url: ParseResult) -> RepositoryRelease | None:
+        """Return the latest release metadata for the repository URL."""
 
     async def has_repository_access(self, parsed_url: ParseResult, access_token: str) -> bool:
         """Return whether the given user token can access the repository URL."""
@@ -85,9 +94,12 @@ class RepositoryVersionProvider(ABC):
         if payload is None:
             return None
 
-        latest_version = payload.get("tag_name") or payload.get("name")
-        if not isinstance(latest_version, str):
-            return None
+        return RepositoryVersionProvider.normalize_text(payload.get("tag_name") or payload.get("name"))
 
-        latest_version = latest_version.strip()
-        return latest_version or None
+    @staticmethod
+    def normalize_text(value: Any) -> str | None:
+        """Return a stripped non-empty string."""
+
+        if not isinstance(value, str):
+            return None
+        return value.strip() or None

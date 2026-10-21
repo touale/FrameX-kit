@@ -5,6 +5,8 @@ from pydantic import BaseModel, ValidationError
 
 from framex.config import CacheConfig, OauthConfig, RepositoryConfig, Settings
 
+JWT_SECRET = "test-secret-with-enough-bytes-for-hs256"  # noqa: S105
+
 
 def test_config():
     from framex.plugin import get_plugin_config
@@ -66,6 +68,7 @@ def test_oauth_config_callback_url_property():
     cfg = OauthConfig(
         app_url="https://example.com",
         redirect_uri="/auth/callback",
+        jwt_secret=JWT_SECRET,
     )
     assert cfg.call_back_url == "https://example.com/auth/callback"
 
@@ -103,6 +106,7 @@ def test_cache_config_validates_mode_ttl_and_max_size():
 def test_oauth_config_generates_default_urls_from_base_url():
     cfg = OauthConfig(
         base_url="https://gitlab.example.com",
+        jwt_secret=JWT_SECRET,
     )
 
     assert cfg.authorization_url == "https://gitlab.example.com/oauth/authorize"
@@ -110,11 +114,22 @@ def test_oauth_config_generates_default_urls_from_base_url():
     assert cfg.user_info_url == "https://gitlab.example.com/api/v4/user"
 
 
-def test_oauth_config_generates_jwt_secret_when_missing():
-    cfg = OauthConfig()
-    assert cfg.jwt_secret
-    assert isinstance(cfg.jwt_secret, str)
-    assert len(cfg.jwt_secret) >= 32
+def test_oauth_config_requires_fixed_jwt_secret():
+    with pytest.raises(ValidationError, match="jwt_secret"):
+        OauthConfig()  # type: ignore[call-arg]
+
+    with pytest.raises(ValidationError, match="at least 32 UTF-8 bytes"):
+        OauthConfig(jwt_secret="too-short")  # noqa: S106
+
+    utf8_secret = "密钥" * 6
+    assert len(utf8_secret) < 32
+    assert len(utf8_secret.encode("utf-8")) >= 32
+    assert OauthConfig(jwt_secret=utf8_secret).jwt_secret == utf8_secret
+
+
+def test_oauth_config_cookie_secure_defaults_from_app_url():
+    assert OauthConfig(app_url="https://framex.example.test", jwt_secret=JWT_SECRET).use_secure_cookie is True
+    assert OauthConfig(app_url="http://127.0.0.1:8080", jwt_secret=JWT_SECRET).use_secure_cookie is False
 
 
 def test_oauth_config_does_not_override_custom_urls():
@@ -123,6 +138,7 @@ def test_oauth_config_does_not_override_custom_urls():
         authorization_url="https://custom.auth",
         token_url="https://custom.token",  # noqa: S106
         user_info_url="https://custom.user",
+        jwt_secret=JWT_SECRET,
     )
 
     assert cfg.authorization_url == "https://custom.auth"

@@ -41,6 +41,7 @@ Keep feature work boundary-first and explicit:
 - Keep server-only behavior on the server. If a UI action needs sensitive configuration, have the browser call an internal FrameX endpoint and let the server apply private URL, headers, auth, query, JSON body, or form body.
 - Make ownership of user inputs explicit. Model where an input lands instead of guessing from names; for example, use explicit targets such as query params versus request body fields.
 - Prefer small, composable helpers at the correct layer over ad hoc inline logic. A helper is justified when it protects a boundary, removes repeated serialization logic, or makes security constraints obvious.
+- Do not preserve redundant interfaces or field-projection wrappers for speculative compatibility. When one result contains another and no explicit compatibility requirement justifies both, keep one canonical interface and update all callers and tests in the same change.
 
 For `/docs` action buttons, keep the boundary especially clear:
 
@@ -76,6 +77,8 @@ For targeted work, prefer commands like `.venv/bin/pytest tests/api/test_proxy.p
 ## Coding Style & Naming Conventions
 
 Use 4-space indentation, type hints on functions and methods, and English for comments and technical docs. Keep functions short and direct. Prefer explicit names over abbreviations. Follow current APIs, e.g. `model_dump()` for Pydantic models. Use `ruff format` and `ruff check` for formatting and linting, and `mypy` for type validation. Module names use `snake_case`; classes use `PascalCase`; tests use `test_*.py` and `test_*` function names.
+
+Do not introduce unrelated code for the sake of review or testing.
 
 ## Testing Guidelines
 

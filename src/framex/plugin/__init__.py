@@ -164,7 +164,7 @@ def get_http_plugin_apis() -> list["PluginApi"]:
 
 
 def get_runtime_plugin_infos() -> dict[str, "RuntimePluginInfo"]:
-    return {
+    plugin_infos = {
         plugin.name: RuntimePluginInfo(
             plugin_id=plugin.name,
             metadata_name=plugin.metadata.name if plugin.metadata else None,
@@ -173,6 +173,14 @@ def get_runtime_plugin_infos() -> dict[str, "RuntimePluginInfo"]:
         )
         for plugin in get_loaded_plugins()
     }
+    plugin_infos.update(
+        {
+            plugin_id: RuntimePluginInfo(plugin_id=plugin_id, load_error=load_error)
+            for plugin_id, load_error in _manager._plugin_load_errors.items()
+            if plugin_id not in plugin_infos
+        }
+    )
+    return plugin_infos
 
 
 from .base import BasePlugin

@@ -61,14 +61,33 @@ client_id = "your-client-id"
 client_secret = "your-client-secret"
 redirect_uri = "/oauth/callback"
 app_url = "http://127.0.0.1:8080"
+jwt_secret = "replace-with-at-least-32-random-bytes"
 ```
+
+`jwt_secret` is required and must contain at least 32 UTF-8 bytes. Keep the same
+secret across restarts and across every process serving the application. For
+example, you can generate one with `openssl rand -hex 32` and provide it through
+configuration or the `AUTH__OAUTH__JWT_SECRET` environment variable. Do not
+commit a production secret to the repository.
 
 With this config:
 
 - FrameX mounts the callback route at `redirect_uri`
 - `app_url + redirect_uri` becomes the callback URL sent to the OAuth provider
+- requests received on a different origin are redirected to `app_url` before OAuth starts, so the state cookie and callback use the same host
 - visiting `/docs` without a valid login redirects the user to the provider login page
 - after login, FrameX stores a `framex_token` cookie and redirects back to `/docs`
+
+FrameX generates a unique OAuth `state` value for every login attempt. The state
+expires after 10 minutes and is bound to an `HttpOnly`, `SameSite=Lax` browser
+cookie before the callback contacts the OAuth provider. The login cookie expires
+after 24 hours. Both cookies use `Path=/` and automatically use `Secure` when
+`app_url` starts with `https://`.
+
+OAuth state is carried in a short-lived signed browser cookie and does not need
+shared server storage. Authenticated sessions are currently stored in process
+memory, so restarts invalidate them and multiple independent ingress processes
+must share or consistently route session traffic.
 
 If you need to override provider endpoints directly, you can also set:
 
@@ -77,6 +96,11 @@ If you need to override provider endpoints directly, you can also set:
 - `user_info_url`
 
 If `auth.oauth` is not configured, this OAuth login flow is disabled.
+
+> **Upgrade note:** configurations that enable `auth.oauth` but omit
+> `jwt_secret`, or provide fewer than 32 UTF-8 bytes, now fail validation at
+> startup. This prevents sessions from becoming invalid when an automatically
+> generated secret changes between processes or restarts.
 
 ## Let Proxy Call A Protected Upstream Service
 

@@ -3,6 +3,7 @@
 import json
 from typing import Any
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi import Response
@@ -14,9 +15,21 @@ from starlette.responses import StreamingResponse
 
 import framex.driver.application as application_module
 from framex.config import DocsActionButtonConfig, DocsActionButtonInputConfig, OauthConfig, settings
-from framex.consts import API_STR, AUTH_COOKIE_NAME
-from framex.driver.application import create_fastapi_application
+from framex.consts import API_STR, AUTH_COOKIE_NAME, OAUTH_STATE_COOKIE_NAME
+from framex.driver.application import build_openapi_description, create_fastapi_application
 from framex.driver.auth import create_auth_session, create_jwt
+from framex.plugin.model import RuntimePluginInfo
+
+
+def test_build_openapi_description_uses_compact_runtime_status_content():
+    description = build_openapi_description()
+
+    assert description.startswith("\n**Runtime** `")
+    assert "\n\n**Started At** `" in description
+    assert "FrameX Version" not in description
+    assert "vNone" not in description
+    assert "🟢" not in description
+    assert "\n---\n" not in description
 
 
 class TestCreateFastAPIApplication:
@@ -67,6 +80,19 @@ class TestCreateFastAPIApplication:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.headers["cache-control"] == "no-store"
+
+    def test_docs_response_uses_runtime_plugin_status(self):
+        app = create_fastapi_application()
+        app.state.plugin_info_map = {
+            "loaded": RuntimePluginInfo(plugin_id="loaded"),
+            "failed": RuntimePluginInfo(plugin_id="failed", load_error="ImportError: unavailable"),
+        }
+
+        response = TestClient(app).get("/docs")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "Plugins: 1 loaded · 1 failed" in response.text
+        assert "ImportError: unavailable" in response.text
 
 
 class TestExceptionHandlers:
@@ -459,7 +485,9 @@ class TestDocsActionButtons:
         assert exc_info.value.detail == "OAuth authentication required"
         assert exc_info.value.headers is not None
         assert "X-FrameX-OAuth-Redirect" in exc_info.value.headers
-        assert "state=%2Fdocs" in exc_info.value.headers["X-FrameX-OAuth-Redirect"]
+        redirect_state = parse_qs(urlparse(exc_info.value.headers["X-FrameX-OAuth-Redirect"]).query)["state"][0]
+        assert redirect_state != "/docs"
+        assert OAUTH_STATE_COOKIE_NAME in exc_info.value.headers["Set-Cookie"]
 
     @pytest.mark.asyncio
     async def test_invoke_action_button_allows_oauth_wildcard_user(self, monkeypatch):
@@ -641,7 +669,9 @@ class TestDocsActionButtons:
         assert exc_info.value.detail == "OAuth authentication required"
         assert exc_info.value.headers is not None
         assert "X-FrameX-OAuth-Redirect" in exc_info.value.headers
-        assert "state=%2Fdocs" in exc_info.value.headers["X-FrameX-OAuth-Redirect"]
+        redirect_state = parse_qs(urlparse(exc_info.value.headers["X-FrameX-OAuth-Redirect"]).query)["state"][0]
+        assert redirect_state != "/docs"
+        assert OAUTH_STATE_COOKIE_NAME in exc_info.value.headers["Set-Cookie"]
 
     @pytest.mark.asyncio
     async def test_open_link_action_button_rejects_oauth_user_not_in_whitelist(self, monkeypatch):
