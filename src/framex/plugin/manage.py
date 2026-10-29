@@ -13,12 +13,13 @@ from importlib.abc import MetaPathFinder
 from importlib.machinery import ModuleSpec, PathFinder, SourceFileLoader
 from itertools import chain
 from pathlib import Path
-from types import ModuleType
+from types import CodeType, ModuleType
 
 from framex.config import settings
 from framex.log import logger
 from framex.plugin.model import ApiType, Plugin, PluginApi, PluginMetadata
-from framex.utils import escape_tag, path_to_module_name, shorten_str
+from framex.plugin.preflight import PluginPreflightError, find_source_spec, inspect_plugin_sources, source_module_name
+from framex.utils import escape_tag, shorten_str
 
 _PLUGIN_LOAD_ERROR_MAX_LENGTH = 300
 
@@ -46,6 +47,8 @@ class PluginManager:
         self._plugins: dict[str, Plugin] = {}
         self._plugin_apis: dict[ApiType, dict[str, PluginApi]] = defaultdict(dict)
         self._plugin_load_errors: dict[str, str] = {}
+        self._checked_sources: dict[str, CodeType] = {}
+        self._preflighted_plugins: set[str] = set()
 
     @property
     def all_plugin_apis(self) -> dict[ApiType, dict[str, PluginApi]]:
@@ -116,11 +119,15 @@ class PluginManager:
             else:
                 if (
                     plugin_path.endswith(".plugins")
-                    and (module := importlib.import_module(plugin_path))
-                    and hasattr(module, "__path__")
-                    and len(module.__path__) == 1
+                    and (spec := find_source_spec(plugin_path))
+                    and spec.submodule_search_locations
                 ):
-                    searched_plugins.add(str(module.__path__[0]))
+                    try:
+                        self._checked_sources.update(inspect_plugin_sources(plugin_path, scan_package=False))
+                    except Exception as error:
+                        self._record_load_error(_module_name_to_plugin_name(plugin_path), error)
+                        continue
+                    searched_plugins.update(spec.submodule_search_locations)
                 else:
                     third_party_plugins.add(plugin_path)
 
@@ -128,6 +135,8 @@ class PluginManager:
         for plugin in third_party_plugins:
             plugin_id = _module_name_to_plugin_name(plugin)
             if plugin_id in self._third_party_plugin_ids:
+                if self._third_party_plugin_ids[plugin_id] == plugin:
+                    continue
                 raise RuntimeError(f"Plugin already exists: {plugin_id}. Check for duplicate plugin names.")
 
             self._third_party_plugin_ids[plugin_id] = plugin
@@ -143,9 +152,11 @@ class PluginManager:
                 continue
             # get module name from path, pkgutil does not return the actual module name
             module_path = Path(module_spec.origin).resolve()
-            module_name = path_to_module_name(module_path)
+            module_name = source_module_name(module_path)
             plugin_id = module_name.rsplit(".", 1)[-1]
             if plugin_id in self._third_party_plugin_ids or plugin_id in self._searched_plugin_ids:
+                if self.controlled_modules[plugin_id] == module_name:
+                    continue
                 raise RuntimeError(f"Plugin already exists: {plugin_id}! Check your plugin name")
             self._searched_plugin_ids[plugin_id] = module_name
 
@@ -162,14 +173,16 @@ class PluginManager:
         try:
             # load using plugin id
             if name in self._third_party_plugin_ids:
-                module = importlib.import_module(self._third_party_plugin_ids[name])
+                module_name = self._third_party_plugin_ids[name]
             elif name in self._searched_plugin_ids:
-                module = importlib.import_module(self._searched_plugin_ids[name])
+                module_name = self._searched_plugin_ids[name]
             # load using module name
             elif name in self._third_party_plugin_ids.values() or name in self._searched_plugin_ids.values():
-                module = importlib.import_module(name)
+                module_name = name
             else:
                 raise RuntimeError(f"Plugin not found: {name}! Check your plugin name")
+            self._preflight_plugin(module_name)
+            module = importlib.import_module(module_name)
             if (plugin := getattr(module, "__plugin__", None)) is None or not isinstance(plugin, Plugin):
                 raise RuntimeError(
                     f"Module {module.__name__} is not loaded as a plugin! Make sure not to import it before loading."
@@ -180,11 +193,22 @@ class PluginManager:
             self._plugin_load_errors.pop(name, None)
             return plugin  # type: ignore
         except Exception as e:
-            self._plugin_load_errors[name] = _summarize_plugin_load_error(e)
-            logger.opt(colors=True, exception=e if not self.silent else False).error(
-                f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>, reason: {e}'
-            )
+            self._record_load_error(name, e)
             return None
+
+    def _record_load_error(self, name: str, error: Exception) -> None:
+        self._plugin_load_errors[name] = _summarize_plugin_load_error(error)
+        logger.opt(colors=True, exception=error if not self.silent else False).error(
+            f'<r><bg #f8bbd0>Failed to import "{escape_tag(name)}"</bg #f8bbd0></r>, reason: {escape_tag(str(error))}'
+        )
+
+    def _preflight_plugin(self, module_name: str) -> None:
+        plugin_id = _module_name_to_plugin_name(module_name)
+        if plugin_id in self._plugin_load_errors:
+            raise PluginPreflightError(f"Plugin disabled for this run: {plugin_id}")
+        if module_name not in self._preflighted_plugins:
+            self._checked_sources.update(inspect_plugin_sources(module_name))
+            self._preflighted_plugins.add(module_name)
 
     def new_plugin(
         self,
@@ -225,6 +249,11 @@ class PluginFinder(MetaPathFinder):
         from . import _manager
 
         if _manager:
+            if code := _manager._checked_sources.get(fullname):
+                loader_type = PluginLoader if fullname in _manager.controlled_modules.values() else CheckedSourceLoader
+                return importlib.util.spec_from_file_location(
+                    fullname, code.co_filename, loader=loader_type(fullname, code.co_filename)
+                )
             module_spec = PathFinder.find_spec(fullname, path, target)
             if not module_spec:
                 return None
@@ -237,7 +266,16 @@ class PluginFinder(MetaPathFinder):
         return None
 
 
-class PluginLoader(SourceFileLoader):
+class CheckedSourceLoader(SourceFileLoader):
+    def get_code(self, fullname: str) -> CodeType | None:
+        from . import _manager
+
+        if code := _manager._checked_sources.get(fullname):
+            return code
+        return super().get_code(fullname)
+
+
+class PluginLoader(CheckedSourceLoader):
     def __init__(self, fullname: str, path: str) -> None:
         self.loaded = False
         super().__init__(fullname, path)
@@ -253,6 +291,12 @@ class PluginLoader(SourceFileLoader):
             return
 
         from . import _manager
+
+        try:
+            _manager._preflight_plugin(self.name)
+        except Exception as error:
+            _manager._record_load_error(_module_name_to_plugin_name(self.name), error)
+            raise
 
         # create plugin before executing
         plugin = _manager.new_plugin(

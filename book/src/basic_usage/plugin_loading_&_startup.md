@@ -130,6 +130,18 @@ The normal startup sequence is:
 
 If you are using configuration-based loading, `framex.run()` reads the configured plugin lists and starts the runtime.
 
+## Source Preflight
+
+FrameX automatically checks external algorithm plugins before importing them. Package plugins are checked as a whole, including unused submodules. Single-file plugins are checked together with statically resolvable local imports and parent package initializers. Plugin discovery does not import packages to locate their children.
+
+Algorithm plugins expose interfaces through `@on_request(...)`; they do not assemble the host Web application. Preflight rejects access to `framex.driver.ingress` or `framex.driver.application`, application lifecycle and middleware changes, route and exception-handler modifications, and creation of FastAPI or Starlette applications. Import aliases and direct assignment aliases are checked too. Normal request, response, upload, Pydantic, and `CacheContext` types remain available.
+
+Use explicit imports. Wildcard imports, dynamic code execution, unresolved dynamic import targets, unreadable source, and plugin entrypoints without Python source are rejected. Framework-owned built-in plugins are identified by their source location rather than a third-party module name.
+
+A rejected plugin executes no entrypoint or parent initializer through the FrameX loader, registers no interfaces or deployments, and is not retried during that startup. Other independent plugins continue loading. Logs and the docs plugin status show the source location and rejection reason. Source snapshots are used for admitted modules instead of cached bytecode; restart after changing plugin source. Installed packages are retained for diagnosis.
+
+Preflight is a static contract check, not a security sandbox. It cannot prove arbitrary Python code safe or inspect every behavior of third-party dependencies. Untrusted code still requires execution isolation.
+
 ## Rule of Thumb
 
 Use this simple rule:

@@ -6,9 +6,17 @@ import pytest
 from click.testing import CliRunner
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic_settings import DotEnvSettingsSource, TomlConfigSettingsSource
 
-import framex
-from framex.config import settings
+# Bootstrap from pytest.ini's environment without merging developer config files.
+# Restore the readers immediately so configuration tests still exercise real files.
+with (
+    patch.object(TomlConfigSettingsSource, "_read_files", return_value={}),
+    patch.object(DotEnvSettingsSource, "_read_env_files", return_value={}),
+):
+    import framex
+    from framex.config import settings
+
 from tests.mock import mock_get, mock_repository_fetch_json, mock_request
 
 TEST_AUTH_RULES = {
