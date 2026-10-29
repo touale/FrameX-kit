@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.4.3 (2026-10-29)
+
+### Chores
+
+- **deps**: Bump the uv group across 1 directory with 4 updates
+  ([`1fa196a`](https://github.com/touale/FrameX-kit/commit/1fa196a0b04a5149ad89c3bfaa3b2ee4157c7c67))
+
+- **deps**: Bump virtualenv
+  ([`c566e4b`](https://github.com/touale/FrameX-kit/commit/c566e4b73a74240a321ba0a9054f57ccb57cfa98))
+
+### Features
+
+- Check plugin sources before loading
+  ([`3a8891e`](https://github.com/touale/FrameX-kit/commit/3a8891ec548c60b5a1c3cf2696886a12695852c0))
+
+
 ## v0.4.2 (2026-10-21)
 
 ### Bug Fixes
