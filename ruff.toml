@@ -66,6 +66,7 @@ extend-select = [
 ]
 
 ignore = [
+  "BLE001", # Keep exception handling at plugin and cache boundaries
   "B008",   # Do not perform function calls in argument defaults
   "B009",   # get-attr-with-constant
   "B010",   # set-attr-with-constant
@@ -78,7 +79,11 @@ ignore = [
   "E501", # Line too long
 ]
 
+[format]
+exclude = ["*.md", "*.markdown"] # Markdown is formatted by mdformat
+
 [lint.per-file-ignores]
+"tests/plugins/error_import.py" = ["TRY002"]
 "tests/**/*.py" = [
   "S101",
   "ANN201",
