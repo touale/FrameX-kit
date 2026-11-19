@@ -278,7 +278,7 @@ class APIIngress:
             if (
                 isinstance(route, APIRoute)
                 and re.sub(r"\{[^}]+\}", "{}", route.path) == norm_path
-                and route.methods & method_set
+                and (route.methods is None or route.methods & method_set)
             ):
                 raise RuntimeError(f"Duplicate API route: {sorted(method_set)} {norm_path}")
 
