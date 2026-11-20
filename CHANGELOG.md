@@ -2,6 +2,34 @@
 
 <!-- version list -->
 
+## v0.4.4 (2026-11-20)
+
+### Bug Fixes
+
+- Preserve plugin error details in HTTP and SSE
+  ([`fa4a349`](https://github.com/touale/FrameX-kit/commit/fa4a34949819ee0f8f3d045bdcb619a9690c4ab3))
+
+### Chores
+
+- **deps**: Bump fastapi from 0.136.3 to 0.162.0
+  ([`4e38f34`](https://github.com/touale/FrameX-kit/commit/4e38f34e796a21fa0f4b15b5bafdff6ffbdcdbfa))
+
+- **deps**: Bump pyasn1
+  ([`ec0195b`](https://github.com/touale/FrameX-kit/commit/ec0195b3361dd618f6d6fca30ea1060bd4f7b07e))
+
+- **deps**: Bump python-semantic-release from 10.6.1 to 10.7.0
+  ([`bad8694`](https://github.com/touale/FrameX-kit/commit/bad86943b12605c41d9a2f49528cfe74b4692976))
+
+- **deps-dev**: Bump coverage from 7.15.4 to 7.17.0
+  ([`80a2b96`](https://github.com/touale/FrameX-kit/commit/80a2b968d111419a0c69386cb1733295b3964edd))
+
+- **deps-dev**: Bump pytest-recording from 0.13.4 to 0.14.0
+  ([`50857f0`](https://github.com/touale/FrameX-kit/commit/50857f01d20527576f432d7771afa325395b756c))
+
+- **deps-dev**: Bump types-pytz
+  ([`69f2739`](https://github.com/touale/FrameX-kit/commit/69f27392d8fc00d4e191253a7fe17cc53bb0099b))
+
+
 ## v0.4.3 (2026-10-29)
 
 ### Chores
