@@ -44,6 +44,7 @@ from framex.driver.auth import (
     get_auth_payload,
     oauth_callback,
 )
+from framex.driver.errors import format_plugin_error
 from framex.repository import (
     can_access_repository,
     get_latest_repository_release,
@@ -89,10 +90,13 @@ def _stream_error_response(
     status_code: int,
     message: Any,
     *,
+    code: str | None = None,
     detail: Any | None = None,
     headers: dict[str, str] | None = None,
 ) -> StreamingResponse:
     data = {"status": status_code, "message": message}
+    if code is not None:
+        data["code"] = code
     if detail is not None:
         data["detail"] = detail
     return StreamingResponse(
@@ -447,18 +451,16 @@ def create_fastapi_application() -> FastAPI:
 
     @application.exception_handler(Exception)
     async def _general_exception_handler(request, exc):  # noqa
+        if getattr(request.state, "normalize_plugin_errors", False):
+            error: dict[str, Any] = dict(format_plugin_error(exc))
+        else:
+            error = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR, "message": safe_error_message(exc)}
         if _is_stream_route(request):
-            return _stream_error_response(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                safe_error_message(exc),
-            )
+            return _stream_error_response(error["status"], error["message"], code=error.get("code"))
+        error["timestamp"] = pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
         return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "status": 500,
-                "message": safe_error_message(exc),
-                "timestamp": pytz.timezone("Asia/Shanghai").localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
-            },
+            status_code=error["status"],
+            content=error,
         )
 
     async def log_response(request: Request, call_next: Callable) -> Any:  # pragma: no cover

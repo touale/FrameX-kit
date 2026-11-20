@@ -643,6 +643,7 @@ dependencies = [
 
 [package.optional-dependencies]
 ray = [
+    { name = "jinja2" },
     { name = "ray", extra = ["serve"] },
 ]
 release = [
@@ -653,6 +654,7 @@ release = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "jinja2" },
     { name = "mypy" },
     { name = "poethepoet" },
     { name = "pre-commit" },
@@ -662,6 +664,7 @@ dev = [
     { name = "pytest-env" },
     { name = "pytest-order" },
     { name = "pytest-recording" },
+    { name = "ray", extra = ["serve"] },
     { name = "ruff" },
     { name = "types-pytz" },
     { name = "types-pyyaml" },
@@ -673,6 +676,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.8" },
     { name = "fastapi", specifier = ">=0.115.13,<1.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "jinja2", marker = "extra == 'ray'", specifier = ">=3.1.6" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "poethepoet", marker = "extra == 'release'", specifier = ">=0.36.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
@@ -690,6 +694,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = ">=7.9.2" },
+    { name = "framex-kit", extras = ["ray"] },
     { name = "mypy", specifier = ">=1.16.1" },
     { name = "poethepoet", specifier = ">=0.36.0" },
     { name = "pre-commit", specifier = ">=4.2.0" },

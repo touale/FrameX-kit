@@ -1,12 +1,18 @@
 import asyncio
+import json
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import httpx
 import pytest
-from fastapi import Response
+from fastapi import HTTPException, Response
 from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
 from starlette.routing import Route
 
 from framex.config import settings
+from framex.consts import API_STR, PROXY_PLUGIN_NAME
+from framex.driver.application import create_fastapi_application
 from framex.driver.auth import api_key_header
 from framex.driver.ingress import APIIngress
 
@@ -217,7 +223,7 @@ async def test_register_route_stream_does_not_await_async_iterable_response(ingr
 async def test_register_route_stream_converts_iteration_error_to_sse_event(ingress, mock_app):
     async def failing_stream():
         yield "first"
-        raise RuntimeError("sensitive details")
+        raise RuntimeError("The report is unavailable.\nTry again later.")
 
     adapter = Mock()
     adapter._stream_call.return_value = failing_stream()
@@ -225,10 +231,181 @@ async def test_register_route_stream_converts_iteration_error_to_sse_event(ingre
 
     chunks = await collect_stream_response(endpoint)
 
-    assert chunks == [
-        "first",
-        'event: error\ndata: {"status": 500, "message": "sensitive details"}\n\n',
-    ]
+    first, event = chunks
+    assert first == "first"
+    assert event.startswith("event: error\ndata: ")
+    assert json.loads(event.removeprefix("event: error\ndata: ")) == {
+        "status": 500,
+        "message": "The report is unavailable. Try again later.",
+        "code": "INTERNAL_SERVER_ERROR",
+    }
+
+
+class StructuredUpstreamError(Exception):
+    def __init__(self, status_code, body):
+        super().__init__("Private exception wrapper")
+        self.status_code = status_code
+        self.body = body
+
+
+class DetailedError(Exception):
+    detail = "The report format is unsupported."
+    code = "UNSUPPORTED_REPORT_FORMAT"
+
+
+def register_failing_plugin_route(ingress, monkeypatch, invoke, *, stream=False, deployment_name="demo.Deployment"):
+    app = create_fastapi_application()
+    monkeypatch.setattr("framex.driver.ingress.app", app)
+    handle = SimpleNamespace(deployment_name=deployment_name, invoke=invoke)
+    path = f"{API_STR}/test-plugin-error"
+    assert ingress.register_route(path, ["GET"], "invoke", [], handle, stream=stream)
+    return TestClient(app, raise_server_exceptions=False).get(path)
+
+
+@pytest.mark.parametrize("mode", ["json", "before_chunk", "after_chunk"])
+def test_plugin_error_preserves_structured_fields(ingress, monkeypatch, mode):
+    request_id = "test-request-123"
+    message = "Revise the input before retrying."
+    code = "InputRejected"
+    streaming = mode != "json"
+    error: Exception
+    if streaming:
+        request = httpx.Request("GET", "https://upstream.example.test/resource")
+        upstream = httpx.Response(
+            429,
+            request=request,
+            json={"message": f"{message} request_id={request_id}", "code": code},
+            headers={"X-Request-ID": request_id},
+        )
+        error = httpx.HTTPStatusError("Private exception wrapper", request=request, response=upstream)
+    else:
+        error = StructuredUpstreamError(
+            400,
+            {
+                "error": {
+                    "message": f"{message}\nRequest ID: {request_id}",
+                    "code": code,
+                    "debug": "Private diagnostic",
+                },
+                "request_id": request_id,
+            },
+        )
+    expected = {"status": 429 if streaming else 400, "message": message, "code": code}
+
+    async def fail():
+        raise error
+
+    async def failing_stream():
+        if mode == "after_chunk":
+            yield "event: message_chunk\ndata: chunk\n\n"
+        raise error
+
+    response = register_failing_plugin_route(
+        ingress, monkeypatch, failing_stream if streaming else fail, stream=streaming
+    )
+
+    if streaming:
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+        if mode == "after_chunk":
+            assert response.text.startswith("event: message_chunk\ndata: chunk\n\n")
+        assert response.text.count("event: error\n") == 1
+        _, _, data = response.text.partition("event: error\ndata: ")
+        assert json.loads(data) == expected
+    else:
+        assert response.status_code == expected["status"]
+        payload = response.json()
+        assert payload.pop("timestamp")
+        assert payload == expected
+
+    for private_value in (request_id, "Private exception wrapper", "Private diagnostic", "Traceback"):
+        assert private_value not in response.text
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (
+            StructuredUpstreamError(418, {"error": {"message": ["private"], "code": "malformed code"}}),
+            {"status": 418, "message": "I'm a Teapot", "code": "HTTP_418"},
+        ),
+        (
+            StructuredUpstreamError(200, {"detail": "The operation could not be completed."}),
+            {"status": 500, "message": "The operation could not be completed.", "code": "INTERNAL_SERVER_ERROR"},
+        ),
+        (
+            ValueError("Invalid date range."),
+            {"status": 500, "message": "Invalid date range.", "code": "INTERNAL_SERVER_ERROR"},
+        ),
+        (
+            DetailedError(),
+            {"status": 500, "message": "The report format is unsupported.", "code": "UNSUPPORTED_REPORT_FORMAT"},
+        ),
+        (
+            RuntimeError(),
+            {"status": 500, "message": "Internal Server Error", "code": "INTERNAL_SERVER_ERROR"},
+        ),
+    ],
+)
+def test_plugin_error_uses_safe_fallback(ingress, monkeypatch, error, expected):
+    async def fail():
+        raise error
+
+    response = register_failing_plugin_route(ingress, monkeypatch, fail)
+    assert response.status_code == expected["status"]
+    payload = response.json()
+    assert payload.pop("timestamp")
+    assert payload == expected
+
+
+def test_plugin_error_uses_explicit_cause_when_wrapper_has_no_message(ingress, monkeypatch):
+    async def fail():
+        raise RuntimeError from KeyError("report_id")
+
+    response = register_failing_plugin_route(ingress, monkeypatch, fail)
+
+    assert response.status_code == 500
+    assert response.json()["message"] == "'report_id'"
+    assert response.json()["code"] == "INTERNAL_SERVER_ERROR"
+
+
+def test_non_json_plugin_upstream_error_uses_status_phrase(ingress, monkeypatch):
+    request = httpx.Request("GET", "https://upstream.example.test/resource")
+    upstream = httpx.Response(502, request=request, text="Private upstream diagnostic")
+
+    async def fail():
+        upstream.raise_for_status()
+
+    response = register_failing_plugin_route(ingress, monkeypatch, fail)
+    assert response.status_code == 502
+    payload = response.json()
+    assert payload.pop("timestamp")
+    assert payload == {"status": 502, "message": "Bad Gateway", "code": "HTTP_502"}
+
+
+def test_plugin_explicit_http_exception_keeps_existing_envelope(ingress, monkeypatch):
+    async def fail():
+        raise HTTPException(status_code=409, detail="Explicit plugin message", headers={"X-Test": "preserved"})
+
+    response = register_failing_plugin_route(ingress, monkeypatch, fail)
+    assert response.status_code == 200
+    assert response.headers["x-test"] == "preserved"
+    payload = response.json()
+    assert payload.pop("timestamp")
+    assert payload == {"status": 409, "message": "Explicit plugin message"}
+
+
+def test_builtin_proxy_stream_preserves_existing_error(ingress, monkeypatch):
+    async def failing_stream():
+        yield "first\n\n"
+        raise RuntimeError("Proxy stream failed")
+
+    response = register_failing_plugin_route(
+        ingress, monkeypatch, failing_stream, stream=True, deployment_name=PROXY_PLUGIN_NAME
+    )
+
+    assert response.status_code == 200
+    assert response.text == 'first\n\nevent: error\ndata: {"status": 500, "message": "Proxy stream failed"}\n\n'
 
 
 async def test_register_route_stream_awaits_generator_factory(ingress, mock_app):

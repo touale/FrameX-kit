@@ -73,12 +73,15 @@ async def main() -> None:
             async with httpx.AsyncClient() as client:
                 docs_response = await client.get("http://127.0.0.1:__SERVER_PORT__/docs")
                 docs_response.raise_for_status()
+                error_response = await client.get("http://127.0.0.1:__SERVER_PORT__/api/v1/service_error")
             output_path.write_text(
                 json.dumps(
                     {
                         "result": result,
                         "plugin_status": "Plugins: 2 loaded · 1 failed" in docs_response.text,
                         "plugin_error": "RuntimeError: Ray plugin import failed" in docs_response.text,
+                        "error_status": error_response.status_code,
+                        "error_response": error_response.json(),
                     }
                 ),
                 encoding="utf-8",
@@ -134,6 +137,14 @@ finally:
             assert payload["result"] == "ray-ok"
             assert payload["plugin_status"] is True
             assert payload["plugin_error"] is True
+            assert payload["error_status"] == 500
+            error = payload["error_response"]
+            assert error.pop("timestamp")
+            assert error == {
+                "status": 500,
+                "message": "The requested report format is invalid.",
+                "code": "INTERNAL_SERVER_ERROR",
+            }
         finally:
             if proc.poll() is None:
                 proc.terminate()

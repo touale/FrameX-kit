@@ -25,6 +25,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "coverage>=7.9.2",
+  "framex-kit[ray]",
   "mypy>=1.16.1",
   "poethepoet>=0.36.0",
   "pre-commit>=4.2.0",
@@ -44,7 +45,7 @@ dev = [
 framex = "framex.cli:framex"
 
 [project.optional-dependencies]
-ray = ["ray[serve]==2.57.0"]
+ray = ["jinja2>=3.1.6", "ray[serve]==2.57.0"]
 release = ["poethepoet>=0.36.0", "python-semantic-release>=10.5.3"]
 
 

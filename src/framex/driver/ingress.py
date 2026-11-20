@@ -12,11 +12,12 @@ from starlette.routing import Route
 
 from framex.adapter import get_adapter
 from framex.config import settings
-from framex.consts import BACKEND_NAME, CACHE_STATUS_HEADER, CacheStatus
+from framex.consts import BACKEND_NAME, CACHE_STATUS_HEADER, PROXY_PLUGIN_NAME, CacheStatus
 from framex.driver.application import create_fastapi_application
 from framex.driver.auth import api_key_header, auth_jwt
 from framex.driver.cache import request_cache
 from framex.driver.decorator import api_ingress
+from framex.driver.errors import format_plugin_error
 from framex.log import setup_logger
 from framex.plugin.model import ApiType, PluginApi, RuntimePluginInfo
 from framex.utils import StreamEnventType, escape_tag, make_stream_event, shorten_str
@@ -116,6 +117,7 @@ class APIIngress:
                 params,
                 reserved={framex_request_param},
             )
+            normalize_plugin_errors = handle.deployment_name != PROXY_PLUGIN_NAME
 
             def _verify_api_key(request: Request, api_key: str | None = Depends(api_key_header)) -> None:
                 if auth_keys is not None and (api_key is None or api_key not in auth_keys) and (not auth_jwt(request)):
@@ -128,6 +130,7 @@ class APIIngress:
             async def route_handler(**request_kwargs: Any) -> Any:
                 framex_request: Request = request_kwargs.pop(framex_request_param)
                 framex_response: Response = request_kwargs.pop(framex_response_param)
+                framex_request.state.normalize_plugin_errors = normalize_plugin_errors
                 c_handle = getattr(handle, func_name)
                 if not c_handle:
                     raise RuntimeError(
@@ -146,24 +149,18 @@ class APIIngress:
                             chunks = gen if isinstance(gen, AsyncIterable) else iterate_in_threadpool(iter(gen))
                             async for chunk in chunks:
                                 yield chunk
-                        except HTTPException as e:
-                            logger.opt(exception=e, colors=True).error(
-                                f"<r>Failed to stream api({methods}): {path} "
-                                f"from {handle.deployment_name}.{func_name}</r>"
-                            )
-                            yield make_stream_event(
-                                StreamEnventType.ERROR,
-                                {"status": e.status_code, "message": e.detail},
-                            )
                         except Exception as e:
                             logger.opt(exception=e, colors=True).error(
                                 f"<r>Failed to stream api({methods}): {path} "
                                 f"from {handle.deployment_name}.{func_name}</r>"
                             )
-                            yield make_stream_event(
-                                StreamEnventType.ERROR,
-                                {"status": 500, "message": safe_error_message(e)},
-                            )
+                            if isinstance(e, HTTPException):
+                                error: dict[str, Any] = {"status": e.status_code, "message": e.detail}
+                            elif normalize_plugin_errors:
+                                error = dict(format_plugin_error(e))
+                            else:
+                                error = {"status": 500, "message": safe_error_message(e)}
+                            yield make_stream_event(StreamEnventType.ERROR, error)
 
                     return StreamingResponse(  # type: ignore
                         stream_with_error(),

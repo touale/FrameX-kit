@@ -30,3 +30,7 @@ class RayServiceCallerPlugin(BasePlugin):
     @on_request("/service_echo", methods=["GET"])
     async def service_echo(self, message: str) -> str:
         return await self.service.echo(message)
+
+    @on_request("/service_error", methods=["GET"])
+    async def service_error(self) -> None:
+        raise ValueError("The requested report format is invalid.")
